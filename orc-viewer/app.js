@@ -4,7 +4,7 @@
 // CONFIGURATION
 // ============================================
 const MIDEVIL_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
-const PLACEHOLDER_IMAGE = '../orclogo.jpg';
+const PLACEHOLDER_IMAGE = '/orclogo.jpg';
 
 // ============================================
 // DOM ELEMENTS
