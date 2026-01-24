@@ -96,17 +96,15 @@ async function fetchCollection() {
                     return;
                 }
 
-                // Only include Orcs - check if any trait contains "Orc"
-                const isOrc = Object.values(traits).some(value =>
-                    value.toLowerCase().includes('orc')
-                );
+                // Only include Orcs - check if name contains "Orc"
+                const isOrc = name.toLowerCase().includes('orc');
 
                 if (!isOrc) {
                     return; // Skip non-Orcs
                 }
 
                 const number = extractNumber(name);
-                const displayName = `Orc #${number}`;
+                const displayName = name;
 
                 allNFTs.push({
                     id: nft.id,
