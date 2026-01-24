@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orc NFT Viewer | The Horde</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-overlay"></div>
+
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <a href="/" class="logo-link">
+                    <img src="../orclogo.jpg" alt="The Horde" class="logo-img">
+                    <span class="logo-text">The Horde</span>
+                </a>
+                <div class="header-controls">
+                    <select id="sortSelect" class="header-select">
+                        <option value="number">Sort by Number</option>
+                        <option value="random">Random</option>
+                    </select>
+                    <div class="search-wrapper">
+                        <input type="text" id="searchInput" class="search-input" placeholder="Search by ID #">
+                        <button id="searchBtn" class="search-btn">Search</button>
+                    </div>
+                </div>
+                <div class="header-stats">
+                    <span id="totalCount" class="stat">0 Orcs</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Sidebar Filters -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <h2>Filters</h2>
+                    <button id="clearFilters" class="clear-btn">Clear All</button>
+                </div>
+
+                <div id="filterGroups" class="filter-groups"></div>
+            </aside>
+
+            <!-- Gallery -->
+            <section class="gallery-container">
+                <!-- Mobile Filter Toggle -->
+                <button id="filterToggle" class="filter-toggle">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="4" y1="6" x2="20" y2="6"></line>
+                        <line x1="4" y1="12" x2="20" y2="12"></line>
+                        <line x1="4" y1="18" x2="20" y2="18"></line>
+                    </svg>
+                    Filters
+                </button>
+
+                <!-- Active Filters -->
+                <div id="activeFilters" class="active-filters"></div>
+
+                <!-- Loading State -->
+                <div id="loading" class="loading">
+                    <div class="loader"></div>
+                    <p>Summoning The Horde...</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="error" class="error" style="display: none;"></div>
+
+                <!-- NFT Grid -->
+                <div id="nftGrid" class="nft-grid"></div>
+            </section>
+        </main>
+
+        <!-- NFT Details Modal -->
+        <div id="detailsModal" class="modal" style="display: none;">
+            <div class="modal-content details-modal">
+                <button id="closeDetails" class="close-btn modal-close">&times;</button>
+                <img id="detailsImage" src="" alt="" class="details-image">
+                <h2 id="detailsTitle" class="details-title"></h2>
+                <div id="detailsTraits" class="details-traits"></div>
+                <div id="detailsMint" class="details-mint"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
