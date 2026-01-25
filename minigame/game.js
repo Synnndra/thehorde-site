@@ -850,64 +850,55 @@ class Game {
 
     drawPaths() {
         const ctx = this.ctx;
+        const hasPathSprite = typeof spriteManager !== 'undefined' && spriteManager.has('map', 'path');
+        const hasGrassSprite = typeof spriteManager !== 'undefined' && spriteManager.has('map', 'grass');
+        const pathSprite = hasPathSprite ? spriteManager.get('map', 'path') : null;
+        const grassSprite = hasGrassSprite ? spriteManager.get('map', 'grass') : null;
 
-        // Draw tiles using canvas (isometric sprites don't work well with square grid)
         for (let y = 0; y < this.currentMap.gridHeight; y++) {
             for (let x = 0; x < this.currentMap.gridWidth; x++) {
                 const px = x * this.cellSize;
                 const py = y * this.cellSize;
                 const cellType = this.currentMap.buildableAreas[y][x];
 
-                // Draw grass tiles (buildable areas) with texture
+                // Draw grass tiles (buildable areas)
                 if (cellType === 1) {
-                    // Base grass color
-                    ctx.fillStyle = '#2d4a2d';
-                    ctx.fillRect(px, py, this.cellSize, this.cellSize);
-
-                    // Add grass texture
-                    ctx.fillStyle = 'rgba(60, 90, 60, 0.5)';
-                    for (let i = 0; i < 6; i++) {
-                        const gx = px + (Math.sin(x * 7 + i * 13) * 0.5 + 0.5) * this.cellSize * 0.8 + this.cellSize * 0.1;
-                        const gy = py + (Math.cos(y * 11 + i * 17) * 0.5 + 0.5) * this.cellSize * 0.8 + this.cellSize * 0.1;
-                        ctx.beginPath();
-                        ctx.arc(gx, gy, 2, 0, Math.PI * 2);
-                        ctx.fill();
+                    if (grassSprite) {
+                        ctx.drawImage(grassSprite, px, py, this.cellSize, this.cellSize);
+                    } else {
+                        ctx.fillStyle = '#2d4a2d';
+                        ctx.fillRect(px, py, this.cellSize, this.cellSize);
+                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(px, py, this.cellSize, this.cellSize);
                     }
-
-                    // Subtle grid lines
-                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
-                    ctx.lineWidth = 1;
-                    ctx.strokeRect(px, py, this.cellSize, this.cellSize);
                 }
 
                 // Draw path tiles
                 if (cellType === 2) {
-                    // Base path color
-                    ctx.fillStyle = this.currentMap.pathColor || '#3d2817';
-                    ctx.fillRect(px, py, this.cellSize, this.cellSize);
+                    if (pathSprite) {
+                        ctx.drawImage(pathSprite, px, py, this.cellSize, this.cellSize);
+                    } else {
+                        ctx.fillStyle = this.currentMap.pathColor || '#3d2817';
+                        ctx.fillRect(px, py, this.cellSize, this.cellSize);
 
-                    // Draw cobblestones
-                    ctx.fillStyle = 'rgba(80, 60, 40, 0.5)';
-                    const stoneSize = this.cellSize / 4;
-                    for (let sy = 0; sy < 4; sy++) {
-                        for (let sx = 0; sx < 4; sx++) {
-                            const offset = (sy % 2) * (stoneSize / 2);
-                            ctx.beginPath();
-                            ctx.roundRect(
-                                px + sx * stoneSize + offset + 1,
-                                py + sy * stoneSize + 1,
-                                stoneSize - 2,
-                                stoneSize - 2,
-                                2
-                            );
-                            ctx.fill();
+                        ctx.fillStyle = 'rgba(80, 60, 40, 0.5)';
+                        const stoneSize = this.cellSize / 4;
+                        for (let sy = 0; sy < 4; sy++) {
+                            for (let sx = 0; sx < 4; sx++) {
+                                const offset = (sy % 2) * (stoneSize / 2);
+                                ctx.beginPath();
+                                ctx.roundRect(
+                                    px + sx * stoneSize + offset + 1,
+                                    py + sy * stoneSize + 1,
+                                    stoneSize - 2,
+                                    stoneSize - 2,
+                                    2
+                                );
+                                ctx.fill();
+                            }
                         }
                     }
-
-                    // Path edge shadows
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-                    ctx.fillRect(px, py, this.cellSize, 2);
-                    ctx.fillRect(px, py, 2, this.cellSize);
                 }
             }
         }
