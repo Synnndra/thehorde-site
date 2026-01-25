@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orc Collage Maker | The Horde</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/collage-maker/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="site-header">
+        <a href="/" class="logo-link">
+            <img src="/orclogo.jpg" alt="The Horde" class="logo-img">
+            <span class="logo-text">The Horde</span>
+        </a>
+    </header>
+
+    <!-- Main container for our app -->
+    <div class="container">
+        <!-- Header section -->
+        <h1>Orc Collage Maker</h1>
+        <p>Enter your Solana wallet address to create a collage of your Orcs</p>
+
+        <!-- Input section -->
+        <div class="input-section">
+            <label>Add up to 5 wallet addresses:</label>
+            <div class="wallet-inputs">
+                <input
+                    type="text"
+                    class="wallet-input"
+                    id="walletInput1"
+                    placeholder="Wallet address 1 (required)"
+                >
+                <input
+                    type="text"
+                    class="wallet-input"
+                    id="walletInput2"
+                    placeholder="Wallet address 2 (optional)"
+                >
+                <input
+                    type="text"
+                    class="wallet-input"
+                    id="walletInput3"
+                    placeholder="Wallet address 3 (optional)"
+                >
+                <input
+                    type="text"
+                    class="wallet-input"
+                    id="walletInput4"
+                    placeholder="Wallet address 4 (optional)"
+                >
+                <input
+                    type="text"
+                    class="wallet-input"
+                    id="walletInput5"
+                    placeholder="Wallet address 5 (optional)"
+                >
+            </div>
+            <button id="fetchButton">Summon Orcs</button>
+        </div>
+
+        <!-- Sort Controls -->
+        <div id="sortSection" class="sort-section" style="display: none;">
+            <div class="section-header">
+                <h3>Sort Orcs</h3>
+                <button id="sortToggleBtn" class="toggle-btn">−</button>
+            </div>
+            <div id="sortContent" class="section-content">
+                <div class="sort-controls">
+                    <label for="sortSelect">Sort by:</label>
+                    <select id="sortSelect">
+                        <option value="default">Default Order</option>
+                        <option value="number">Orc Number</option>
+                        <option value="background" selected>Background Color</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter by Traits -->
+        <div id="filterSection" class="filter-section" style="display: none;">
+            <div class="section-header">
+                <h3>Filter by Traits</h3>
+                <button id="filterToggleBtn" class="toggle-btn">−</button>
+            </div>
+            <div id="filterContent" class="section-content">
+                <div id="filterControls" class="filter-controls"></div>
+                <button id="clearFiltersBtn" class="clear-filters-btn">Clear All Filters</button>
+            </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div id="quickActions" class="quick-actions" style="display: none;">
+            <div class="quick-filters">
+                <label class="training-filter">
+                    <span class="training-label">⚔️ Status:</span>
+                    <select id="trainingFilterSelect">
+                        <option value="all">All</option>
+                        <option value="training">Training</option>
+                        <option value="not-training">Not Training</option>
+                    </select>
+                </label>
+            </div>
+            <button id="selectAllBtn" class="select-all-btn">Select All Orcs</button>
+            <p class="drag-hint">💡 Tip: You can arrange your Orcs in the collage preview!</p>
+        </div>
+
+        <!-- Loading message -->
+        <div id="loading" class="loading" style="display: none;">
+            Summoning The Horde... This may take a moment.
+        </div>
+
+        <!-- Error message -->
+        <div id="error" class="error" style="display: none;"></div>
+
+        <!-- Selection controls -->
+        <div id="selectionControls" class="selection-controls" style="display: none;">
+            <div class="selection-info">
+                <span id="selectedCount">0 Orcs selected</span>
+            </div>
+            <button id="createCollageBtn" class="collage-btn" disabled>Create Collage</button>
+            <button id="clearSelectionBtn" class="clear-btn">Clear Selection</button>
+        </div>
+
+        <!-- Container where NFTs will be displayed -->
+        <div id="nftContainer" class="nft-container"></div>
+    </div>
+
+    <!-- Collage Preview Modal -->
+    <div id="previewModal" class="preview-modal" style="display: none;">
+        <div class="preview-content">
+            <div class="preview-header">
+                <h2>Arrange Your Horde - Drag to Reorder</h2>
+                <button id="closePreviewBtn" class="close-preview-btn">&times;</button>
+            </div>
+            <div class="layout-controls">
+                <label for="layoutSelect">Layout:</label>
+                <select id="layoutSelect">
+                    <option value="auto-square">Auto-Square</option>
+                    <option value="wide">Wide (more columns)</option>
+                    <option value="tall">Tall (more rows)</option>
+                    <option value="twitter-header">Twitter Header (3:1)</option>
+                    <option value="phone-wallpaper">Phone Wallpaper (9:19.5)</option>
+                    <option value="montage">Montage (Mixed Sizes)</option>
+                </select>
+                <div class="spacing-control">
+                    <label for="spacingSlider">Spacing: <span id="spacingValue">15</span>px</label>
+                    <input type="range" id="spacingSlider" min="0" max="30" value="15">
+                </div>
+            </div>
+            <div class="preview-body">
+                <div id="previewGrid" class="preview-grid"></div>
+            </div>
+            <div class="preview-footer">
+                <button id="downloadCollageBtn" class="download-btn">Download PNG</button>
+                <button id="cancelPreviewBtn" class="cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NFT Details Modal -->
+    <div id="nftDetailsModal" class="preview-modal" style="display: none;">
+        <div class="preview-content nft-details-content">
+            <div class="preview-header">
+                <h2 id="nftDetailsName">Orc Details</h2>
+                <button id="closeDetailsBtn" class="close-preview-btn">&times;</button>
+            </div>
+            <div class="preview-body nft-details-body">
+                <div class="nft-details-image">
+                    <img id="nftDetailsImage" src="" alt="Orc Image">
+                </div>
+                <div class="nft-details-info">
+                    <div class="nft-details-section">
+                        <h3>Description</h3>
+                        <p id="nftDetailsDescription"></p>
+                    </div>
+                    <div class="nft-details-section">
+                        <h3>Traits</h3>
+                        <div id="nftDetailsTraits" class="traits-grid"></div>
+                    </div>
+                    <div class="nft-details-section">
+                        <h3>Mint Address</h3>
+                        <p id="nftDetailsMint" class="mint-address"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/collage-maker/app.js"></script>
+</body>
+</html>
