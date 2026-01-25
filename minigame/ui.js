@@ -438,30 +438,57 @@ class GameUI {
 
     async fetchNFTs(walletAddress) {
         try {
-            // Use existing Helius API endpoint (you'd need to implement this on your backend)
-            const response = await fetch(`/api/nfts?wallet=${walletAddress}`);
+            this.walletStatus.textContent = `Connected: ${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)} | Fetching NFTs...`;
+
+            // Use existing Helius API endpoint with JSON-RPC format
+            const response = await fetch('/api/helius', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 'minigame-nfts',
+                    method: 'getAssetsByOwner',
+                    params: {
+                        ownerAddress: walletAddress,
+                        page: 1,
+                        limit: 1000,
+                        displayOptions: {
+                            showCollectionMetadata: true
+                        }
+                    }
+                })
+            });
 
             if (!response.ok) {
                 throw new Error('Failed to fetch NFTs');
             }
 
-            const nfts = await response.json();
+            const data = await response.json();
+            const nfts = data.result?.items || [];
 
-            // Filter for MidEvil Orcs
-            const midEvilOrcs = nfts.filter(nft =>
-                nft.collection?.name?.includes('MidEvil') ||
-                nft.name?.includes('MidEvil')
-            );
+            // MidEvil Orcs collection address
+            const MIDEVIL_COLLECTION = 'midFvstpjLmNjpECzD1P4WC16JdVvK6jQy5W6RH7gb';
+
+            // Filter for MidEvil Orcs by collection address
+            const midEvilOrcs = nfts.filter(nft => {
+                const collection = nft.grouping?.find(g => g.group_key === 'collection');
+                return collection?.group_value === MIDEVIL_COLLECTION ||
+                    nft.content?.metadata?.name?.toLowerCase().includes('midevil');
+            });
 
             if (midEvilOrcs.length > 0) {
-                this.walletStatus.textContent += ` | ${midEvilOrcs.length} MidEvil Orcs found!`;
+                this.walletStatus.textContent = `Connected: ${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)} | ${midEvilOrcs.length} MidEvil Orc${midEvilOrcs.length > 1 ? 's' : ''} found!`;
                 this.game.setNFTs(midEvilOrcs);
+
+                // Show bonus info
+                const bonusPercent = Math.min(midEvilOrcs.length * 5, 25);
+                this.walletStatus.textContent += ` (+${bonusPercent}% tower damage)`;
             } else {
-                this.walletStatus.textContent += ' | No MidEvil Orcs found';
+                this.walletStatus.textContent = `Connected: ${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)} | No MidEvil Orcs found`;
             }
         } catch (error) {
             console.error('NFT fetch error:', error);
-            // Continue without NFTs
+            this.walletStatus.textContent += ' | Failed to load NFTs';
         }
     }
 }
