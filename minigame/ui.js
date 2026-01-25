@@ -609,13 +609,26 @@ class GameUI {
             const data = await response.json();
             const nfts = data.result?.items || [];
 
-            // MidEvil Orcs collection address
+            // MidEvil Orcs collection addresses
             const MIDEVIL_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
+            const GRAVEYARD_COLLECTION = 'DpYLtgV5XcWPt3TM9FhXEh8uNg6QFYrj3zCGZxpcA3vF';
 
-            // Filter for MidEvil Orcs by collection address only
+            // Filter for MidEvil Orcs (same logic as collage-maker)
             const midEvilOrcs = nfts.filter(nft => {
-                const collection = nft.grouping?.find(g => g.group_key === 'collection');
-                return collection?.group_value === MIDEVIL_COLLECTION;
+                const grouping = nft.grouping || [];
+
+                // Check all collection groupings
+                const collections = grouping
+                    .filter(g => g.group_key === 'collection')
+                    .map(g => g.group_value);
+
+                const hasMidEvil = collections.includes(MIDEVIL_COLLECTION);
+                const hasGraveyard = collections.includes(GRAVEYARD_COLLECTION);
+                const name = nft.content?.metadata?.name || '';
+                const hasGraveyardInName = name.toLowerCase().includes('graveyard');
+                const isBurnt = nft.burnt === true;
+
+                return hasMidEvil && !hasGraveyard && !hasGraveyardInName && !isBurnt;
             });
 
             if (midEvilOrcs.length > 0) {
