@@ -722,6 +722,12 @@ class Game {
 
                 // Speed bonus for quick kills
                 const speedBonus = enemy.calculateSpeedBonus(this.gameTime);
+                console.log('Speed bonus check:', {
+                    timeAlive: (this.gameTime - enemy.spawnTime).toFixed(2),
+                    expectedTime: enemy.expectedTraverseTime.toFixed(2),
+                    threshold: (enemy.expectedTraverseTime * 0.5).toFixed(2),
+                    bonus: speedBonus
+                });
                 if (speedBonus > 0) {
                     this.stats.speedBonusPoints += speedBonus;
                     // Show speed bonus as floating text

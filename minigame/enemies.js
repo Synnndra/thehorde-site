@@ -220,25 +220,25 @@ class Enemy {
     }
 
     calculateExpectedTraverseTime() {
-        // Calculate total path distance
+        // Calculate total path distance in grid cells
         let totalDistance = 0;
         for (let i = 1; i < this.path.length; i++) {
             const dx = this.path[i].x - this.path[i - 1].x;
             const dy = this.path[i].y - this.path[i - 1].y;
-            totalDistance += Math.sqrt(dx * dx + dy * dy) * this.cellSize;
+            totalDistance += Math.sqrt(dx * dx + dy * dy);
         }
-        // Time = distance / speed (speed is cells per second, adjust for cellSize)
-        return totalDistance / (this.baseSpeed * this.cellSize * 0.8);
+        // Time = distance (cells) / speed (cells per second)
+        return totalDistance / this.baseSpeed;
     }
 
     calculateSpeedBonus(gameTime) {
         const timeAlive = gameTime - this.spawnTime;
         const expectedTime = this.expectedTraverseTime;
 
-        // If killed before 75% of expected traverse time, award bonus
-        if (timeAlive < expectedTime * 0.75) {
-            // Bonus scales from 100% (instant kill) to 0% (at 75% expected time)
-            const speedRatio = 1 - (timeAlive / (expectedTime * 0.75));
+        // If killed before 50% of expected traverse time, award bonus
+        if (timeAlive < expectedTime * 0.5) {
+            // Bonus scales from 100% (instant kill) to 0% (at 50% expected time)
+            const speedRatio = 1 - (timeAlive / (expectedTime * 0.5));
             const baseBonus = this.isBoss ? 200 : (this.goldReward * 2);
             return Math.round(baseBonus * speedRatio);
         }
