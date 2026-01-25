@@ -477,15 +477,9 @@ class GameUI {
     }
 
     isHighScore(mapId, score) {
-        const scores = JSON.parse(localStorage.getItem('hordeDefenseScores') || '{}');
-        const allScores = [];
-        Object.entries(scores).forEach(([map, mapScores]) => {
-            mapScores.forEach(s => allScores.push(s.score));
-        });
-        allScores.sort((a, b) => b - a);
-
-        // It's a high score if we have fewer than 10 scores or this score beats the 10th
-        return allScores.length < 10 || score > (allScores[9] || 0);
+        // Always allow name entry for any score above 0
+        // The leaderboard will only keep top 10, but everyone can try to make it
+        return score > 0;
     }
 
     saveHighScore(mapId, score, playerName) {
