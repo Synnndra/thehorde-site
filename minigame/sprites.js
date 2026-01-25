@@ -6,93 +6,6 @@ class SpriteManager {
         this.loaded = false;
         this.loadingPromise = null;
         this.onProgress = null;
-        this.processedCache = {};
-    }
-
-    // Remove background using flood fill from corners
-    removeWhiteBackground(img) {
-        if (!img) return null;
-
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-
-        ctx.drawImage(img, 0, 0);
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        const width = canvas.width;
-        const height = canvas.height;
-
-        // Track which pixels have been processed
-        const processed = new Uint8Array(width * height);
-
-        // Get pixel index
-        const getIdx = (x, y) => (y * width + x) * 4;
-        const getKey = (x, y) => y * width + x;
-
-        // Get background color from corner
-        const bgR = data[0];
-        const bgG = data[1];
-        const bgB = data[2];
-
-        // Color tolerance for flood fill
-        const tolerance = 45;
-
-        // Check if color matches background
-        const matchesBg = (x, y) => {
-            const idx = getIdx(x, y);
-            const dist = Math.abs(data[idx] - bgR) +
-                        Math.abs(data[idx + 1] - bgG) +
-                        Math.abs(data[idx + 2] - bgB);
-            return dist < tolerance;
-        };
-
-        // Flood fill from a starting point
-        const floodFill = (startX, startY) => {
-            const stack = [[startX, startY]];
-
-            while (stack.length > 0) {
-                const [x, y] = stack.pop();
-
-                if (x < 0 || x >= width || y < 0 || y >= height) continue;
-
-                const key = getKey(x, y);
-                if (processed[key]) continue;
-
-                if (!matchesBg(x, y)) continue;
-
-                processed[key] = 1;
-                const idx = getIdx(x, y);
-                data[idx + 3] = 0; // Make transparent
-
-                // Add neighbors
-                stack.push([x + 1, y]);
-                stack.push([x - 1, y]);
-                stack.push([x, y + 1]);
-                stack.push([x, y - 1]);
-            }
-        };
-
-        // Start flood fill from all corners and edges
-        // Top edge
-        for (let x = 0; x < width; x++) {
-            floodFill(x, 0);
-            floodFill(x, height - 1);
-        }
-        // Side edges
-        for (let y = 0; y < height; y++) {
-            floodFill(0, y);
-            floodFill(width - 1, y);
-        }
-
-        ctx.putImageData(imageData, 0, 0);
-
-        // Create new image from canvas
-        const newImg = new Image();
-        newImg.src = canvas.toDataURL('image/png');
-        return newImg;
     }
 
     // Define all sprite paths
@@ -139,26 +52,14 @@ class SpriteManager {
         };
     }
 
-    // Load a single image and remove white background
+    // Load a single image
     loadImage(src) {
         return new Promise((resolve, reject) => {
             const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-                // Process image to remove white background
-                const processed = this.removeWhiteBackground(img);
-                if (processed) {
-                    // Wait for processed image to be ready
-                    processed.onload = () => resolve(processed);
-                    // If already loaded (data URL), resolve immediately
-                    if (processed.complete) resolve(processed);
-                } else {
-                    resolve(img);
-                }
-            };
+            img.onload = () => resolve(img);
             img.onerror = () => {
                 console.warn(`Failed to load sprite: ${src}`);
-                resolve(null); // Resolve with null instead of rejecting
+                resolve(null);
             };
             img.src = src;
         });
