@@ -57,8 +57,8 @@ let currentSortOption = 'background';
 let previewNFTArray = [];
 // Store montage sizes separately so they persist through reordering
 let montageSizeAssignments = new Map();
-// Placeholder image URL (data URL for empty grid spots)
-const PLACEHOLDER_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="270" height="270"%3E%3Crect width="270" height="270" fill="%23f5f5f5"/%3E%3C/svg%3E';
+// Placeholder image URL (orc logo for empty grid spots)
+const PLACEHOLDER_IMAGE = '/orclogo.jpg';
 // Counter for unique placeholder IDs
 let placeholderIdCounter = 0;
 
