@@ -11,13 +11,26 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'API key not configured' });
     }
 
-    const { collection, page = 1 } = req.body;
-
-    if (!collection) {
-        return res.status(400).json({ error: 'Collection address required' });
-    }
-
     try {
+        // Check if this is a JSON-RPC request (from collage-maker)
+        if (req.body.jsonrpc && req.body.method) {
+            const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(req.body)
+            });
+
+            const data = await response.json();
+            return res.status(200).json(data);
+        }
+
+        // Legacy format (from orc-viewer) - collection-based request
+        const { collection, page = 1 } = req.body;
+
+        if (!collection) {
+            return res.status(400).json({ error: 'Collection address required' });
+        }
+
         const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
