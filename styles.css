@@ -438,23 +438,19 @@ header {
 
 .coming-soon-label {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-20deg);
-    background: transparent;
-    color: rgba(201, 162, 39, 0.5);
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(201, 162, 39, 0.9);
+    color: #0a0a0a;
     font-family: var(--font-display);
-    font-size: 1.1rem;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.2em;
-    padding: 0.4rem 2rem;
-    white-space: nowrap;
+    letter-spacing: 0.15em;
+    padding: 0.2rem 0;
+    text-align: center;
     pointer-events: none;
-    text-shadow:
-        1px 1px 0 rgba(0, 0, 0, 0.5),
-        -1px -1px 0 rgba(0, 0, 0, 0.5);
-    border: 2px solid rgba(201, 162, 39, 0.4);
     z-index: 10;
 }
 
