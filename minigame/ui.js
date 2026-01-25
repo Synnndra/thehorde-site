@@ -612,11 +612,10 @@ class GameUI {
             // MidEvil Orcs collection address
             const MIDEVIL_COLLECTION = 'midFvstpjLmNjpECzD1P4WC16JdVvK6jQy5W6RH7gb';
 
-            // Filter for MidEvil Orcs by collection address
+            // Filter for MidEvil Orcs by collection address only
             const midEvilOrcs = nfts.filter(nft => {
                 const collection = nft.grouping?.find(g => g.group_key === 'collection');
-                return collection?.group_value === MIDEVIL_COLLECTION ||
-                    nft.content?.metadata?.name?.toLowerCase().includes('midevil');
+                return collection?.group_value === MIDEVIL_COLLECTION;
             });
 
             if (midEvilOrcs.length > 0) {
