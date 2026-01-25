@@ -78,17 +78,33 @@ class Game {
     resizeCanvas() {
         const container = document.getElementById('game-container');
         const panel = document.getElementById('tower-panel');
+        const topBar = document.getElementById('top-bar');
 
-        // Calculate available space
-        const availableWidth = container.clientWidth - panel.offsetWidth;
-        const availableHeight = container.clientHeight;
+        // Calculate available space with fallbacks
+        const panelWidth = panel ? panel.offsetWidth : 220;
+        const topBarHeight = topBar ? topBar.offsetHeight : 60;
+
+        let availableWidth = window.innerWidth - panelWidth - 20;
+        let availableHeight = window.innerHeight - topBarHeight - 20;
+
+        // Use container dimensions if valid
+        if (container && container.clientWidth > 0) {
+            availableWidth = container.clientWidth - panelWidth;
+        }
+        if (container && container.clientHeight > 0) {
+            availableHeight = container.clientHeight;
+        }
+
+        // Ensure minimum dimensions
+        availableWidth = Math.max(availableWidth, 400);
+        availableHeight = Math.max(availableHeight, 300);
 
         // Set canvas size based on map
         if (this.currentMap) {
             // Calculate cell size to fit map
             const cellWidth = Math.floor(availableWidth / this.currentMap.gridWidth);
             const cellHeight = Math.floor(availableHeight / this.currentMap.gridHeight);
-            this.cellSize = Math.min(cellWidth, cellHeight, 50);
+            this.cellSize = Math.max(Math.min(cellWidth, cellHeight, 50), 20);
 
             this.canvas.width = this.currentMap.gridWidth * this.cellSize;
             this.canvas.height = this.currentMap.gridHeight * this.cellSize;
@@ -230,8 +246,9 @@ class Game {
             return;
         }
 
-        // Resize canvas for map
+        // Resize canvas for map (with slight delay to ensure DOM is ready)
         this.resizeCanvas();
+        setTimeout(() => this.resizeCanvas(), 100);
 
         // Update UI
         this.ui.showGameScreen();
