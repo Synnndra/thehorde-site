@@ -855,33 +855,56 @@ class Game {
         const pathSprite = hasPathSprite ? spriteManager.get('map', 'path') : null;
         const grassSprite = hasGrassSprite ? spriteManager.get('map', 'grass') : null;
 
-        // Fill entire canvas with base grass color first to eliminate gaps
-        ctx.fillStyle = '#3d6b2d';
+        // Fill entire canvas with a color that matches the grass sprite
+        ctx.fillStyle = '#5a8a3a';
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
+        // First pass: Draw ALL grass tiles with overlap
         for (let y = 0; y < this.currentMap.gridHeight; y++) {
             for (let x = 0; x < this.currentMap.gridWidth; x++) {
                 const px = x * this.cellSize;
                 const py = y * this.cellSize;
                 const cellType = this.currentMap.buildableAreas[y][x];
 
-                // Draw grass tiles (buildable areas)
                 if (cellType === 1) {
                     if (grassSprite) {
-                        ctx.drawImage(grassSprite, px, py, this.cellSize, this.cellSize);
+                        // Aggressively crop out border (35%) and draw larger for seamless tiling
+                        const cropPercent = 0.35;
+                        const sw = grassSprite.width;
+                        const sh = grassSprite.height;
+                        const cropX = sw * cropPercent;
+                        const cropY = sh * cropPercent;
+                        const cropW = sw * (1 - cropPercent * 2);
+                        const cropH = sh * (1 - cropPercent * 2);
+                        const overlap = 3;
+                        ctx.drawImage(grassSprite, cropX, cropY, cropW, cropH, px - overlap, py - overlap, this.cellSize + overlap * 2, this.cellSize + overlap * 2);
                     } else {
-                        ctx.fillStyle = '#2d4a2d';
+                        // DEBUG: Bright red if sprite not loading
+                        ctx.fillStyle = '#ff0000';
                         ctx.fillRect(px, py, this.cellSize, this.cellSize);
-                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
-                        ctx.lineWidth = 1;
-                        ctx.strokeRect(px, py, this.cellSize, this.cellSize);
                     }
                 }
+            }
+        }
 
-                // Draw path tiles
+        // Second pass: Draw ALL path tiles on top
+        for (let y = 0; y < this.currentMap.gridHeight; y++) {
+            for (let x = 0; x < this.currentMap.gridWidth; x++) {
+                const px = x * this.cellSize;
+                const py = y * this.cellSize;
+                const cellType = this.currentMap.buildableAreas[y][x];
+
                 if (cellType === 2) {
                     if (pathSprite) {
-                        ctx.drawImage(pathSprite, px, py, this.cellSize, this.cellSize);
+                        // Crop out the decorative border by using only the center portion
+                        const cropPercent = 0.15;
+                        const sw = pathSprite.width;
+                        const sh = pathSprite.height;
+                        const cropX = sw * cropPercent;
+                        const cropY = sh * cropPercent;
+                        const cropW = sw * (1 - cropPercent * 2);
+                        const cropH = sh * (1 - cropPercent * 2);
+                        ctx.drawImage(pathSprite, cropX, cropY, cropW, cropH, px, py, this.cellSize, this.cellSize);
                     } else {
                         ctx.fillStyle = this.currentMap.pathColor || '#3d2817';
                         ctx.fillRect(px, py, this.cellSize, this.cellSize);
