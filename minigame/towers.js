@@ -373,20 +373,7 @@ class Tower {
             if (target) {
                 this.target = target;
                 this.attack(target, projectiles, particles);
-            } else {
-                // No target - smoothly rotate back toward the path
-                this.target = null;
-                const angleDiff = this.defaultRotation - this.rotation;
-                // Normalize angle difference to [-PI, PI]
-                const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
-                // Smoothly rotate toward default
-                this.rotation += normalizedDiff * deltaTime * 2;
             }
-        } else if (!this.target) {
-            // While on cooldown with no target, keep facing path
-            const angleDiff = this.defaultRotation - this.rotation;
-            const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
-            this.rotation += normalizedDiff * deltaTime * 2;
         }
     }
 
@@ -546,10 +533,7 @@ class Tower {
                 ctx.stroke();
             }
 
-            // Draw the sprite rotated to face path/target
-            // Offset by -90 degrees since sprites face "down" by default
-            ctx.save();
-            ctx.rotate(this.rotation - Math.PI / 2);
+            // Draw the sprite (not rotated - isometric sprites face camera)
             ctx.drawImage(
                 sprite,
                 -spriteSize / 2,
@@ -557,7 +541,26 @@ class Tower {
                 spriteSize,
                 spriteSize
             );
-            ctx.restore();
+
+            // Draw weapon rotation indicator for ranged towers
+            if (stats.projectileType !== 'melee') {
+                ctx.save();
+                ctx.rotate(this.rotation);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(size * 0.3, 0);
+                ctx.lineTo(size * 0.8, 0);
+                ctx.stroke();
+                // Arrow indicator
+                ctx.beginPath();
+                ctx.moveTo(size * 0.8, 0);
+                ctx.lineTo(size * 0.6, -4);
+                ctx.moveTo(size * 0.8, 0);
+                ctx.lineTo(size * 0.6, 4);
+                ctx.stroke();
+                ctx.restore();
+            }
             return;
         }
 
