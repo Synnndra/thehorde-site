@@ -392,6 +392,11 @@ class Tower {
         this.attackFlash = 1;
         this.recoil = 1;
 
+        // Attack sound
+        if (typeof soundManager !== 'undefined') {
+            soundManager.towerAttack(stats.projectileType);
+        }
+
         // Add muzzle flash particles
         if (particles && stats.projectileType !== 'melee') {
             const flashX = this.x + Math.cos(this.rotation) * this.cellSize * 0.4;

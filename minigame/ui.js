@@ -39,6 +39,7 @@ class GameUI {
         // Buttons
         this.mapButtons = document.querySelectorAll('.map-btn');
         this.startGameBtn = document.getElementById('start-game-btn');
+        this.soundBtn = document.getElementById('sound-btn');
         this.pauseBtn = document.getElementById('pause-btn');
         this.speedBtn = document.getElementById('speed-btn');
         this.menuBtn = document.getElementById('menu-btn');
@@ -74,6 +75,15 @@ class GameUI {
         // Pause/Resume
         this.pauseBtn.addEventListener('click', () => this.game.togglePause());
         this.resumeBtn.addEventListener('click', () => this.game.togglePause());
+
+        // Sound toggle
+        this.soundBtn.addEventListener('click', () => {
+            if (typeof soundManager !== 'undefined') {
+                const muted = soundManager.toggleMute();
+                this.soundBtn.textContent = muted ? '🔇' : '🔊';
+                soundManager.uiClick();
+            }
+        });
 
         // Speed control
         this.speedBtn.addEventListener('click', () => this.game.toggleSpeed());

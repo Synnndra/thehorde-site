@@ -309,6 +309,7 @@ class Game {
 
         const cost = TOWER_TYPES[type].baseCost;
         if (this.gold < cost) {
+            if (typeof soundManager !== 'undefined') soundManager.error();
             return false;
         }
 
@@ -324,6 +325,7 @@ class Game {
         for (let i = 0; i < 8; i++) {
             this.particles.push(new Particle(tower.x, tower.y, 'spark', { color: '#00ff00' }));
         }
+        if (typeof soundManager !== 'undefined') soundManager.towerPlace();
 
         this.ui.selectPlacedTower(tower);
         this.selectedTowerType = null;
@@ -349,6 +351,7 @@ class Game {
         for (let i = 0; i < 12; i++) {
             this.particles.push(new Particle(tower.x, tower.y, 'spark', { color: '#c9a227' }));
         }
+        if (typeof soundManager !== 'undefined') soundManager.towerUpgrade();
     }
 
     sellTower() {
@@ -362,6 +365,7 @@ class Game {
         for (let i = 0; i < 6; i++) {
             this.particles.push(new Particle(tower.x, tower.y, 'smoke'));
         }
+        if (typeof soundManager !== 'undefined') soundManager.towerSell();
 
         const index = this.towers.indexOf(this.selectedPlacedTower);
         if (index > -1) {
@@ -422,6 +426,11 @@ class Game {
     }
 
     async startGame() {
+        // Initialize sound system
+        if (typeof soundManager !== 'undefined') {
+            soundManager.init();
+        }
+
         // Load sprites if not already loaded
         if (typeof spriteManager !== 'undefined' && !spriteManager.isLoaded()) {
             this.ui.showLoadingScreen('Loading sprites...');
@@ -501,8 +510,10 @@ class Game {
         if (hasBoss) {
             this.showAnnouncement('⚠️ BOSS INCOMING! ⚠️', '#ff4444', 3);
             this.triggerScreenShake(10, 0.5);
+            if (typeof soundManager !== 'undefined') soundManager.bossWarning();
         } else {
             this.showAnnouncement(`Wave ${this.currentWave}`, '#c9a227', 1.5);
+            if (typeof soundManager !== 'undefined') soundManager.waveStart();
         }
 
         this.ui.updateWave(this.currentWave, this.totalWaves);
@@ -641,6 +652,9 @@ class Game {
                 if (enemy.isBoss) {
                     this.triggerScreenShake(20, 0.8);
                     this.showAnnouncement('BOSS DEFEATED!', '#00ff00', 2);
+                    if (typeof soundManager !== 'undefined') soundManager.bossDeath();
+                } else {
+                    if (typeof soundManager !== 'undefined') soundManager.enemyDeath();
                 }
 
                 this.gold += enemy.goldReward;
@@ -671,6 +685,7 @@ class Game {
                 this.lives -= enemy.damage;
                 this.ui.updateLives(this.lives);
                 this.triggerScreenShake(8, 0.3);
+                if (typeof soundManager !== 'undefined') soundManager.lifeLost();
 
                 if (this.lives <= 0) {
                     this.gameOver(false);
@@ -708,6 +723,7 @@ class Game {
         this.stats.wavesCompleted = this.currentWave;
 
         this.showAnnouncement('Wave Complete!', '#00ff00', 1.5);
+        if (typeof soundManager !== 'undefined') soundManager.waveComplete();
 
         if (this.currentWave >= this.totalWaves) {
             this.gameOver(true);
@@ -723,8 +739,10 @@ class Game {
 
         if (victory) {
             this.ui.showVictory(this.stats);
+            if (typeof soundManager !== 'undefined') soundManager.victory();
         } else {
             this.ui.showGameOver(this.stats);
+            if (typeof soundManager !== 'undefined') soundManager.defeat();
         }
     }
 
