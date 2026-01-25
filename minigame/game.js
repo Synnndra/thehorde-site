@@ -307,6 +307,7 @@ class Game {
         }
 
         const tower = new Tower(type, gridX, gridY, this.cellSize);
+        tower.setInitialRotation(this.currentMap);
         this.applyNFTBonus(tower);
 
         this.towers.push(tower);

@@ -146,6 +146,43 @@ class Tower {
         // Aura effect tracking
         this.affectedByAura = false;
         this.auraBonus = 0;
+
+        // Default rotation toward path
+        this.defaultRotation = 0;
+    }
+
+    // Set initial rotation to face the nearest path tile
+    setInitialRotation(map) {
+        if (!map || !map.buildableAreas) return;
+
+        let nearestPathDist = Infinity;
+        let nearestPathX = this.x;
+        let nearestPathY = this.y;
+
+        // Find the nearest path tile
+        for (let y = 0; y < map.gridHeight; y++) {
+            for (let x = 0; x < map.gridWidth; x++) {
+                if (map.buildableAreas[y][x] === 2) { // Path tile
+                    const pathX = x * this.cellSize + this.cellSize / 2;
+                    const pathY = y * this.cellSize + this.cellSize / 2;
+                    const dx = pathX - this.x;
+                    const dy = pathY - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < nearestPathDist) {
+                        nearestPathDist = dist;
+                        nearestPathX = pathX;
+                        nearestPathY = pathY;
+                    }
+                }
+            }
+        }
+
+        // Calculate angle to nearest path
+        const dx = nearestPathX - this.x;
+        const dy = nearestPathY - this.y;
+        this.defaultRotation = Math.atan2(dy, dx);
+        this.rotation = this.defaultRotation;
     }
 
     getStats() {
@@ -336,7 +373,20 @@ class Tower {
             if (target) {
                 this.target = target;
                 this.attack(target, projectiles, particles);
+            } else {
+                // No target - smoothly rotate back toward the path
+                this.target = null;
+                const angleDiff = this.defaultRotation - this.rotation;
+                // Normalize angle difference to [-PI, PI]
+                const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+                // Smoothly rotate toward default
+                this.rotation += normalizedDiff * deltaTime * 2;
             }
+        } else if (!this.target) {
+            // While on cooldown with no target, keep facing path
+            const angleDiff = this.defaultRotation - this.rotation;
+            const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+            this.rotation += normalizedDiff * deltaTime * 2;
         }
     }
 
@@ -496,7 +546,10 @@ class Tower {
                 ctx.stroke();
             }
 
-            // Draw the sprite (not rotated - isometric sprites face camera)
+            // Draw the sprite rotated to face path/target
+            // Offset by -90 degrees since sprites face "up" by default
+            ctx.save();
+            ctx.rotate(this.rotation + Math.PI / 2);
             ctx.drawImage(
                 sprite,
                 -spriteSize / 2,
@@ -504,26 +557,7 @@ class Tower {
                 spriteSize,
                 spriteSize
             );
-
-            // Draw weapon rotation indicator for ranged towers
-            if (stats.projectileType !== 'melee') {
-                ctx.save();
-                ctx.rotate(this.rotation);
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(size * 0.3, 0);
-                ctx.lineTo(size * 0.8, 0);
-                ctx.stroke();
-                // Arrow indicator
-                ctx.beginPath();
-                ctx.moveTo(size * 0.8, 0);
-                ctx.lineTo(size * 0.6, -4);
-                ctx.moveTo(size * 0.8, 0);
-                ctx.lineTo(size * 0.6, 4);
-                ctx.stroke();
-                ctx.restore();
-            }
+            ctx.restore();
             return;
         }
 
