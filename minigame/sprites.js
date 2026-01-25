@@ -6,6 +6,51 @@ class SpriteManager {
         this.loaded = false;
         this.loadingPromise = null;
         this.onProgress = null;
+        this.processedCache = {};
+    }
+
+    // Remove white background from image
+    removeWhiteBackground(img) {
+        if (!img) return null;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+
+        ctx.drawImage(img, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        // Threshold for "white" - pixels with RGB all above this are considered white
+        const threshold = 240;
+        // Edge softening threshold
+        const softThreshold = 200;
+
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+
+            // Check if pixel is white or near-white
+            if (r > threshold && g > threshold && b > threshold) {
+                // Make fully transparent
+                data[i + 3] = 0;
+            } else if (r > softThreshold && g > softThreshold && b > softThreshold) {
+                // Semi-transparent for edge softening
+                const avg = (r + g + b) / 3;
+                const alpha = 255 - ((avg - softThreshold) / (threshold - softThreshold)) * 255;
+                data[i + 3] = Math.min(data[i + 3], alpha);
+            }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+
+        // Create new image from canvas
+        const newImg = new Image();
+        newImg.src = canvas.toDataURL('image/png');
+        return newImg;
     }
 
     // Define all sprite paths
@@ -52,11 +97,23 @@ class SpriteManager {
         };
     }
 
-    // Load a single image
+    // Load a single image and remove white background
     loadImage(src) {
         return new Promise((resolve, reject) => {
             const img = new Image();
-            img.onload = () => resolve(img);
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                // Process image to remove white background
+                const processed = this.removeWhiteBackground(img);
+                if (processed) {
+                    // Wait for processed image to be ready
+                    processed.onload = () => resolve(processed);
+                    // If already loaded (data URL), resolve immediately
+                    if (processed.complete) resolve(processed);
+                } else {
+                    resolve(img);
+                }
+            };
             img.onerror = () => {
                 console.warn(`Failed to load sprite: ${src}`);
                 resolve(null); // Resolve with null instead of rejecting
