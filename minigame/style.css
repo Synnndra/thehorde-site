@@ -185,27 +185,108 @@ h2, h3 {
     background: var(--danger);
 }
 
-/* High Scores */
+/* High Scores / Leaderboard */
 .high-scores {
     margin-top: 30px;
     padding-top: 20px;
     border-top: 1px solid var(--border-secondary);
 }
 
-#high-score-list {
-    max-height: 150px;
+.high-scores h3 {
+    margin-bottom: 15px;
+    color: var(--accent-gold);
+}
+
+.leaderboard {
+    max-height: 200px;
     overflow-y: auto;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+    padding: 10px;
 }
 
 .score-entry {
     display: flex;
     justify-content: space-between;
-    padding: 5px 10px;
+    align-items: center;
+    padding: 8px 10px;
     border-bottom: 1px solid var(--border-secondary);
+    gap: 10px;
 }
 
 .score-entry:last-child {
     border-bottom: none;
+}
+
+.score-entry .rank {
+    color: var(--accent-gold);
+    font-weight: bold;
+    min-width: 25px;
+}
+
+.score-entry .player-name {
+    flex: 1;
+    color: var(--text-primary);
+}
+
+.score-entry .map-name {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.score-entry .score-value {
+    color: var(--accent-gold);
+    font-weight: bold;
+    font-family: 'Cinzel', serif;
+}
+
+/* High Score Entry Form */
+.highscore-entry {
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(201, 162, 39, 0.1);
+    border: 2px solid var(--accent-gold);
+    border-radius: 5px;
+    text-align: center;
+}
+
+.new-highscore {
+    color: var(--accent-gold);
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.highscore-entry input {
+    font-family: 'Crimson Text', serif;
+    font-size: 1rem;
+    padding: 10px 15px;
+    border: 1px solid var(--border-primary);
+    background: rgba(0, 0, 0, 0.5);
+    color: var(--text-primary);
+    border-radius: 3px;
+    margin-right: 10px;
+    width: 150px;
+}
+
+.highscore-entry input::placeholder {
+    color: var(--text-secondary);
+}
+
+.final-stat.highlight {
+    background: rgba(201, 162, 39, 0.2);
+    border: 1px solid var(--accent-gold);
+    border-radius: 5px;
+}
+
+.final-stat.highlight span {
+    color: var(--accent-gold);
 }
 
 /* NFT Section */

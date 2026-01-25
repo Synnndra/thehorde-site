@@ -99,6 +99,30 @@ class GameUI {
         this.victoryRetryBtn.addEventListener('click', () => this.game.startGame());
         this.victoryMenuBtn.addEventListener('click', () => this.showStartScreen());
 
+        // High score save buttons
+        document.getElementById('save-score-btn').addEventListener('click', () => {
+            const name = document.getElementById('player-name').value.trim() || 'Anonymous';
+            this.saveHighScore(this.game.selectedMap, this.pendingScore, name);
+            document.getElementById('highscore-entry').classList.add('hidden');
+        });
+        document.getElementById('victory-save-score-btn').addEventListener('click', () => {
+            const name = document.getElementById('victory-player-name').value.trim() || 'Anonymous';
+            this.saveHighScore(this.game.selectedMap, this.pendingScore, name);
+            document.getElementById('victory-highscore-entry').classList.add('hidden');
+        });
+
+        // Allow Enter key to save score
+        document.getElementById('player-name').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('save-score-btn').click();
+            }
+        });
+        document.getElementById('victory-player-name').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('victory-save-score-btn').click();
+            }
+        });
+
         // Start wave
         this.startWaveBtn.addEventListener('click', () => this.game.startWave());
 
@@ -130,21 +154,47 @@ class GameUI {
         this.gameScreen.classList.add('hidden');
         this.gameoverScreen.classList.remove('hidden');
 
+        const score = this.calculateScore(stats, false);
+        this.pendingScore = score;
+        this.pendingVictory = false;
+
+        document.getElementById('final-score').textContent = score.toLocaleString();
         document.getElementById('final-waves').textContent = stats.wavesCompleted;
         document.getElementById('final-kills').textContent = stats.enemiesKilled;
         document.getElementById('final-gold').textContent = stats.totalGoldEarned;
+
+        // Check if it's a high score
+        const highscoreEntry = document.getElementById('highscore-entry');
+        if (this.isHighScore(this.game.selectedMap, score)) {
+            highscoreEntry.classList.remove('hidden');
+            document.getElementById('player-name').value = localStorage.getItem('lastPlayerName') || '';
+            document.getElementById('player-name').focus();
+        } else {
+            highscoreEntry.classList.add('hidden');
+        }
     }
 
     showVictory(stats) {
         this.gameScreen.classList.add('hidden');
         this.victoryScreen.classList.remove('hidden');
 
-        const score = this.calculateScore(stats);
-        document.getElementById('victory-score').textContent = score;
+        const score = this.calculateScore(stats, true);
+        this.pendingScore = score;
+        this.pendingVictory = true;
+
+        document.getElementById('victory-score').textContent = score.toLocaleString();
         document.getElementById('victory-lives').textContent = stats.livesRemaining;
         document.getElementById('victory-kills').textContent = stats.enemiesKilled;
 
-        this.saveHighScore(this.game.selectedMap, score);
+        // Check if it's a high score
+        const highscoreEntry = document.getElementById('victory-highscore-entry');
+        if (this.isHighScore(this.game.selectedMap, score)) {
+            highscoreEntry.classList.remove('hidden');
+            document.getElementById('victory-player-name').value = localStorage.getItem('lastPlayerName') || '';
+            document.getElementById('victory-player-name').focus();
+        } else {
+            highscoreEntry.classList.add('hidden');
+        }
     }
 
     showPauseOverlay(show) {
@@ -398,31 +448,47 @@ class GameUI {
 
         const allScores = [];
         Object.entries(scores).forEach(([map, mapScores]) => {
-            mapScores.forEach(score => {
-                allScores.push({ map, ...score });
+            mapScores.forEach(scoreEntry => {
+                allScores.push({ map, ...scoreEntry });
             });
         });
 
         allScores.sort((a, b) => b.score - a.score);
-        const topScores = allScores.slice(0, 5);
+        const topScores = allScores.slice(0, 10);
 
         if (topScores.length === 0) {
-            this.highScoreList.innerHTML = '<p style="color: #b0a890;">No scores yet!</p>';
+            this.highScoreList.innerHTML = '<p style="color: #b0a890; text-align: center;">No scores yet! Be the first to defend the tavern.</p>';
             return;
         }
 
         topScores.forEach((entry, index) => {
             const div = document.createElement('div');
             div.className = 'score-entry';
+            const mapName = MAPS[entry.map]?.name || entry.map;
+            const playerName = entry.name || 'Anonymous';
             div.innerHTML = `
-                <span>${index + 1}. ${MAPS[entry.map]?.name || entry.map}</span>
-                <span>${entry.score}</span>
+                <span class="rank">#${index + 1}</span>
+                <span class="player-name">${playerName}</span>
+                <span class="map-name">${mapName}</span>
+                <span class="score-value">${entry.score.toLocaleString()}</span>
             `;
             this.highScoreList.appendChild(div);
         });
     }
 
-    saveHighScore(mapId, score) {
+    isHighScore(mapId, score) {
+        const scores = JSON.parse(localStorage.getItem('hordeDefenseScores') || '{}');
+        const allScores = [];
+        Object.entries(scores).forEach(([map, mapScores]) => {
+            mapScores.forEach(s => allScores.push(s.score));
+        });
+        allScores.sort((a, b) => b - a);
+
+        // It's a high score if we have fewer than 10 scores or this score beats the 10th
+        return allScores.length < 10 || score > (allScores[9] || 0);
+    }
+
+    saveHighScore(mapId, score, playerName) {
         const scores = JSON.parse(localStorage.getItem('hordeDefenseScores') || '{}');
 
         if (!scores[mapId]) {
@@ -431,7 +497,9 @@ class GameUI {
 
         scores[mapId].push({
             score,
-            date: new Date().toISOString()
+            name: playerName || 'Anonymous',
+            date: new Date().toISOString(),
+            victory: this.pendingVictory || false
         });
 
         // Keep only top 10 per map
@@ -439,16 +507,34 @@ class GameUI {
         scores[mapId] = scores[mapId].slice(0, 10);
 
         localStorage.setItem('hordeDefenseScores', JSON.stringify(scores));
+        localStorage.setItem('lastPlayerName', playerName);
+
+        this.loadHighScores();
     }
 
-    calculateScore(stats) {
-        // Score formula: waves * 100 + kills * 10 + gold * 0.5 + lives * 50
-        return Math.round(
+    calculateScore(stats, victory = false) {
+        // Get map difficulty multiplier
+        const mapDifficulty = MAPS[this.game.selectedMap]?.difficulty || 'easy';
+        const difficultyMultiplier = {
+            'easy': 1.0,
+            'medium': 1.5,
+            'hard': 2.0
+        }[mapDifficulty] || 1.0;
+
+        // Base score formula
+        let baseScore =
             stats.wavesCompleted * 100 +
             stats.enemiesKilled * 10 +
             stats.totalGoldEarned * 0.5 +
-            stats.livesRemaining * 50
-        );
+            stats.livesRemaining * 50;
+
+        // Victory bonus (50% more)
+        if (victory) {
+            baseScore *= 1.5;
+        }
+
+        // Apply difficulty multiplier
+        return Math.round(baseScore * difficultyMultiplier);
     }
 
     // Wallet/NFT functions

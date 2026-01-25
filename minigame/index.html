@@ -38,8 +38,8 @@
             <button id="start-game-btn" class="primary-btn">Start Game</button>
 
             <div class="high-scores">
-                <h3>High Scores</h3>
-                <div id="high-score-list"></div>
+                <h3>Leaderboard</h3>
+                <div id="high-score-list" class="leaderboard"></div>
             </div>
 
             <div class="nft-section">
@@ -110,6 +110,10 @@
             <h1 id="gameover-title">DEFEAT</h1>
             <p id="gameover-message">The knights have overrun the tavern!</p>
             <div class="final-stats">
+                <div class="final-stat highlight">
+                    <span class="label">Final Score</span>
+                    <span id="final-score">0</span>
+                </div>
                 <div class="final-stat">
                     <span class="label">Waves Survived</span>
                     <span id="final-waves">0</span>
@@ -122,6 +126,11 @@
                     <span class="label">Gold Earned</span>
                     <span id="final-gold">0</span>
                 </div>
+            </div>
+            <div id="highscore-entry" class="highscore-entry hidden">
+                <p class="new-highscore">New High Score!</p>
+                <input type="text" id="player-name" placeholder="Enter your name" maxlength="12">
+                <button id="save-score-btn" class="primary-btn">Save Score</button>
             </div>
             <div class="gameover-buttons">
                 <button id="retry-btn" class="primary-btn">Play Again</button>
@@ -136,7 +145,7 @@
             <h1 class="victory-title">VICTORY!</h1>
             <p>Merlin's Beard stands strong!</p>
             <div class="final-stats">
-                <div class="final-stat">
+                <div class="final-stat highlight">
                     <span class="label">Final Score</span>
                     <span id="victory-score">0</span>
                 </div>
@@ -148,6 +157,11 @@
                     <span class="label">Enemies Slain</span>
                     <span id="victory-kills">0</span>
                 </div>
+            </div>
+            <div id="victory-highscore-entry" class="highscore-entry hidden">
+                <p class="new-highscore">New High Score!</p>
+                <input type="text" id="victory-player-name" placeholder="Enter your name" maxlength="12">
+                <button id="victory-save-score-btn" class="primary-btn">Save Score</button>
             </div>
             <div class="gameover-buttons">
                 <button id="victory-retry-btn" class="primary-btn">Play Again</button>
