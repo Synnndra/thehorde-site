@@ -864,7 +864,8 @@ class Game {
                 // Draw grass tiles (buildable areas)
                 if (cellType === 1) {
                     if (grassSprite) {
-                        ctx.drawImage(grassSprite, px, py, this.cellSize, this.cellSize);
+                        // Draw slightly larger to eliminate gaps between tiles
+                        ctx.drawImage(grassSprite, px - 0.5, py - 0.5, this.cellSize + 1, this.cellSize + 1);
                     } else {
                         ctx.fillStyle = '#2d4a2d';
                         ctx.fillRect(px, py, this.cellSize, this.cellSize);
@@ -877,7 +878,8 @@ class Game {
                 // Draw path tiles
                 if (cellType === 2) {
                     if (pathSprite) {
-                        ctx.drawImage(pathSprite, px, py, this.cellSize, this.cellSize);
+                        // Draw slightly larger to eliminate gaps between tiles
+                        ctx.drawImage(pathSprite, px - 0.5, py - 0.5, this.cellSize + 1, this.cellSize + 1);
                     } else {
                         ctx.fillStyle = this.currentMap.pathColor || '#3d2817';
                         ctx.fillRect(px, py, this.cellSize, this.cellSize);
