@@ -227,7 +227,9 @@ class GameUI {
             btn.dataset.type = type;
 
             btn.innerHTML = `
-                <div class="tower-icon tower-${type}">${data.icon}</div>
+                <div class="tower-icon tower-${type}">
+                    <img src="/minigame/assets/towers/${type}.png" alt="${data.name}" onerror="this.style.display='none';this.parentElement.textContent='${data.icon}';">
+                </div>
                 <div class="tower-info">
                     <span class="tower-name">${data.name}</span>
                     <span class="tower-cost">${data.baseCost} gold</span>
