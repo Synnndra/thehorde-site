@@ -394,13 +394,22 @@ class Game {
                     });
                 }
 
-                // Add torches along paths
-                if (cellType === 2 && Math.random() < 0.08) {
-                    this.torches.push({
-                        x: x * this.cellSize + this.cellSize / 2,
-                        y: y * this.cellSize + this.cellSize / 2,
-                        flicker: Math.random() * Math.PI * 2
-                    });
+                // Add torches on the edge of paths (on grass tiles adjacent to path)
+                if (cellType === 1 && Math.random() < 0.06) {
+                    // Check if this grass tile is adjacent to a path
+                    const adjacentToPath =
+                        (x > 0 && this.currentMap.buildableAreas[y][x-1] === 2) ||
+                        (x < this.currentMap.gridWidth - 1 && this.currentMap.buildableAreas[y][x+1] === 2) ||
+                        (y > 0 && this.currentMap.buildableAreas[y-1][x] === 2) ||
+                        (y < this.currentMap.gridHeight - 1 && this.currentMap.buildableAreas[y+1][x] === 2);
+
+                    if (adjacentToPath) {
+                        this.torches.push({
+                            x: x * this.cellSize + this.cellSize / 2,
+                            y: y * this.cellSize + this.cellSize / 2,
+                            flicker: Math.random() * Math.PI * 2
+                        });
+                    }
                 }
             }
         }
