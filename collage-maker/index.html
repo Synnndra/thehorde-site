@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orc Collage Maker | The Horde</title>
+    <title>MidEvil Collage Maker | The Horde</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
@@ -13,8 +13,8 @@
     <!-- Main container for our app -->
     <div class="container">
         <!-- Header section -->
-        <h1>Orc Collage Maker</h1>
-        <p>Enter your Solana wallet address to create a collage of your Orcs</p>
+        <h1>MidEvil Collage Maker</h1>
+        <p>Enter your Solana wallet address to create a collage of your MidEvils</p>
 
         <!-- Input section -->
         <div class="input-section">
@@ -51,13 +51,13 @@
                     placeholder="Wallet address 5 (optional)"
                 >
             </div>
-            <button id="fetchButton">Summon Orcs</button>
+            <button id="fetchButton">Summon MidEvils</button>
         </div>
 
         <!-- Sort Controls -->
         <div id="sortSection" class="sort-section" style="display: none;">
             <div class="section-header">
-                <h3>Sort Orcs</h3>
+                <h3>Sort MidEvils</h3>
                 <button id="sortToggleBtn" class="toggle-btn">−</button>
             </div>
             <div id="sortContent" class="section-content">
@@ -65,7 +65,7 @@
                     <label for="sortSelect">Sort by:</label>
                     <select id="sortSelect">
                         <option value="default">Default Order</option>
-                        <option value="number">Orc Number</option>
+                        <option value="number">MidEvil Number</option>
                         <option value="background" selected>Background Color</option>
                     </select>
                 </div>
@@ -96,8 +96,8 @@
                     </select>
                 </label>
             </div>
-            <button id="selectAllBtn" class="select-all-btn">Select All Orcs</button>
-            <p class="drag-hint">💡 Tip: You can arrange your Orcs in the collage preview!</p>
+            <button id="selectAllBtn" class="select-all-btn">Select All MidEvils</button>
+            <p class="drag-hint">💡 Tip: You can arrange your MidEvils in the collage preview!</p>
         </div>
 
         <!-- Loading message -->
@@ -157,12 +157,12 @@
     <div id="nftDetailsModal" class="preview-modal" style="display: none;">
         <div class="preview-content nft-details-content">
             <div class="preview-header">
-                <h2 id="nftDetailsName">Orc Details</h2>
+                <h2 id="nftDetailsName">MidEvil Details</h2>
                 <button id="closeDetailsBtn" class="close-preview-btn">&times;</button>
             </div>
             <div class="preview-body nft-details-body">
                 <div class="nft-details-image">
-                    <img id="nftDetailsImage" src="" alt="Orc Image">
+                    <img id="nftDetailsImage" src="" alt="MidEvil Image">
                 </div>
                 <div class="nft-details-info">
                     <div class="nft-details-section">
