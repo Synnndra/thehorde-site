@@ -397,22 +397,20 @@ class Tower {
             soundManager.towerAttack(stats.projectileType);
         }
 
-        // Add muzzle flash particles
+        // Add muzzle flash particles (reduced for performance)
         if (particles && stats.projectileType !== 'melee') {
             const flashX = this.x + Math.cos(this.rotation) * this.cellSize * 0.4;
             const flashY = this.y + Math.sin(this.rotation) * this.cellSize * 0.4;
-            for (let i = 0; i < 3; i++) {
-                particles.push(new Particle(flashX, flashY, 'spark', {
-                    color: stats.projectileType === 'magic' ? '#9932CC' : '#ffaa00'
-                }));
-            }
+            particles.push(new Particle(flashX, flashY, 'spark', {
+                color: stats.projectileType === 'magic' ? '#9932CC' : '#ffaa00'
+            }));
         }
 
         if (stats.projectileType === 'melee') {
             this.dealDamage(target, projectiles);
-            // Melee slash effect
+            // Melee slash effect (reduced for performance)
             if (particles) {
-                for (let i = 0; i < 5; i++) {
+                for (let i = 0; i < 2; i++) {
                     particles.push(new Particle(target.x, target.y, 'spark', { color: stats.color }));
                 }
             }
@@ -714,31 +712,31 @@ class Projectile {
         this.isActive = true;
         this.trailTimer = 0;
 
-        // Visual properties based on type
+        // Visual properties based on type (increased trail intervals for performance)
         switch (towerStats.projectileType) {
             case 'arrow':
                 this.size = 8;
                 this.color = '#8B4513';
                 this.trailColor = '#654321';
-                this.trailInterval = 0.05;
+                this.trailInterval = 0.1;
                 break;
             case 'magic':
                 this.size = 10;
                 this.color = '#9932CC';
                 this.trailColor = '#9932CC';
-                this.trailInterval = 0.02;
+                this.trailInterval = 0.05;
                 break;
             case 'boulder':
                 this.size = 14;
                 this.color = '#696969';
                 this.trailColor = '#555555';
-                this.trailInterval = 0.08;
+                this.trailInterval = 0.15;
                 break;
             default:
                 this.size = 6;
                 this.color = '#fff';
                 this.trailColor = '#aaa';
-                this.trailInterval = 0.05;
+                this.trailInterval = 0.1;
         }
     }
 

@@ -202,6 +202,11 @@ class Game {
         this.currentMap = null;
         this.cellSize = 40;
 
+        // Cached background canvas (for performance)
+        this.bgCanvas = null;
+        this.bgCtx = null;
+        this.bgDirty = true;
+
         // Tavern smoke timer
         this.smokeTimer = 0;
 
@@ -252,6 +257,7 @@ class Game {
 
             this.canvas.width = this.currentMap.gridWidth * this.cellSize;
             this.canvas.height = this.currentMap.gridHeight * this.cellSize;
+            this.bgDirty = true; // Re-render background on resize
         } else {
             this.canvas.width = availableWidth;
             this.canvas.height = availableHeight;
@@ -321,8 +327,8 @@ class Game {
         this.gold -= cost;
         this.ui.updateGold(this.gold);
 
-        // Placement effect
-        for (let i = 0; i < 8; i++) {
+        // Placement effect (reduced for performance)
+        for (let i = 0; i < 4; i++) {
             this.particles.push(new Particle(tower.x, tower.y, 'spark', { color: '#00ff00' }));
         }
         if (typeof soundManager !== 'undefined') soundManager.towerPlace();
@@ -345,10 +351,10 @@ class Game {
         this.ui.updateGold(this.gold);
         this.ui.showPlacedTowerInfo(this.selectedPlacedTower);
 
-        // Level up effect
+        // Level up effect (reduced for performance)
         const tower = this.selectedPlacedTower;
         this.particles.push(new Particle(tower.x, tower.y - 20, 'levelup'));
-        for (let i = 0; i < 12; i++) {
+        for (let i = 0; i < 6; i++) {
             this.particles.push(new Particle(tower.x, tower.y, 'spark', { color: '#c9a227' }));
         }
         if (typeof soundManager !== 'undefined') soundManager.towerUpgrade();
@@ -361,8 +367,8 @@ class Game {
         const tower = this.selectedPlacedTower;
         this.gold += value;
 
-        // Sell effect
-        for (let i = 0; i < 6; i++) {
+        // Sell effect (reduced for performance)
+        for (let i = 0; i < 3; i++) {
             this.particles.push(new Particle(tower.x, tower.y, 'smoke'));
         }
         if (typeof soundManager !== 'undefined') soundManager.towerSell();
@@ -374,6 +380,37 @@ class Game {
 
         this.ui.deselectPlacedTower();
         this.ui.updateGold(this.gold);
+    }
+
+    // Render static elements to offscreen canvas for performance
+    renderBackground() {
+        if (!this.bgCanvas) {
+            this.bgCanvas = document.createElement('canvas');
+            this.bgCtx = this.bgCanvas.getContext('2d');
+        }
+
+        this.bgCanvas.width = this.canvas.width;
+        this.bgCanvas.height = this.canvas.height;
+
+        const ctx = this.bgCtx;
+
+        // Clear and fill with ground color
+        ctx.fillStyle = this.currentMap.groundColor || '#1a2f1a';
+        ctx.fillRect(0, 0, this.bgCanvas.width, this.bgCanvas.height);
+
+        // Draw decorations
+        this.drawDecorationsToCtx(ctx);
+
+        // Draw grid
+        this.drawGridToCtx(ctx);
+
+        // Draw paths
+        this.drawPathsToCtx(ctx);
+
+        // Draw static tavern
+        this.drawTavernToCtx(ctx);
+
+        this.bgDirty = false;
     }
 
     generateDecorations() {
@@ -635,9 +672,9 @@ class Game {
         // Check for dead enemies
         this.enemies = this.enemies.filter(enemy => {
             if (enemy.isDead) {
-                // Death explosion
+                // Death explosion (reduced for performance)
                 const colors = ['#ff6600', '#ff3300', '#ffcc00', '#ff0000'];
-                for (let i = 0; i < 12; i++) {
+                for (let i = 0; i < 6; i++) {
                     this.particles.push(new Particle(enemy.x, enemy.y, 'explosion', {
                         color: colors[Math.floor(Math.random() * colors.length)]
                     }));
@@ -712,8 +749,8 @@ class Game {
         const enemy = new Enemy(enemyType, path, this.cellSize, this.currentWave);
         this.enemies.push(enemy);
 
-        // Spawn particles
-        for (let i = 0; i < 5; i++) {
+        // Spawn particles (reduced for performance)
+        for (let i = 0; i < 2; i++) {
             this.particles.push(new Particle(enemy.x, enemy.y, 'smoke'));
         }
     }
@@ -752,24 +789,14 @@ class Game {
         ctx.save();
         ctx.translate(this.screenShake.x, this.screenShake.y);
 
-        // Clear canvas
-        ctx.fillStyle = this.currentMap.groundColor || '#1a2f1a';
-        ctx.fillRect(-10, -10, this.canvas.width + 20, this.canvas.height + 20);
+        // Draw cached background (much faster than redrawing every frame)
+        if (this.bgDirty || !this.bgCanvas) {
+            this.renderBackground();
+        }
+        ctx.drawImage(this.bgCanvas, 0, 0);
 
-        // Draw decorations (behind everything)
-        this.drawDecorations();
-
-        // Draw grid
-        this.drawGrid();
-
-        // Draw paths with cobblestones
-        this.drawPaths();
-
-        // Draw torches
+        // Draw animated torches (need to update each frame)
         this.drawTorches();
-
-        // Draw tavern
-        this.drawTavern();
 
         // Draw placement preview
         if (this.selectedTowerType && this.hoverCell) {
@@ -796,9 +823,7 @@ class Game {
         ctx.restore();
     }
 
-    drawDecorations() {
-        const ctx = this.ctx;
-
+    drawDecorationsToCtx(ctx) {
         this.decorations.forEach(dec => {
             ctx.save();
             ctx.translate(dec.x, dec.y);
@@ -861,9 +886,7 @@ class Game {
         });
     }
 
-    drawGrid() {
-        const ctx = this.ctx;
-
+    drawGridToCtx(ctx) {
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
         ctx.lineWidth = 1;
 
@@ -882,8 +905,7 @@ class Game {
         }
     }
 
-    drawPaths() {
-        const ctx = this.ctx;
+    drawPathsToCtx(ctx) {
         const hasPathSprite = typeof spriteManager !== 'undefined' && spriteManager.has('map', 'path');
         const hasGrassSprite = typeof spriteManager !== 'undefined' && spriteManager.has('map', 'grass');
         const hasWaterSprite = typeof spriteManager !== 'undefined' && spriteManager.has('map', 'water');
@@ -1019,8 +1041,7 @@ class Game {
         });
     }
 
-    drawTavern() {
-        const ctx = this.ctx;
+    drawTavernToCtx(ctx) {
         const tavern = this.currentMap.tavernPosition;
         const x = tavern.x * this.cellSize + this.cellSize / 2;
         const y = tavern.y * this.cellSize + this.cellSize / 2;
