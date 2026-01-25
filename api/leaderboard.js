@@ -1,5 +1,30 @@
 // Vercel Serverless Function for Horde Defense Leaderboard
 
+// Simple in-memory rate limiting (resets per function instance)
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const RATE_LIMIT_MAX = 10; // Max 10 submissions per minute per IP
+
+// Valid map IDs
+const VALID_MAPS = ['tavern_road', 'forest_ambush', 'castle_siege'];
+
+function isRateLimited(ip) {
+    const now = Date.now();
+    const record = rateLimitMap.get(ip);
+
+    if (!record || now - record.timestamp > RATE_LIMIT_WINDOW) {
+        rateLimitMap.set(ip, { timestamp: now, count: 1 });
+        return false;
+    }
+
+    if (record.count >= RATE_LIMIT_MAX) {
+        return true;
+    }
+
+    record.count++;
+    return false;
+}
+
 export default async function handler(req, res) {
     const KV_REST_API_URL = process.env.KV_REST_API_URL;
     const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN;
@@ -45,15 +70,35 @@ export default async function handler(req, res) {
 
         // POST - Submit score
         if (req.method === 'POST') {
-            const { name, score, map, wavesCompleted, enemiesKilled, victory } = req.body;
-
-            // Validate input
-            if (!name || typeof score !== 'number' || !map) {
-                return res.status(400).json({ error: 'Invalid score data' });
+            // Rate limiting
+            const clientIp = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
+            if (isRateLimited(clientIp)) {
+                return res.status(429).json({ error: 'Too many requests. Try again later.' });
             }
 
-            // Sanitize name (max 12 chars, alphanumeric + spaces)
-            const sanitizedName = name.slice(0, 12).replace(/[^a-zA-Z0-9 ]/g, '');
+            const { name, score, map, wavesCompleted, enemiesKilled, victory } = req.body;
+
+            // Validate required fields
+            if (!name || typeof name !== 'string') {
+                return res.status(400).json({ error: 'Invalid name' });
+            }
+            if (typeof score !== 'number' || score < 0 || score > 999999999) {
+                return res.status(400).json({ error: 'Invalid score' });
+            }
+            if (!map || !VALID_MAPS.includes(map)) {
+                return res.status(400).json({ error: 'Invalid map' });
+            }
+
+            // Sanitize name (max 12 chars, alphanumeric + spaces only)
+            const sanitizedName = name.slice(0, 12).replace(/[^a-zA-Z0-9 ]/g, '').trim();
+            if (sanitizedName.length === 0) {
+                return res.status(400).json({ error: 'Name cannot be empty' });
+            }
+
+            // Validate optional fields
+            const safeWavesCompleted = typeof wavesCompleted === 'number' ? Math.min(Math.max(0, wavesCompleted), 100) : 0;
+            const safeEnemiesKilled = typeof enemiesKilled === 'number' ? Math.min(Math.max(0, enemiesKilled), 99999) : 0;
+            const safeVictory = victory === true;
 
             // Get current scores
             const result = await kvGet(LEADERBOARD_KEY);
@@ -61,12 +106,12 @@ export default async function handler(req, res) {
 
             // Add new score
             const newScore = {
-                name: sanitizedName || 'Anonymous',
+                name: sanitizedName,
                 score: Math.floor(score),
                 map,
-                wavesCompleted: wavesCompleted || 0,
-                enemiesKilled: enemiesKilled || 0,
-                victory: victory || false,
+                wavesCompleted: safeWavesCompleted,
+                enemiesKilled: safeEnemiesKilled,
+                victory: safeVictory,
                 date: new Date().toISOString()
             };
 

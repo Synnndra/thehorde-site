@@ -1,6 +1,15 @@
 // Orc NFT Viewer - The Horde
 
 // ============================================
+// SECURITY - HTML ESCAPE
+// ============================================
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+}
+
+// ============================================
 // CONFIGURATION
 // ============================================
 const MIDEVIL_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
@@ -209,7 +218,7 @@ function searchById() {
         filteredNFTs = found;
         renderNFTs();
     } else {
-        elements.nftGrid.innerHTML = '<div class="no-results">No Orc found with ID #' + searchNum + '</div>';
+        elements.nftGrid.innerHTML = '<div class="no-results">No Orc found with ID #' + escapeHtml(String(searchNum)) + '</div>';
     }
 }
 
@@ -233,15 +242,15 @@ function setupFilters() {
         const group = document.createElement('div');
         group.className = 'filter-group';
         group.innerHTML = `
-            <div class="filter-group-header" data-trait="${traitType}">
-                <h3>${traitType}</h3>
+            <div class="filter-group-header" data-trait="${escapeHtml(traitType)}">
+                <h3>${escapeHtml(traitType)}</h3>
                 <span class="chevron">+</span>
             </div>
             <div class="filter-options" style="display: none;">
                 ${sortedValues.map(([value, count]) => `
-                    <label class="filter-option" data-trait="${traitType}" data-value="${value}">
+                    <label class="filter-option" data-trait="${escapeHtml(traitType)}" data-value="${escapeHtml(value)}">
                         <input type="checkbox" class="filter-checkbox">
-                        <span class="filter-value">${value}</span>
+                        <span class="filter-value">${escapeHtml(value)}</span>
                         <span class="count">${count}</span>
                     </label>
                 `).join('')}
@@ -306,8 +315,8 @@ function renderActiveFilters() {
             const tag = document.createElement('div');
             tag.className = 'active-filter';
             tag.innerHTML = `
-                <span>${type}: ${value}</span>
-                <button data-trait="${type}" data-value="${value}">&times;</button>
+                <span>${escapeHtml(type)}: ${escapeHtml(value)}</span>
+                <button data-trait="${escapeHtml(type)}" data-value="${escapeHtml(value)}">&times;</button>
             `;
 
             tag.querySelector('button').addEventListener('click', (e) => {
@@ -390,7 +399,7 @@ function renderNFTs() {
 
         const info = document.createElement('div');
         info.className = 'nft-info';
-        info.innerHTML = `<div class="nft-name">${nft.name}</div>`;
+        info.innerHTML = `<div class="nft-name">${escapeHtml(nft.name)}</div>`;
 
         card.appendChild(img);
         card.appendChild(info);
@@ -410,8 +419,8 @@ function showDetails(nft) {
     elements.detailsTraits.innerHTML = Object.entries(nft.traits)
         .map(([type, value]) => `
             <div class="trait-item">
-                <div class="trait-type">${type}</div>
-                <div class="trait-value">${value}</div>
+                <div class="trait-type">${escapeHtml(type)}</div>
+                <div class="trait-value">${escapeHtml(value)}</div>
             </div>
         `).join('');
     elements.detailsMint.textContent = nft.mint;

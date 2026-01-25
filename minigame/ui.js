@@ -1,5 +1,12 @@
 // ui.js - UI management for Horde Defense
 
+// HTML escape function to prevent XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 class GameUI {
     constructor(game) {
         this.game = game;
@@ -476,14 +483,26 @@ class GameUI {
             topScores.forEach((entry, index) => {
                 const div = document.createElement('div');
                 div.className = 'score-entry';
-                const mapName = MAPS[entry.map]?.name || entry.map;
+                // Use safe map lookup only, don't use untrusted entry.map directly
+                const mapName = MAPS[entry.map]?.name || 'Unknown Map';
                 const playerName = entry.name || 'Anonymous';
-                div.innerHTML = `
-                    <span class="rank">#${index + 1}</span>
-                    <span class="player-name">${playerName}</span>
-                    <span class="map-name">${mapName}</span>
-                    <span class="score-value">${entry.score.toLocaleString()}</span>
-                `;
+                // Use textContent for safety against XSS
+                const rank = document.createElement('span');
+                rank.className = 'rank';
+                rank.textContent = `#${index + 1}`;
+                const name = document.createElement('span');
+                name.className = 'player-name';
+                name.textContent = playerName;
+                const map = document.createElement('span');
+                map.className = 'map-name';
+                map.textContent = mapName;
+                const score = document.createElement('span');
+                score.className = 'score-value';
+                score.textContent = entry.score.toLocaleString();
+                div.appendChild(rank);
+                div.appendChild(name);
+                div.appendChild(map);
+                div.appendChild(score);
                 this.highScoreList.appendChild(div);
             });
         } catch (error) {
