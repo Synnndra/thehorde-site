@@ -230,7 +230,7 @@ header {
 .origin-content {
     display: flex;
     gap: 0;
-    align-items: stretch;
+    align-items: center;
 }
 
 .origin-text {
@@ -255,10 +255,11 @@ header {
 
 .origin-poster img {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    height: auto;
+    object-fit: contain;
     border-radius: 8px;
     border: 2px solid var(--color-primary);
+    align-self: center;
 }
 
 /* DAO Section with Poster */
