@@ -13,7 +13,7 @@ class Game {
         // Game settings
         this.selectedMap = 'tavern_road';
         this.totalWaves = 20;
-        this.startingGold = 100;
+        this.startingGold = 1000;
         this.startingLives = 20;
 
         // Game data
