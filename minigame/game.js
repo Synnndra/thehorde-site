@@ -852,8 +852,10 @@ class Game {
         const ctx = this.ctx;
         const hasPathSprite = typeof spriteManager !== 'undefined' && spriteManager.has('map', 'path');
         const hasGrassSprite = typeof spriteManager !== 'undefined' && spriteManager.has('map', 'grass');
+        const hasWaterSprite = typeof spriteManager !== 'undefined' && spriteManager.has('map', 'water');
         const pathSprite = hasPathSprite ? spriteManager.get('map', 'path') : null;
         const grassSprite = hasGrassSprite ? spriteManager.get('map', 'grass') : null;
+        const waterSprite = hasWaterSprite ? spriteManager.get('map', 'water') : null;
 
         // Fill entire canvas with a color that matches the grass sprite
         ctx.fillStyle = '#5a8a3a';
@@ -926,6 +928,18 @@ class Game {
                                 ctx.fill();
                             }
                         }
+                    }
+                }
+
+                // Draw water tiles (cellType 3 - non-buildable, non-walkable)
+                if (cellType === 3) {
+                    if (waterSprite) {
+                        const overlap = 2;
+                        ctx.drawImage(waterSprite, px - overlap, py - overlap, this.cellSize + overlap * 2, this.cellSize + overlap * 2);
+                    } else {
+                        // Fallback blue water
+                        ctx.fillStyle = '#4a90c2';
+                        ctx.fillRect(px, py, this.cellSize, this.cellSize);
                     }
                 }
             }

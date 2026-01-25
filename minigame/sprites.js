@@ -39,6 +39,7 @@ class SpriteManager {
             map: {
                 grass: '/minigame/assets/map/grass.png',
                 path: '/minigame/assets/map/path.png',
+                water: '/minigame/assets/map/water.png',
                 tavern: '/minigame/assets/map/tavern.png',
                 tree: '/minigame/assets/map/tree.png',
                 rock: '/minigame/assets/map/rock.png'
