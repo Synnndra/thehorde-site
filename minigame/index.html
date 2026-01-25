@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horde Defense - Defend Merlin's Beard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen">
+        <div class="screen-content">
+            <h1 class="game-title">HORDE DEFENSE</h1>
+            <p class="subtitle">Defend Merlin's Beard Tavern</p>
+
+            <div class="map-selection">
+                <h2>Select Map</h2>
+                <div class="map-options">
+                    <button class="map-btn selected" data-map="tavern_road">
+                        <span class="map-name">Tavern Road</span>
+                        <span class="map-difficulty easy">Easy</span>
+                    </button>
+                    <button class="map-btn" data-map="forest_ambush">
+                        <span class="map-name">Forest Ambush</span>
+                        <span class="map-difficulty medium">Medium</span>
+                    </button>
+                    <button class="map-btn" data-map="castle_siege">
+                        <span class="map-name">Castle Siege</span>
+                        <span class="map-difficulty hard">Hard</span>
+                    </button>
+                </div>
+            </div>
+
+            <button id="start-game-btn" class="primary-btn">Start Game</button>
+
+            <div class="high-scores">
+                <h3>High Scores</h3>
+                <div id="high-score-list"></div>
+            </div>
+
+            <div class="nft-section">
+                <button id="connect-wallet-btn" class="wallet-btn">Connect Wallet</button>
+                <div id="wallet-status"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen hidden">
+        <!-- Top Bar -->
+        <div id="top-bar">
+            <div class="stat-group">
+                <div class="stat">
+                    <span class="stat-icon gold-icon"></span>
+                    <span id="gold-display">100</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-icon lives-icon"></span>
+                    <span id="lives-display">20</span>
+                </div>
+            </div>
+            <div class="wave-info">
+                <span id="wave-display">Wave 1/20</span>
+            </div>
+            <div class="controls">
+                <button id="pause-btn" class="control-btn" title="Pause">⏸</button>
+                <button id="speed-btn" class="control-btn" title="Speed">1x</button>
+                <button id="menu-btn" class="control-btn" title="Menu">☰</button>
+            </div>
+        </div>
+
+        <!-- Main Game Area -->
+        <div id="game-container">
+            <canvas id="game-canvas"></canvas>
+
+            <!-- Tower Panel (Right Side) -->
+            <div id="tower-panel">
+                <h3>Defenders</h3>
+                <div id="tower-list">
+                    <!-- Tower buttons populated by JS -->
+                </div>
+
+                <div id="selected-tower-info" class="hidden">
+                    <h4 id="selected-tower-name"></h4>
+                    <div id="selected-tower-stats"></div>
+                    <div class="tower-actions">
+                        <button id="upgrade-btn" class="action-btn">Upgrade</button>
+                        <button id="sell-btn" class="action-btn sell">Sell</button>
+                    </div>
+                </div>
+
+                <div id="wave-controls">
+                    <button id="start-wave-btn" class="primary-btn">Start Wave</button>
+                    <div id="next-wave-preview">
+                        <span>Next Wave:</span>
+                        <div id="enemy-preview"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="screen hidden">
+        <div class="screen-content">
+            <h1 id="gameover-title">DEFEAT</h1>
+            <p id="gameover-message">The knights have overrun the tavern!</p>
+            <div class="final-stats">
+                <div class="final-stat">
+                    <span class="label">Waves Survived</span>
+                    <span id="final-waves">0</span>
+                </div>
+                <div class="final-stat">
+                    <span class="label">Enemies Slain</span>
+                    <span id="final-kills">0</span>
+                </div>
+                <div class="final-stat">
+                    <span class="label">Gold Earned</span>
+                    <span id="final-gold">0</span>
+                </div>
+            </div>
+            <div class="gameover-buttons">
+                <button id="retry-btn" class="primary-btn">Play Again</button>
+                <button id="main-menu-btn" class="secondary-btn">Main Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Victory Screen -->
+    <div id="victory-screen" class="screen hidden">
+        <div class="screen-content">
+            <h1 class="victory-title">VICTORY!</h1>
+            <p>Merlin's Beard stands strong!</p>
+            <div class="final-stats">
+                <div class="final-stat">
+                    <span class="label">Final Score</span>
+                    <span id="victory-score">0</span>
+                </div>
+                <div class="final-stat">
+                    <span class="label">Lives Remaining</span>
+                    <span id="victory-lives">0</span>
+                </div>
+                <div class="final-stat">
+                    <span class="label">Enemies Slain</span>
+                    <span id="victory-kills">0</span>
+                </div>
+            </div>
+            <div class="gameover-buttons">
+                <button id="victory-retry-btn" class="primary-btn">Play Again</button>
+                <button id="victory-menu-btn" class="secondary-btn">Main Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause Overlay -->
+    <div id="pause-overlay" class="overlay hidden">
+        <div class="overlay-content">
+            <h2>PAUSED</h2>
+            <button id="resume-btn" class="primary-btn">Resume</button>
+            <button id="restart-btn" class="secondary-btn">Restart</button>
+            <button id="quit-btn" class="secondary-btn">Quit to Menu</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="maps.js"></script>
+    <script src="towers.js"></script>
+    <script src="enemies.js"></script>
+    <script src="ui.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
