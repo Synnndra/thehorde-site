@@ -860,18 +860,11 @@ class Game {
                 const px = x * this.cellSize;
                 const py = y * this.cellSize;
                 const cellType = this.currentMap.buildableAreas[y][x];
-                const centerX = px + this.cellSize / 2;
-                const centerY = py + this.cellSize / 2;
 
                 // Draw grass tiles (buildable areas)
                 if (cellType === 1) {
                     if (grassSprite) {
-                        ctx.save();
-                        ctx.translate(centerX, centerY);
-                        ctx.rotate(Math.PI / 4); // Rotate 45 degrees
-                        const size = this.cellSize * 1.42; // Scale up to fill after rotation
-                        ctx.drawImage(grassSprite, -size / 2, -size / 2, size, size);
-                        ctx.restore();
+                        ctx.drawImage(grassSprite, px, py, this.cellSize, this.cellSize);
                     } else {
                         ctx.fillStyle = '#2d4a2d';
                         ctx.fillRect(px, py, this.cellSize, this.cellSize);
@@ -884,12 +877,7 @@ class Game {
                 // Draw path tiles
                 if (cellType === 2) {
                     if (pathSprite) {
-                        ctx.save();
-                        ctx.translate(centerX, centerY);
-                        ctx.rotate(Math.PI / 4); // Rotate 45 degrees
-                        const size = this.cellSize * 1.42; // Scale up to fill after rotation
-                        ctx.drawImage(pathSprite, -size / 2, -size / 2, size, size);
-                        ctx.restore();
+                        ctx.drawImage(pathSprite, px, py, this.cellSize, this.cellSize);
                     } else {
                         ctx.fillStyle = this.currentMap.pathColor || '#3d2817';
                         ctx.fillRect(px, py, this.cellSize, this.cellSize);
