@@ -40,6 +40,7 @@ const layoutSelect = document.getElementById('layoutSelect');
 const spacingSlider = document.getElementById('spacingSlider');
 const spacingValue = document.getElementById('spacingValue');
 const trainingFilterSelect = document.getElementById('trainingFilterSelect');
+const raceFilterSelect = document.getElementById('raceFilterSelect');
 
 // Track selected NFTs in order
 let selectedNFTsArray = [];
@@ -51,6 +52,8 @@ let currentCollageCanvas = null;
 let activeFilters = {};
 // Store training filter state
 let trainingFilter = 'all';
+// Store race filter state
+let raceFilter = 'all';
 // Store current sort option
 let currentSortOption = 'background';
 // Store current preview NFT array for reordering
@@ -110,6 +113,12 @@ sortSelect.addEventListener('change', (e) => {
 // Add event listener for training filter
 trainingFilterSelect.addEventListener('change', (e) => {
     trainingFilter = e.target.value;
+    applyFilters();
+});
+
+// Add event listener for race filter
+raceFilterSelect.addEventListener('change', (e) => {
+    raceFilter = e.target.value;
     applyFilters();
 });
 
@@ -1514,6 +1523,21 @@ function applyFilters() {
             }
         }
 
+        // Check race filter (Orcs only)
+        if (matches && raceFilter === 'orc') {
+            const name = nft.content?.metadata?.name || '';
+            const raceTrait = attributes.find(attr =>
+                attr.trait_type?.toLowerCase() === 'race' ||
+                attr.trait_type?.toLowerCase() === 'species' ||
+                attr.trait_type?.toLowerCase() === 'type'
+            );
+            const isOrc = name.toLowerCase().includes('orc') ||
+                         (raceTrait && raceTrait.value?.toLowerCase().includes('orc'));
+            if (!isOrc) {
+                matches = false;
+            }
+        }
+
         // Show or hide the card
         if (matches) {
             card.style.display = '';
@@ -1541,6 +1565,7 @@ function applyFilters() {
 function clearAllFilters() {
     activeFilters = {};
     trainingFilter = 'all';
+    raceFilter = 'all';
 
     // Reset all dropdowns to "All"
     const selects = filterControls.querySelectorAll('select');
@@ -1550,6 +1575,9 @@ function clearAllFilters() {
 
     // Reset training filter dropdown
     trainingFilterSelect.value = 'all';
+
+    // Reset race filter dropdown
+    raceFilterSelect.value = 'all';
 
     // Show all NFT cards
     const nftCards = document.querySelectorAll('.nft-card');
