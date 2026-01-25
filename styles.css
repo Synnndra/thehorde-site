@@ -441,17 +441,20 @@ header {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) rotate(-20deg);
-    background: rgba(201, 162, 39, 0.9);
-    color: #0a0a0a;
+    background: transparent;
+    color: rgba(201, 162, 39, 0.5);
     font-family: var(--font-display);
-    font-size: 0.9rem;
+    font-size: 1.1rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.2em;
     padding: 0.4rem 2rem;
     white-space: nowrap;
     pointer-events: none;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    text-shadow:
+        1px 1px 0 rgba(0, 0, 0, 0.5),
+        -1px -1px 0 rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(201, 162, 39, 0.4);
     z-index: 10;
 }
 
