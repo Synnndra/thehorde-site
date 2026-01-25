@@ -451,67 +451,75 @@ class GameUI {
         this.startWaveBtn.textContent = isWaveActive ? 'Wave In Progress' : 'Start Wave';
     }
 
-    // High score management
-    loadHighScores() {
-        const scores = JSON.parse(localStorage.getItem('hordeDefenseScores') || '{}');
-        this.highScoreList.innerHTML = '';
+    // High score management - uses shared leaderboard API
+    async loadHighScores() {
+        this.highScoreList.innerHTML = '<p style="color: #b0a890; text-align: center;">Loading leaderboard...</p>';
 
-        const allScores = [];
-        Object.entries(scores).forEach(([map, mapScores]) => {
-            mapScores.forEach(scoreEntry => {
-                allScores.push({ map, ...scoreEntry });
+        try {
+            const response = await fetch('/api/leaderboard');
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to load');
+            }
+
+            const topScores = (data.scores || []).slice(0, 10);
+
+            if (topScores.length === 0) {
+                this.highScoreList.innerHTML = '<p style="color: #b0a890; text-align: center;">No scores yet! Be the first to defend the tavern.</p>';
+                return;
+            }
+
+            this.highScoreList.innerHTML = '';
+            topScores.forEach((entry, index) => {
+                const div = document.createElement('div');
+                div.className = 'score-entry';
+                const mapName = MAPS[entry.map]?.name || entry.map;
+                const playerName = entry.name || 'Anonymous';
+                div.innerHTML = `
+                    <span class="rank">#${index + 1}</span>
+                    <span class="player-name">${playerName}</span>
+                    <span class="map-name">${mapName}</span>
+                    <span class="score-value">${entry.score.toLocaleString()}</span>
+                `;
+                this.highScoreList.appendChild(div);
             });
-        });
-
-        allScores.sort((a, b) => b.score - a.score);
-        const topScores = allScores.slice(0, 10);
-
-        if (topScores.length === 0) {
-            this.highScoreList.innerHTML = '<p style="color: #b0a890; text-align: center;">No scores yet! Be the first to defend the tavern.</p>';
-            return;
+        } catch (error) {
+            console.error('Failed to load leaderboard:', error);
+            this.highScoreList.innerHTML = '<p style="color: #b0a890; text-align: center;">Could not load leaderboard</p>';
         }
-
-        topScores.forEach((entry, index) => {
-            const div = document.createElement('div');
-            div.className = 'score-entry';
-            const mapName = MAPS[entry.map]?.name || entry.map;
-            const playerName = entry.name || 'Anonymous';
-            div.innerHTML = `
-                <span class="rank">#${index + 1}</span>
-                <span class="player-name">${playerName}</span>
-                <span class="map-name">${mapName}</span>
-                <span class="score-value">${entry.score.toLocaleString()}</span>
-            `;
-            this.highScoreList.appendChild(div);
-        });
     }
 
     isHighScore(mapId, score) {
         // Always allow name entry for any score above 0
-        // The leaderboard will only keep top 10, but everyone can try to make it
         return score > 0;
     }
 
-    saveHighScore(mapId, score, playerName) {
-        const scores = JSON.parse(localStorage.getItem('hordeDefenseScores') || '{}');
-
-        if (!scores[mapId]) {
-            scores[mapId] = [];
-        }
-
-        scores[mapId].push({
-            score,
-            name: playerName || 'Anonymous',
-            date: new Date().toISOString(),
-            victory: this.pendingVictory || false
-        });
-
-        // Keep only top 10 per map
-        scores[mapId].sort((a, b) => b.score - a.score);
-        scores[mapId] = scores[mapId].slice(0, 10);
-
-        localStorage.setItem('hordeDefenseScores', JSON.stringify(scores));
+    async saveHighScore(mapId, score, playerName) {
         localStorage.setItem('lastPlayerName', playerName);
+
+        try {
+            const response = await fetch('/api/leaderboard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: playerName || 'Anonymous',
+                    score: score,
+                    map: mapId,
+                    wavesCompleted: this.game.stats?.wavesCompleted || 0,
+                    enemiesKilled: this.game.stats?.enemiesKilled || 0,
+                    victory: this.pendingVictory || false
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.isTopTen) {
+                console.log(`New top 10 score! Rank: ${data.rank}`);
+            }
+        } catch (error) {
+            console.error('Failed to save score:', error);
+        }
 
         this.loadHighScores();
     }
