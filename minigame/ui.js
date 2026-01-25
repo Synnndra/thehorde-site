@@ -109,16 +109,18 @@ class GameUI {
         this.victoryRetryBtn.addEventListener('click', () => this.game.startGame());
         this.victoryMenuBtn.addEventListener('click', () => this.showStartScreen());
 
-        // High score save buttons
-        document.getElementById('save-score-btn').addEventListener('click', () => {
+        // High score save buttons - save and go to leaderboard
+        document.getElementById('save-score-btn').addEventListener('click', async () => {
             const name = document.getElementById('player-name').value.trim() || 'Anonymous';
-            this.saveHighScore(this.game.selectedMap, this.pendingScore, name);
+            await this.saveHighScore(this.game.selectedMap, this.pendingScore, name);
             document.getElementById('highscore-entry').classList.add('hidden');
+            this.showStartScreen();
         });
-        document.getElementById('victory-save-score-btn').addEventListener('click', () => {
+        document.getElementById('victory-save-score-btn').addEventListener('click', async () => {
             const name = document.getElementById('victory-player-name').value.trim() || 'Anonymous';
-            this.saveHighScore(this.game.selectedMap, this.pendingScore, name);
+            await this.saveHighScore(this.game.selectedMap, this.pendingScore, name);
             document.getElementById('victory-highscore-entry').classList.add('hidden');
+            this.showStartScreen();
         });
 
         // Allow Enter key to save score
