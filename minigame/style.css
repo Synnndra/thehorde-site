@@ -185,6 +185,63 @@ h2, h3 {
     background: var(--danger);
 }
 
+/* Tutorial Section */
+.tutorial-section {
+    margin: 25px 0;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-secondary);
+    border-radius: 8px;
+    max-width: 500px;
+}
+
+.tutorial-section h3 {
+    color: var(--accent-gold);
+    margin-bottom: 15px;
+    font-family: 'Cinzel', serif;
+    text-align: center;
+}
+
+.tutorial-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tutorial-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px;
+    background: rgba(139, 69, 19, 0.15);
+    border-radius: 5px;
+    border-left: 3px solid var(--accent-gold);
+}
+
+.step-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.step-text {
+    flex: 1;
+}
+
+.step-text strong {
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 3px;
+    font-family: 'Cinzel', serif;
+}
+
+.step-text p {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    margin: 0;
+}
+
 /* High Scores / Leaderboard */
 .high-scores {
     margin-top: 30px;
