@@ -896,7 +896,7 @@ class Game {
 
                 if (cellType === 2) {
                     if (pathSprite) {
-                        // Crop out the decorative border by using only the center portion
+                        // Crop out the decorative border and draw slightly larger to cover grass overlap
                         const cropPercent = 0.15;
                         const sw = pathSprite.width;
                         const sh = pathSprite.height;
@@ -904,7 +904,8 @@ class Game {
                         const cropY = sh * cropPercent;
                         const cropW = sw * (1 - cropPercent * 2);
                         const cropH = sh * (1 - cropPercent * 2);
-                        ctx.drawImage(pathSprite, cropX, cropY, cropW, cropH, px, py, this.cellSize, this.cellSize);
+                        const overlap = 4;
+                        ctx.drawImage(pathSprite, cropX, cropY, cropW, cropH, px - overlap, py - overlap, this.cellSize + overlap * 2, this.cellSize + overlap * 2);
                     } else {
                         ctx.fillStyle = this.currentMap.pathColor || '#3d2817';
                         ctx.fillRect(px, py, this.cellSize, this.cellSize);
