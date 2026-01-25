@@ -628,7 +628,9 @@ class GameUI {
                 const hasGraveyardInName = name.toLowerCase().includes('graveyard');
                 const isBurnt = nft.burnt === true;
 
-                return hasMidEvil && !hasGraveyard && !hasGraveyardInName && !isBurnt;
+                // Must be MidEvil, not graveyard, not burnt, AND have "Orc" in name
+                const isOrc = name.toLowerCase().includes('orc');
+                return hasMidEvil && !hasGraveyard && !hasGraveyardInName && !isBurnt && isOrc;
             });
 
             if (midEvilOrcs.length > 0) {
