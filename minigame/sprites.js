@@ -9,7 +9,7 @@ class SpriteManager {
         this.processedCache = {};
     }
 
-    // Remove background from image by detecting background color from corners
+    // Remove background using flood fill from corners
     removeWhiteBackground(img) {
         if (!img) return null;
 
@@ -25,50 +25,66 @@ class SpriteManager {
         const width = canvas.width;
         const height = canvas.height;
 
-        // Sample corners to detect background color
-        const samplePoints = [
-            [0, 0], [1, 0], [2, 0], [0, 1], [0, 2],  // Top-left
-            [width-1, 0], [width-2, 0], [width-3, 0], [width-1, 1], [width-1, 2],  // Top-right
-            [0, height-1], [0, height-2], [0, height-3], [1, height-1], [2, height-1],  // Bottom-left
-            [width-1, height-1], [width-2, height-1], [width-3, height-1], [width-1, height-2], [width-1, height-3]  // Bottom-right
-        ];
+        // Track which pixels have been processed
+        const processed = new Uint8Array(width * height);
 
-        let bgR = 0, bgG = 0, bgB = 0, count = 0;
-        for (const [x, y] of samplePoints) {
-            const idx = (y * width + x) * 4;
-            bgR += data[idx];
-            bgG += data[idx + 1];
-            bgB += data[idx + 2];
-            count++;
-        }
-        bgR = Math.round(bgR / count);
-        bgG = Math.round(bgG / count);
-        bgB = Math.round(bgB / count);
+        // Get pixel index
+        const getIdx = (x, y) => (y * width + x) * 4;
+        const getKey = (x, y) => y * width + x;
 
-        // Tolerance for matching background color
-        const tolerance = 30;
-        const softTolerance = 60;
+        // Get background color from corner
+        const bgR = data[0];
+        const bgG = data[1];
+        const bgB = data[2];
 
-        for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
+        // Color tolerance for flood fill
+        const tolerance = 45;
 
-            // Calculate color distance from background
-            const dist = Math.sqrt(
-                Math.pow(r - bgR, 2) +
-                Math.pow(g - bgG, 2) +
-                Math.pow(b - bgB, 2)
-            );
+        // Check if color matches background
+        const matchesBg = (x, y) => {
+            const idx = getIdx(x, y);
+            const dist = Math.abs(data[idx] - bgR) +
+                        Math.abs(data[idx + 1] - bgG) +
+                        Math.abs(data[idx + 2] - bgB);
+            return dist < tolerance;
+        };
 
-            if (dist < tolerance) {
-                // Make fully transparent
-                data[i + 3] = 0;
-            } else if (dist < softTolerance) {
-                // Semi-transparent for edge softening
-                const alpha = ((dist - tolerance) / (softTolerance - tolerance)) * 255;
-                data[i + 3] = Math.min(data[i + 3], Math.round(alpha));
+        // Flood fill from a starting point
+        const floodFill = (startX, startY) => {
+            const stack = [[startX, startY]];
+
+            while (stack.length > 0) {
+                const [x, y] = stack.pop();
+
+                if (x < 0 || x >= width || y < 0 || y >= height) continue;
+
+                const key = getKey(x, y);
+                if (processed[key]) continue;
+
+                if (!matchesBg(x, y)) continue;
+
+                processed[key] = 1;
+                const idx = getIdx(x, y);
+                data[idx + 3] = 0; // Make transparent
+
+                // Add neighbors
+                stack.push([x + 1, y]);
+                stack.push([x - 1, y]);
+                stack.push([x, y + 1]);
+                stack.push([x, y - 1]);
             }
+        };
+
+        // Start flood fill from all corners and edges
+        // Top edge
+        for (let x = 0; x < width; x++) {
+            floodFill(x, 0);
+            floodFill(x, height - 1);
+        }
+        // Side edges
+        for (let y = 0; y < height; y++) {
+            floodFill(0, y);
+            floodFill(width - 1, y);
         }
 
         ctx.putImageData(imageData, 0, 0);
