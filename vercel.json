@@ -1,7 +1,7 @@
 {
   "rewrites": [
     { "source": "/api/helius", "destination": "/api/helius.js" },
-    { "source": "/(.*)", "destination": "/$1" }
+    { "source": "/minigame", "destination": "/minigame/index.html" }
   ],
   "headers": [
     {
