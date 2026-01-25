@@ -142,8 +142,8 @@ class Game {
         // Game settings
         this.selectedMap = 'tavern_road';
         this.totalWaves = 20;
-        this.startingGold = 750;
-        this.startingLives = 15;
+        this.startingGold = 500;
+        this.startingLives = 10;
 
         // Game data
         this.gold = 0;
@@ -164,7 +164,7 @@ class Game {
         // Wave spawning
         this.waveEnemies = [];
         this.spawnTimer = 0;
-        this.spawnInterval = 0.7;
+        this.spawnInterval = 0.5;
 
         // Selection state
         this.selectedTowerType = null;

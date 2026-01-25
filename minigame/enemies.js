@@ -19,10 +19,10 @@ const ENEMY_TYPES = {
         description: "Basic trainee knight. Slow and weak.",
         icon: "🛡️",
         color: "#C0C0C0",
-        hp: 50,
-        speed: 1.0,
+        hp: 75,
+        speed: 1.1,
         armor: 0,
-        goldReward: 10,
+        goldReward: 8,
         damage: 1, // Damage to lives when reaching end
         size: 0.6
     },
@@ -32,10 +32,10 @@ const ENEMY_TYPES = {
         description: "Armored warrior. Moderate speed and HP.",
         icon: "⚔️",
         color: "#708090",
-        hp: 120,
-        speed: 1.2,
-        armor: 2, // Flat damage reduction
-        goldReward: 20,
+        hp: 180,
+        speed: 1.3,
+        armor: 3, // Flat damage reduction
+        goldReward: 15,
         damage: 1,
         size: 0.7
     },
@@ -45,16 +45,16 @@ const ENEMY_TYPES = {
         description: "Ranged attacker. Can damage your orcs!",
         icon: "🏹",
         color: "#228B22",
-        hp: 60,
-        speed: 1.5,
+        hp: 90,
+        speed: 1.6,
         armor: 0,
-        goldReward: 25,
+        goldReward: 18,
         damage: 1,
         size: 0.55,
         canAttack: true,
-        attackDamage: 10,
+        attackDamage: 15,
         attackRange: 2.5,
-        attackSpeed: 0.5
+        attackSpeed: 0.6
     },
 
     cavalry: {
@@ -62,10 +62,10 @@ const ENEMY_TYPES = {
         description: "Fast mounted knight. High HP.",
         icon: "🐴",
         color: "#8B4513",
-        hp: 200,
-        speed: 2.5,
-        armor: 1,
-        goldReward: 35,
+        hp: 300,
+        speed: 2.8,
+        armor: 2,
+        goldReward: 25,
         damage: 2,
         size: 0.8
     },
@@ -75,15 +75,15 @@ const ENEMY_TYPES = {
         description: "Casts spells. Can disable towers!",
         icon: "🧙",
         color: "#4169E1",
-        hp: 80,
-        speed: 1.0,
+        hp: 120,
+        speed: 1.1,
         armor: 0,
-        goldReward: 40,
+        goldReward: 30,
         damage: 1,
         size: 0.6,
         canDisable: true,
-        disableChance: 0.1, // 10% chance per second
-        disableDuration: 3.0
+        disableChance: 0.15, // 15% chance per second
+        disableDuration: 4.0
     }
 };
 
@@ -93,10 +93,10 @@ const BOSS_TYPES = {
         description: "Leader of the knights. Extremely tough.",
         icon: "👑",
         color: "#FFD700",
-        hp: 1500,
-        speed: 0.8,
-        armor: 5,
-        goldReward: 200,
+        hp: 2500,
+        speed: 0.9,
+        armor: 8,
+        goldReward: 150,
         damage: 5,
         size: 1.0,
         isBoss: true,
@@ -108,15 +108,15 @@ const BOSS_TYPES = {
         description: "Master of magic. Regenerates health!",
         icon: "⚡",
         color: "#9400D3",
-        hp: 1000,
-        speed: 1.0,
-        armor: 2,
-        goldReward: 250,
+        hp: 1800,
+        speed: 1.1,
+        armor: 3,
+        goldReward: 180,
         damage: 4,
         size: 0.9,
         isBoss: true,
         abilities: ['regenerate', 'massDisable'],
-        regenRate: 20 // HP per second
+        regenRate: 30 // HP per second
     },
 
     war_elephant: {
@@ -124,10 +124,10 @@ const BOSS_TYPES = {
         description: "Massive beast! Crushes everything.",
         icon: "🐘",
         color: "#808080",
-        hp: 3000,
-        speed: 0.5,
-        armor: 10,
-        goldReward: 350,
+        hp: 5000,
+        speed: 0.6,
+        armor: 15,
+        goldReward: 250,
         damage: 10,
         size: 1.3,
         isBoss: true,
@@ -139,10 +139,10 @@ const BOSS_TYPES = {
         description: "The final boss! Flying death!",
         icon: "🐉",
         color: "#FF4500",
-        hp: 2500,
-        speed: 1.5,
-        armor: 8,
-        goldReward: 500,
+        hp: 4500,
+        speed: 1.6,
+        armor: 12,
+        goldReward: 350,
         damage: 20,
         size: 1.2,
         isBoss: true,
