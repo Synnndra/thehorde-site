@@ -1,4 +1,4 @@
-// sounds.js - Web Audio API sound effects for Horde Defense
+// sounds.js - Sound effects for Horde Defense (Audio files + Web Audio API fallbacks)
 
 class SoundManager {
     constructor() {
@@ -6,9 +6,11 @@ class SoundManager {
         this.masterVolume = 0.5;
         this.muted = false;
         this.initialized = false;
+        this.sounds = {};
+        this.basePath = '/minigame/assets/sounds/';
     }
 
-    // Initialize audio context (must be called after user interaction)
+    // Initialize audio context and preload sounds
     init() {
         if (this.initialized) return;
 
@@ -18,9 +20,52 @@ class SoundManager {
             this.masterGain.connect(this.audioContext.destination);
             this.masterGain.gain.value = this.masterVolume;
             this.initialized = true;
+
+            // Preload audio files
+            this.preloadSounds();
             console.log('Sound system initialized');
         } catch (e) {
             console.warn('Web Audio API not supported:', e);
+        }
+    }
+
+    preloadSounds() {
+        const soundFiles = [
+            'tower-attack-melee',
+            'tower-attack-arrow',
+            'tower-attack-magic',
+            'tower-attack-boulder',
+            'tower-upgrade',
+            'tower-sell',
+            'enemy-death',
+            'boss-death',
+            'life-lost',
+            'wave-start',
+            'wave-complete',
+            'boss-warning',
+            'victory',
+            'defeat'
+        ];
+
+        soundFiles.forEach(name => {
+            const audio = new Audio(this.basePath + name + '.mp3');
+            audio.preload = 'auto';
+            audio.volume = this.masterVolume;
+            this.sounds[name] = audio;
+        });
+    }
+
+    // Play a preloaded sound file
+    playSound(name, volume = 1.0) {
+        if (this.muted || !this.sounds[name]) return;
+
+        try {
+            // Clone the audio to allow overlapping plays
+            const sound = this.sounds[name].cloneNode();
+            sound.volume = this.masterVolume * volume;
+            sound.play().catch(() => {}); // Ignore autoplay errors
+        } catch (e) {
+            console.warn('Error playing sound:', name, e);
         }
     }
 
@@ -36,6 +81,10 @@ class SoundManager {
         if (this.masterGain) {
             this.masterGain.gain.value = this.muted ? 0 : this.masterVolume;
         }
+        // Update preloaded sounds volume
+        Object.values(this.sounds).forEach(audio => {
+            audio.volume = this.masterVolume;
+        });
     }
 
     toggleMute() {
@@ -46,7 +95,7 @@ class SoundManager {
         return this.muted;
     }
 
-    // Play a tone with envelope
+    // Play a tone with envelope (for fallback/UI sounds)
     playTone(frequency, duration, type = 'square', volume = 0.3, attack = 0.01, decay = 0.1) {
         if (!this.initialized || this.muted) return;
         this.resume();
@@ -69,42 +118,9 @@ class SoundManager {
         osc.stop(this.audioContext.currentTime + duration);
     }
 
-    // Play noise burst (for explosions, hits)
-    playNoise(duration, volume = 0.2, filter = 1000) {
-        if (!this.initialized || this.muted) return;
-        this.resume();
-
-        const bufferSize = this.audioContext.sampleRate * duration;
-        const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
-        const data = buffer.getChannelData(0);
-
-        for (let i = 0; i < bufferSize; i++) {
-            data[i] = Math.random() * 2 - 1;
-        }
-
-        const noise = this.audioContext.createBufferSource();
-        noise.buffer = buffer;
-
-        const gainNode = this.audioContext.createGain();
-        const filterNode = this.audioContext.createBiquadFilter();
-
-        filterNode.type = 'lowpass';
-        filterNode.frequency.value = filter;
-
-        gainNode.gain.setValueAtTime(volume * this.masterVolume, this.audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
-
-        noise.connect(filterNode);
-        filterNode.connect(gainNode);
-        gainNode.connect(this.masterGain);
-
-        noise.start();
-        noise.stop(this.audioContext.currentTime + duration);
-    }
-
     // === GAME SOUND EFFECTS ===
 
-    // Tower placed
+    // Tower placed (synthesized - no file provided)
     towerPlace() {
         this.playTone(200, 0.15, 'square', 0.25);
         setTimeout(() => this.playTone(300, 0.15, 'square', 0.25), 50);
@@ -115,55 +131,43 @@ class SoundManager {
     towerAttack(type = 'default') {
         switch (type) {
             case 'melee':
-                this.playNoise(0.08, 0.15, 2000);
-                this.playTone(150, 0.08, 'sawtooth', 0.2);
+                this.playSound('tower-attack-melee', 0.7);
                 break;
             case 'arrow':
-                this.playTone(800, 0.05, 'sine', 0.15);
-                this.playTone(600, 0.08, 'sine', 0.1, 0.05, 0.03);
+                this.playSound('tower-attack-arrow', 0.6);
                 break;
             case 'magic':
-                this.playTone(400, 0.15, 'sine', 0.2);
-                this.playTone(600, 0.2, 'sine', 0.15, 0.05, 0.1);
+                this.playSound('tower-attack-magic', 0.7);
                 break;
             case 'boulder':
-                this.playNoise(0.15, 0.25, 500);
-                this.playTone(80, 0.2, 'sine', 0.3);
+                this.playSound('tower-attack-boulder', 0.8);
                 break;
             default:
-                this.playTone(300, 0.08, 'square', 0.15);
+                this.playSound('tower-attack-melee', 0.5);
         }
     }
 
     // Tower upgrade
     towerUpgrade() {
-        this.playTone(300, 0.1, 'sine', 0.25);
-        setTimeout(() => this.playTone(400, 0.1, 'sine', 0.25), 80);
-        setTimeout(() => this.playTone(500, 0.1, 'sine', 0.25), 160);
-        setTimeout(() => this.playTone(600, 0.2, 'sine', 0.3), 240);
+        this.playSound('tower-upgrade', 0.8);
     }
 
     // Tower sold
     towerSell() {
-        this.playTone(400, 0.1, 'square', 0.2);
-        setTimeout(() => this.playTone(300, 0.1, 'square', 0.2), 80);
-        setTimeout(() => this.playTone(200, 0.15, 'square', 0.15), 160);
+        this.playSound('tower-sell', 0.8);
     }
 
     // Enemy death
     enemyDeath() {
-        this.playNoise(0.12, 0.2, 1500);
-        this.playTone(200, 0.1, 'sawtooth', 0.2);
-        this.playTone(100, 0.15, 'sawtooth', 0.15, 0.05, 0.1);
+        this.playSound('enemy-death', 0.6);
     }
 
     // Enemy reached tavern (lost life)
     lifeLost() {
-        this.playTone(200, 0.2, 'sawtooth', 0.35);
-        setTimeout(() => this.playTone(150, 0.3, 'sawtooth', 0.35), 150);
+        this.playSound('life-lost', 0.9);
     }
 
-    // Gold earned
+    // Gold earned (synthesized - no file provided)
     goldEarned() {
         this.playTone(800, 0.06, 'sine', 0.15);
         this.playTone(1000, 0.08, 'sine', 0.12, 0.03, 0.05);
@@ -171,95 +175,57 @@ class SoundManager {
 
     // Wave start
     waveStart() {
-        this.playTone(150, 0.15, 'square', 0.25);
-        setTimeout(() => this.playTone(200, 0.15, 'square', 0.25), 120);
-        setTimeout(() => this.playTone(250, 0.15, 'square', 0.25), 240);
-        setTimeout(() => this.playTone(300, 0.25, 'square', 0.3), 360);
+        this.playSound('wave-start', 0.8);
     }
 
     // Wave complete
     waveComplete() {
-        const notes = [400, 500, 600, 800];
-        notes.forEach((freq, i) => {
-            setTimeout(() => this.playTone(freq, 0.15, 'sine', 0.25), i * 100);
-        });
+        this.playSound('wave-complete', 0.8);
     }
 
     // Boss incoming warning
     bossWarning() {
-        for (let i = 0; i < 3; i++) {
-            setTimeout(() => {
-                this.playTone(100, 0.3, 'sawtooth', 0.35);
-                this.playTone(50, 0.3, 'square', 0.2);
-            }, i * 400);
-        }
+        this.playSound('boss-warning', 0.9);
     }
 
     // Boss death
     bossDeath() {
-        this.playNoise(0.4, 0.35, 800);
-        this.playTone(150, 0.3, 'sawtooth', 0.3);
-        setTimeout(() => {
-            this.playTone(100, 0.3, 'sawtooth', 0.25);
-            this.playNoise(0.3, 0.25, 600);
-        }, 200);
-        setTimeout(() => {
-            this.playTone(200, 0.2, 'square', 0.3);
-            this.playTone(300, 0.2, 'square', 0.25);
-        }, 400);
+        this.playSound('boss-death', 1.0);
     }
 
     // Victory fanfare
     victory() {
-        const melody = [
-            { freq: 400, time: 0 },
-            { freq: 500, time: 150 },
-            { freq: 600, time: 300 },
-            { freq: 500, time: 450 },
-            { freq: 600, time: 600 },
-            { freq: 800, time: 750 },
-        ];
-        melody.forEach(note => {
-            setTimeout(() => this.playTone(note.freq, 0.2, 'sine', 0.3), note.time);
-        });
+        this.playSound('victory', 1.0);
     }
 
     // Defeat
     defeat() {
-        const melody = [
-            { freq: 400, time: 0 },
-            { freq: 350, time: 200 },
-            { freq: 300, time: 400 },
-            { freq: 200, time: 600 },
-        ];
-        melody.forEach(note => {
-            setTimeout(() => this.playTone(note.freq, 0.35, 'sawtooth', 0.3), note.time);
-        });
+        this.playSound('defeat', 1.0);
     }
 
-    // UI click
+    // UI click (synthesized - no file provided)
     uiClick() {
         this.playTone(600, 0.05, 'square', 0.15);
     }
 
-    // UI hover
+    // UI hover (synthesized - no file provided)
     uiHover() {
         this.playTone(800, 0.03, 'sine', 0.08);
     }
 
-    // Error / can't afford
+    // Error / can't afford (synthesized - no file provided)
     error() {
         this.playTone(200, 0.1, 'square', 0.25);
         setTimeout(() => this.playTone(150, 0.15, 'square', 0.25), 100);
     }
 
-    // Pause
+    // Pause (synthesized - no file provided)
     pause() {
         this.playTone(300, 0.1, 'sine', 0.2);
         this.playTone(200, 0.15, 'sine', 0.15, 0.05, 0.1);
     }
 
-    // Unpause
+    // Unpause (synthesized - no file provided)
     unpause() {
         this.playTone(200, 0.1, 'sine', 0.2);
         this.playTone(300, 0.15, 'sine', 0.2, 0.05, 0.1);
