@@ -245,6 +245,16 @@ h2, h3 {
     margin: 0;
 }
 
+.step-text .highlight {
+    color: var(--accent-gold);
+    font-weight: bold;
+}
+
+.tutorial-step.nft-bonus {
+    border-left-color: var(--accent-gold);
+    background: rgba(201, 162, 39, 0.15);
+}
+
 /* High Scores / Leaderboard */
 .high-scores {
     margin-top: 30px;
