@@ -262,8 +262,11 @@ class Game {
         if (this.isPaused) return;
 
         const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        // Scale click coordinates to match canvas resolution vs CSS display size
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
 
         const gridX = Math.floor(x / this.cellSize);
         const gridY = Math.floor(y / this.cellSize);
@@ -283,8 +286,11 @@ class Game {
 
     handleCanvasMove(e) {
         const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        // Scale coordinates to match canvas resolution vs CSS display size
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
 
         const gridX = Math.floor(x / this.cellSize);
         const gridY = Math.floor(y / this.cellSize);
