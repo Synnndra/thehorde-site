@@ -210,9 +210,39 @@ class Enemy {
         this.regenRate = typeData.regenRate || 0;
         this.abilityCooldowns = {};
 
+        // Speed bonus tracking
+        this.spawnTime = 0; // Set by game when spawned
+        this.expectedTraverseTime = this.calculateExpectedTraverseTime();
+
         // Visual effects
         this.damageFlash = 0;
         this.floatingTexts = [];
+    }
+
+    calculateExpectedTraverseTime() {
+        // Calculate total path distance
+        let totalDistance = 0;
+        for (let i = 1; i < this.path.length; i++) {
+            const dx = this.path[i].x - this.path[i - 1].x;
+            const dy = this.path[i].y - this.path[i - 1].y;
+            totalDistance += Math.sqrt(dx * dx + dy * dy) * this.cellSize;
+        }
+        // Time = distance / speed (speed is cells per second, adjust for cellSize)
+        return totalDistance / (this.baseSpeed * this.cellSize * 0.8);
+    }
+
+    calculateSpeedBonus(gameTime) {
+        const timeAlive = gameTime - this.spawnTime;
+        const expectedTime = this.expectedTraverseTime;
+
+        // If killed before 75% of expected traverse time, award bonus
+        if (timeAlive < expectedTime * 0.75) {
+            // Bonus scales from 100% (instant kill) to 0% (at 75% expected time)
+            const speedRatio = 1 - (timeAlive / (expectedTime * 0.75));
+            const baseBonus = this.isBoss ? 200 : (this.goldReward * 2);
+            return Math.round(baseBonus * speedRatio);
+        }
+        return 0;
     }
 
     takeDamage(damage) {

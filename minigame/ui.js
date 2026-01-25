@@ -181,6 +181,7 @@ class GameUI {
         document.getElementById('final-waves').textContent = stats.wavesCompleted;
         document.getElementById('final-kills').textContent = stats.enemiesKilled;
         document.getElementById('final-gold').textContent = stats.totalGoldEarned;
+        document.getElementById('final-speed-bonus').textContent = (stats.speedBonusPoints || 0).toLocaleString();
 
         // Check if it's a high score
         const highscoreEntry = document.getElementById('highscore-entry');
@@ -204,6 +205,7 @@ class GameUI {
         document.getElementById('victory-score').textContent = score.toLocaleString();
         document.getElementById('victory-lives').textContent = stats.livesRemaining;
         document.getElementById('victory-kills').textContent = stats.enemiesKilled;
+        document.getElementById('victory-speed-bonus').textContent = (stats.speedBonusPoints || 0).toLocaleString();
 
         // Check if it's a high score
         const highscoreEntry = document.getElementById('victory-highscore-entry');
@@ -559,7 +561,8 @@ class GameUI {
             stats.wavesCompleted * 100 +
             stats.enemiesKilled * 10 +
             stats.totalGoldEarned * 0.5 +
-            stats.livesRemaining * 50;
+            stats.livesRemaining * 50 +
+            (stats.speedBonusPoints || 0); // Speed kill bonuses
 
         // Victory bonus (50% more)
         if (victory) {

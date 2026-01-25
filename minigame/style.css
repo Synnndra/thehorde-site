@@ -359,6 +359,17 @@ h2, h3 {
     color: var(--accent-gold);
 }
 
+.final-stat.speed-bonus {
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid #00ffff;
+    border-radius: 5px;
+    padding: 10px 15px;
+}
+
+.final-stat.speed-bonus span:last-child {
+    color: #00ffff;
+}
+
 /* NFT Section */
 .nft-section {
     margin-top: 20px;

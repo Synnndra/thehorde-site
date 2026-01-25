@@ -61,6 +61,16 @@ class Particle {
                 this.color = '#c9a227';
                 this.gravity = 0;
                 break;
+            case 'text':
+                this.vx = 0;
+                this.vy = -60;
+                this.size = options.size || 14;
+                this.text = options.text || '';
+                this.color = options.color || '#ffffff';
+                this.gravity = 0;
+                this.life = options.life || 1.2;
+                this.maxLife = this.life;
+                break;
         }
     }
 
@@ -123,6 +133,15 @@ class Particle {
                 ctx.strokeText(this.text, this.x, this.y);
                 ctx.fillText(this.text, this.x, this.y);
                 break;
+            case 'text':
+                ctx.font = `bold ${this.size}px Cinzel, serif`;
+                ctx.fillStyle = this.color;
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.textAlign = 'center';
+                ctx.strokeText(this.text, this.x, this.y);
+                ctx.fillText(this.text, this.x, this.y);
+                break;
         }
 
         ctx.restore();
@@ -176,7 +195,8 @@ class Game {
             enemiesKilled: 0,
             totalGoldEarned: 0,
             wavesCompleted: 0,
-            livesRemaining: 0
+            livesRemaining: 0,
+            speedBonusPoints: 0
         };
 
         // Kill streak tracking
@@ -505,7 +525,8 @@ class Game {
             enemiesKilled: 0,
             totalGoldEarned: 0,
             wavesCompleted: 0,
-            livesRemaining: 0
+            livesRemaining: 0,
+            speedBonusPoints: 0
         };
 
         this.currentMap = MAPS[this.selectedMap];
@@ -699,6 +720,18 @@ class Game {
                 this.stats.totalGoldEarned += enemy.goldReward;
                 this.ui.updateGold(this.gold);
 
+                // Speed bonus for quick kills
+                const speedBonus = enemy.calculateSpeedBonus(this.gameTime);
+                if (speedBonus > 0) {
+                    this.stats.speedBonusPoints += speedBonus;
+                    // Show speed bonus as floating text
+                    this.particles.push(new Particle(enemy.x, enemy.y - 25, 'text', {
+                        text: `QUICK! +${speedBonus}`,
+                        color: '#00ffff',
+                        size: 14
+                    }));
+                }
+
                 // Kill streak
                 this.killStreak++;
                 this.killStreakTimer = 2;
@@ -747,6 +780,7 @@ class Game {
         const path = this.currentMap.paths[spawnIndex % this.currentMap.paths.length];
 
         const enemy = new Enemy(enemyType, path, this.cellSize, this.currentWave);
+        enemy.spawnTime = this.gameTime; // Track spawn time for speed bonus
         this.enemies.push(enemy);
 
         // Spawn particles (reduced for performance)
