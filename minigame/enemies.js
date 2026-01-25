@@ -394,15 +394,25 @@ class Enemy {
         });
     }
 
-    draw(ctx) {
+    draw(ctx, gameTime) {
         if (this.isDead && this.floatingTexts.length === 0) return;
 
+        gameTime = gameTime || 0;
         const radius = (this.cellSize * this.size) / 2;
+
+        // Bobbing animation
+        const bobOffset = Math.sin(gameTime * 8 + this.distanceTraveled * 0.1) * 2;
 
         // Draw enemy body
         if (!this.isDead) {
             ctx.save();
-            ctx.translate(this.x, this.y);
+            ctx.translate(this.x, this.y + bobOffset);
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(0, radius * 0.8 - bobOffset, radius * 0.8, radius * 0.3, 0, 0, Math.PI * 2);
+            ctx.fill();
 
             // Damage flash effect
             let bodyColor = this.typeData.color;
@@ -413,65 +423,64 @@ class Enemy {
             // Slow effect visual
             if (this.slowEffect) {
                 ctx.beginPath();
-                ctx.arc(0, 0, radius * 1.3, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(75, 0, 130, 0.3)';
+                ctx.arc(0, 0, radius * 1.4, 0, Math.PI * 2);
+                const slowGradient = ctx.createRadialGradient(0, 0, radius * 0.5, 0, 0, radius * 1.4);
+                slowGradient.addColorStop(0, 'rgba(75, 0, 130, 0)');
+                slowGradient.addColorStop(1, 'rgba(75, 0, 130, 0.4)');
+                ctx.fillStyle = slowGradient;
                 ctx.fill();
             }
 
-            // Boss glow
+            // Boss glow effect
             if (this.isBoss) {
+                const bossGlow = Math.sin(gameTime * 3) * 0.3 + 0.7;
                 ctx.beginPath();
-                ctx.arc(0, 0, radius * 1.4, 0, Math.PI * 2);
-                ctx.strokeStyle = '#FFD700';
-                ctx.lineWidth = 3;
+                ctx.arc(0, 0, radius * 1.5, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 215, 0, ${bossGlow})`;
+                ctx.lineWidth = 4;
                 ctx.shadowColor = '#FFD700';
-                ctx.shadowBlur = 15;
+                ctx.shadowBlur = 20;
                 ctx.stroke();
                 ctx.shadowBlur = 0;
             }
 
-            // Main body
-            ctx.beginPath();
-            ctx.arc(0, 0, radius, 0, Math.PI * 2);
-            ctx.fillStyle = bodyColor;
-            ctx.fill();
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            // Direction indicator
-            ctx.rotate(this.rotation);
-            ctx.beginPath();
-            ctx.moveTo(radius * 0.3, 0);
-            ctx.lineTo(radius, 0);
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 3;
-            ctx.stroke();
+            // Draw enemy based on type
+            this.drawEnemySprite(ctx, radius, bodyColor, gameTime);
 
             ctx.restore();
 
-            // Health bar
-            const barWidth = radius * 2;
-            const barHeight = 4;
-            const barY = this.y - radius - 8;
+            // Health bar with better visuals
+            const barWidth = radius * 2.2;
+            const barHeight = 5;
+            const barY = this.y - radius - 12 + bobOffset;
 
-            // Background
-            ctx.fillStyle = '#333';
-            ctx.fillRect(this.x - barWidth / 2, barY, barWidth, barHeight);
-
-            // Health
-            const healthRatio = this.hp / this.maxHp;
-            let healthColor = '#4CAF50';
-            if (healthRatio < 0.3) healthColor = '#f44336';
-            else if (healthRatio < 0.6) healthColor = '#ff9800';
-
-            ctx.fillStyle = healthColor;
-            ctx.fillRect(this.x - barWidth / 2, barY, barWidth * healthRatio, barHeight);
-
-            // Border
+            // Background with border
+            ctx.fillStyle = '#222';
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 1;
-            ctx.strokeRect(this.x - barWidth / 2, barY, barWidth, barHeight);
+            ctx.beginPath();
+            ctx.roundRect(this.x - barWidth / 2 - 1, barY - 1, barWidth + 2, barHeight + 2, 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Health gradient
+            const healthRatio = this.hp / this.maxHp;
+            let healthGradient = ctx.createLinearGradient(this.x - barWidth / 2, barY, this.x - barWidth / 2, barY + barHeight);
+            if (healthRatio < 0.3) {
+                healthGradient.addColorStop(0, '#ff6666');
+                healthGradient.addColorStop(1, '#cc0000');
+            } else if (healthRatio < 0.6) {
+                healthGradient.addColorStop(0, '#ffcc66');
+                healthGradient.addColorStop(1, '#ff9900');
+            } else {
+                healthGradient.addColorStop(0, '#66ff66');
+                healthGradient.addColorStop(1, '#00cc00');
+            }
+
+            ctx.fillStyle = healthGradient;
+            ctx.beginPath();
+            ctx.roundRect(this.x - barWidth / 2, barY, barWidth * healthRatio, barHeight, 2);
+            ctx.fill();
 
             // Boss name
             if (this.isBoss) {
@@ -486,11 +495,183 @@ class Enemy {
         this.floatingTexts.forEach(text => {
             ctx.fillStyle = text.color;
             ctx.globalAlpha = text.life;
-            ctx.font = 'bold 14px Arial';
+            ctx.font = 'bold 16px Arial';
             ctx.textAlign = 'center';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.strokeText(text.text, text.x, text.y);
             ctx.fillText(text.text, text.x, text.y);
         });
         ctx.globalAlpha = 1;
+    }
+
+    drawEnemySprite(ctx, radius, bodyColor, gameTime) {
+        ctx.save();
+        ctx.rotate(this.rotation);
+
+        // Body gradient for 3D effect
+        const bodyGradient = ctx.createRadialGradient(-radius * 0.3, -radius * 0.3, 0, 0, 0, radius);
+        bodyGradient.addColorStop(0, this.lightenColor(bodyColor, 40));
+        bodyGradient.addColorStop(0.7, bodyColor);
+        bodyGradient.addColorStop(1, this.darkenColor(bodyColor, 30));
+
+        switch (this.type) {
+            case 'squire':
+                // Simple round body
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                ctx.fillStyle = bodyGradient;
+                ctx.fill();
+                ctx.strokeStyle = this.darkenColor(bodyColor, 50);
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                // Small shield
+                ctx.fillStyle = '#888';
+                ctx.fillRect(radius * 0.3, -radius * 0.4, radius * 0.5, radius * 0.8);
+                break;
+
+            case 'knight':
+                // Armored body
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                ctx.fillStyle = bodyGradient;
+                ctx.fill();
+                ctx.strokeStyle = '#444';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                // Helmet visor
+                ctx.fillStyle = '#333';
+                ctx.fillRect(radius * 0.2, -radius * 0.2, radius * 0.6, radius * 0.4);
+                // Shield
+                ctx.fillStyle = '#666';
+                ctx.beginPath();
+                ctx.ellipse(radius * 0.5, 0, radius * 0.3, radius * 0.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#444';
+                ctx.stroke();
+                break;
+
+            case 'archer':
+                // Lighter body
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                ctx.fillStyle = bodyGradient;
+                ctx.fill();
+                ctx.strokeStyle = this.darkenColor(bodyColor, 40);
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                // Bow
+                ctx.strokeStyle = '#8B4513';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(radius * 0.5, 0, radius * 0.6, -Math.PI / 3, Math.PI / 3);
+                ctx.stroke();
+                // Arrow
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(0, -1, radius * 0.8, 2);
+                break;
+
+            case 'cavalry':
+                // Horse-like shape
+                ctx.beginPath();
+                ctx.ellipse(0, 0, radius * 1.2, radius * 0.8, 0, 0, Math.PI * 2);
+                ctx.fillStyle = bodyGradient;
+                ctx.fill();
+                ctx.strokeStyle = this.darkenColor(bodyColor, 40);
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                // Rider
+                ctx.beginPath();
+                ctx.arc(-radius * 0.2, -radius * 0.3, radius * 0.4, 0, Math.PI * 2);
+                ctx.fillStyle = '#888';
+                ctx.fill();
+                // Lance
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(radius * 0.2, -2, radius, 4);
+                ctx.beginPath();
+                ctx.moveTo(radius * 1.2, 0);
+                ctx.lineTo(radius * 0.9, -5);
+                ctx.lineTo(radius * 0.9, 5);
+                ctx.closePath();
+                ctx.fillStyle = '#aaa';
+                ctx.fill();
+                break;
+
+            case 'mage':
+                // Robed figure
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                ctx.fillStyle = bodyGradient;
+                ctx.fill();
+                ctx.strokeStyle = this.darkenColor(bodyColor, 40);
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                // Wizard hat
+                ctx.beginPath();
+                ctx.moveTo(-radius * 0.5, -radius * 0.3);
+                ctx.lineTo(0, -radius * 1.2);
+                ctx.lineTo(radius * 0.5, -radius * 0.3);
+                ctx.closePath();
+                ctx.fillStyle = '#4169E1';
+                ctx.fill();
+                // Staff with orb
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(radius * 0.3, -radius * 0.5, 3, radius);
+                const orbGlow = Math.sin(gameTime * 5) * 0.3 + 0.7;
+                ctx.beginPath();
+                ctx.arc(radius * 0.45, -radius * 0.5, 5, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(65, 105, 225, ${orbGlow})`;
+                ctx.shadowColor = '#4169E1';
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                break;
+
+            default:
+                // Boss or unknown - larger detailed sprite
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                ctx.fillStyle = bodyGradient;
+                ctx.fill();
+                ctx.strokeStyle = '#FFD700';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                // Crown for bosses
+                if (this.isBoss) {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.beginPath();
+                    ctx.moveTo(-radius * 0.5, -radius * 0.5);
+                    ctx.lineTo(-radius * 0.3, -radius * 0.9);
+                    ctx.lineTo(0, -radius * 0.6);
+                    ctx.lineTo(radius * 0.3, -radius * 0.9);
+                    ctx.lineTo(radius * 0.5, -radius * 0.5);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                break;
+        }
+
+        ctx.restore();
+    }
+
+    lightenColor(color, percent) {
+        if (!color || color.charAt(0) !== '#') return color;
+        const num = parseInt(color.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = Math.min(255, (num >> 16) + amt);
+        const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
+        const B = Math.min(255, (num & 0x0000FF) + amt);
+        return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+    }
+
+    darkenColor(color, percent) {
+        if (!color || color.charAt(0) !== '#') return color;
+        const num = parseInt(color.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = Math.max(0, (num >> 16) - amt);
+        const G = Math.max(0, ((num >> 8) & 0x00FF) - amt);
+        const B = Math.max(0, (num & 0x0000FF) - amt);
+        return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
     }
 }
 
