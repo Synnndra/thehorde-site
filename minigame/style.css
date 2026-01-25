@@ -239,7 +239,9 @@ h2, h3 {
 #game-screen {
     display: flex;
     flex-direction: column;
-    background: transparent;
+    justify-content: flex-start;
+    align-items: stretch;
+    background: rgba(10, 10, 10, 0.95);
 }
 
 #game-screen.hidden {
