@@ -9,7 +9,7 @@ class SpriteManager {
         this.processedCache = {};
     }
 
-    // Remove white background from image
+    // Remove background from image by detecting background color from corners
     removeWhiteBackground(img) {
         if (!img) return null;
 
@@ -22,26 +22,52 @@ class SpriteManager {
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
+        const width = canvas.width;
+        const height = canvas.height;
 
-        // Threshold for "white" - pixels with RGB all above this are considered white
-        const threshold = 240;
-        // Edge softening threshold
-        const softThreshold = 200;
+        // Sample corners to detect background color
+        const samplePoints = [
+            [0, 0], [1, 0], [2, 0], [0, 1], [0, 2],  // Top-left
+            [width-1, 0], [width-2, 0], [width-3, 0], [width-1, 1], [width-1, 2],  // Top-right
+            [0, height-1], [0, height-2], [0, height-3], [1, height-1], [2, height-1],  // Bottom-left
+            [width-1, height-1], [width-2, height-1], [width-3, height-1], [width-1, height-2], [width-1, height-3]  // Bottom-right
+        ];
+
+        let bgR = 0, bgG = 0, bgB = 0, count = 0;
+        for (const [x, y] of samplePoints) {
+            const idx = (y * width + x) * 4;
+            bgR += data[idx];
+            bgG += data[idx + 1];
+            bgB += data[idx + 2];
+            count++;
+        }
+        bgR = Math.round(bgR / count);
+        bgG = Math.round(bgG / count);
+        bgB = Math.round(bgB / count);
+
+        // Tolerance for matching background color
+        const tolerance = 30;
+        const softTolerance = 60;
 
         for (let i = 0; i < data.length; i += 4) {
             const r = data[i];
             const g = data[i + 1];
             const b = data[i + 2];
 
-            // Check if pixel is white or near-white
-            if (r > threshold && g > threshold && b > threshold) {
+            // Calculate color distance from background
+            const dist = Math.sqrt(
+                Math.pow(r - bgR, 2) +
+                Math.pow(g - bgG, 2) +
+                Math.pow(b - bgB, 2)
+            );
+
+            if (dist < tolerance) {
                 // Make fully transparent
                 data[i + 3] = 0;
-            } else if (r > softThreshold && g > softThreshold && b > softThreshold) {
+            } else if (dist < softTolerance) {
                 // Semi-transparent for edge softening
-                const avg = (r + g + b) / 3;
-                const alpha = 255 - ((avg - softThreshold) / (threshold - softThreshold)) * 255;
-                data[i + 3] = Math.min(data[i + 3], alpha);
+                const alpha = ((dist - tolerance) / (softTolerance - tolerance)) * 255;
+                data[i + 3] = Math.min(data[i + 3], Math.round(alpha));
             }
         }
 
