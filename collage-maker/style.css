@@ -7,7 +7,7 @@
 
 /* Style the entire page */
 body {
-    font-family: 'Cinzel', serif;
+    font-family: 'Crimson Text', serif;
     background: #000 url('/background.jpg') no-repeat center center fixed;
     background-size: cover;
     min-height: 100vh;
@@ -26,7 +26,7 @@ body {
 
 /* Header styles */
 h1 {
-    font-family: 'MedievalSharp', cursive;
+    font-family: 'Cinzel', serif;
     color: #c9a227;
     text-align: center;
     margin-bottom: 10px;
@@ -35,7 +35,7 @@ h1 {
 }
 
 h2, h3 {
-    font-family: 'MedievalSharp', cursive;
+    font-family: 'Cinzel', serif;
     color: #c9a227;
 }
 
@@ -129,7 +129,7 @@ button:disabled {
 }
 
 .section-header h3 {
-    font-family: 'MedievalSharp', cursive;
+    font-family: 'Cinzel', serif;
     color: #c9a227;
     margin: 0;
     font-size: 20px;
@@ -378,7 +378,7 @@ button:disabled {
 }
 
 .collection-name {
-    font-family: 'MedievalSharp', cursive;
+    font-family: 'Cinzel', serif;
     font-size: 22px;
     font-weight: bold;
     color: #c9a227;
