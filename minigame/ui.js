@@ -610,7 +610,7 @@ class GameUI {
             const nfts = data.result?.items || [];
 
             // MidEvil Orcs collection address
-            const MIDEVIL_COLLECTION = 'midFvstpjLmNjpECzD1P4WC16JdVvK6jQy5W6RH7gb';
+            const MIDEVIL_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
 
             // Filter for MidEvil Orcs by collection address only
             const midEvilOrcs = nfts.filter(nft => {
