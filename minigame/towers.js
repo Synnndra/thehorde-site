@@ -1,4 +1,14 @@
-// towers.js - Tower definitions and logic for Horde Defense
+// towers.js - Tower definitions and logic for Horde Defense (Sprite-enabled)
+
+// Sprite configuration for towers
+const TOWER_SPRITES = {
+    grunt: { offsetY: 0, scale: 1.0 },
+    archer: { offsetY: -5, scale: 1.0 },
+    berserker: { offsetY: 0, scale: 1.1 },
+    shaman: { offsetY: -3, scale: 1.0 },
+    warlord: { offsetY: -5, scale: 1.1 },
+    siege: { offsetY: 0, scale: 1.2 }
+};
 
 const TOWER_TYPES = {
     grunt: {
@@ -458,7 +468,66 @@ class Tower {
 
     drawTowerSprite(ctx, stats, gameTime) {
         const size = this.cellSize * 0.4;
+        const spriteConfig = TOWER_SPRITES[this.type] || { offsetY: 0, scale: 1.0 };
 
+        // Try to draw sprite first
+        if (typeof spriteManager !== 'undefined' && spriteManager.has('towers', this.type)) {
+            const sprite = spriteManager.get('towers', this.type);
+            const spriteSize = this.cellSize * 1.2 * spriteConfig.scale;
+
+            // NFT glow effect (behind sprite)
+            if (this.isNftTower) {
+                ctx.beginPath();
+                ctx.arc(0, spriteConfig.offsetY, spriteSize / 2, 0, Math.PI * 2);
+                ctx.strokeStyle = '#c9a227';
+                ctx.lineWidth = 3;
+                ctx.shadowColor = '#c9a227';
+                ctx.shadowBlur = 20;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            // Selection indicator
+            if (this.isSelected) {
+                ctx.beginPath();
+                ctx.arc(0, 0, spriteSize / 2 + 5, 0, Math.PI * 2);
+                ctx.strokeStyle = '#c9a227';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+
+            // Draw the sprite (not rotated - isometric sprites face camera)
+            ctx.drawImage(
+                sprite,
+                -spriteSize / 2,
+                -spriteSize / 2 + spriteConfig.offsetY,
+                spriteSize,
+                spriteSize
+            );
+
+            // Draw weapon rotation indicator for ranged towers
+            if (stats.projectileType !== 'melee') {
+                ctx.save();
+                ctx.rotate(this.rotation);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(size * 0.3, 0);
+                ctx.lineTo(size * 0.8, 0);
+                ctx.stroke();
+                // Arrow indicator
+                ctx.beginPath();
+                ctx.moveTo(size * 0.8, 0);
+                ctx.lineTo(size * 0.6, -4);
+                ctx.moveTo(size * 0.8, 0);
+                ctx.lineTo(size * 0.6, 4);
+                ctx.stroke();
+                ctx.restore();
+            }
+            return;
+        }
+
+        // Fallback to canvas drawing if no sprite
         // Base platform
         ctx.beginPath();
         ctx.arc(0, 0, size, 0, Math.PI * 2);

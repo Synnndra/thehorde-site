@@ -1,4 +1,17 @@
-// enemies.js - Enemy definitions and AI for Horde Defense
+// enemies.js - Enemy definitions and AI for Horde Defense (Sprite-enabled)
+
+// Sprite configuration for enemies
+const ENEMY_SPRITES = {
+    squire: { offsetY: 0, scale: 1.0 },
+    knight: { offsetY: 0, scale: 1.1 },
+    archer: { offsetY: 0, scale: 1.0 },
+    cavalry: { offsetY: -5, scale: 1.4 },
+    mage: { offsetY: -3, scale: 1.0 },
+    knight_commander: { offsetY: -5, scale: 1.3 },
+    archmage: { offsetY: -5, scale: 1.2 },
+    war_elephant: { offsetY: -10, scale: 1.6 },
+    dragon_rider: { offsetY: -8, scale: 1.5 }
+};
 
 const ENEMY_TYPES = {
     squire: {
@@ -506,6 +519,35 @@ class Enemy {
     }
 
     drawEnemySprite(ctx, radius, bodyColor, gameTime) {
+        const spriteConfig = ENEMY_SPRITES[this.type] || { offsetY: 0, scale: 1.0 };
+        const spriteCategory = this.isBoss ? 'bosses' : 'enemies';
+
+        // Try to draw sprite first
+        if (typeof spriteManager !== 'undefined' && spriteManager.has(spriteCategory, this.type)) {
+            const sprite = spriteManager.get(spriteCategory, this.type);
+            const spriteSize = this.cellSize * this.size * 2 * spriteConfig.scale;
+
+            // Draw sprite (not rotated - isometric sprites face camera)
+            // But flip based on movement direction
+            ctx.save();
+
+            // Flip sprite based on direction
+            if (this.rotation > Math.PI / 2 || this.rotation < -Math.PI / 2) {
+                ctx.scale(-1, 1);
+            }
+
+            ctx.drawImage(
+                sprite,
+                -spriteSize / 2,
+                -spriteSize / 2 + spriteConfig.offsetY,
+                spriteSize,
+                spriteSize
+            );
+            ctx.restore();
+            return;
+        }
+
+        // Fallback to canvas drawing if no sprite
         ctx.save();
         ctx.rotate(this.rotation);
 

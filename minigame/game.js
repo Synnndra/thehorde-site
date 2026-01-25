@@ -1,4 +1,7 @@
-// game.js - Main game engine for Horde Defense (Enhanced Visual Version)
+// game.js - Main game engine for Horde Defense (Sprite-enabled Version)
+
+// Sprite loading status
+let spritesLoaded = false;
 
 // Particle class for visual effects
 class Particle {
@@ -402,7 +405,21 @@ class Game {
         }
     }
 
-    startGame() {
+    async startGame() {
+        // Load sprites if not already loaded
+        if (typeof spriteManager !== 'undefined' && !spriteManager.isLoaded()) {
+            this.ui.showLoadingScreen('Loading sprites...');
+            try {
+                await spriteManager.loadAll((loaded, total) => {
+                    const percent = Math.round((loaded / total) * 100);
+                    this.ui.updateLoadingProgress(percent);
+                });
+                spritesLoaded = true;
+            } catch (e) {
+                console.warn('Sprite loading failed, using fallback graphics:', e);
+            }
+        }
+
         this.gold = this.startingGold;
         this.lives = this.startingLives;
         this.currentWave = 0;
@@ -752,6 +769,25 @@ class Game {
             ctx.save();
             ctx.translate(dec.x, dec.y);
 
+            // Try to use sprite for trees and rocks
+            if (typeof spriteManager !== 'undefined') {
+                if (dec.type === 'tree' && spriteManager.has('map', 'tree')) {
+                    const sprite = spriteManager.get('map', 'tree');
+                    const size = 40 * dec.size;
+                    ctx.drawImage(sprite, -size/2, -size, size, size);
+                    ctx.restore();
+                    return;
+                }
+                if (dec.type === 'rock' && spriteManager.has('map', 'rock')) {
+                    const sprite = spriteManager.get('map', 'rock');
+                    const size = 25 * dec.size;
+                    ctx.drawImage(sprite, -size/2, -size/2, size, size);
+                    ctx.restore();
+                    return;
+                }
+            }
+
+            // Fallback to canvas drawing
             switch (dec.type) {
                 case 'tree':
                     // Tree trunk
@@ -832,40 +868,56 @@ class Game {
 
     drawPaths() {
         const ctx = this.ctx;
+        const hasPathSprite = typeof spriteManager !== 'undefined' && spriteManager.has('map', 'path');
+        const hasGrassSprite = typeof spriteManager !== 'undefined' && spriteManager.has('map', 'grass');
+        const pathSprite = hasPathSprite ? spriteManager.get('map', 'path') : null;
+        const grassSprite = hasGrassSprite ? spriteManager.get('map', 'grass') : null;
 
-        // Draw cobblestone path
+        // Draw tiles
         for (let y = 0; y < this.currentMap.gridHeight; y++) {
             for (let x = 0; x < this.currentMap.gridWidth; x++) {
-                if (this.currentMap.buildableAreas[y][x] === 2) {
-                    const px = x * this.cellSize;
-                    const py = y * this.cellSize;
+                const px = x * this.cellSize;
+                const py = y * this.cellSize;
+                const cellType = this.currentMap.buildableAreas[y][x];
 
-                    // Base path color
-                    ctx.fillStyle = this.currentMap.pathColor || '#3d2817';
-                    ctx.fillRect(px, py, this.cellSize, this.cellSize);
+                // Draw grass tiles (buildable areas)
+                if (cellType === 1 && grassSprite) {
+                    ctx.drawImage(grassSprite, px, py, this.cellSize, this.cellSize);
+                }
 
-                    // Draw cobblestones
-                    ctx.fillStyle = 'rgba(80, 60, 40, 0.5)';
-                    const stoneSize = this.cellSize / 4;
-                    for (let sy = 0; sy < 4; sy++) {
-                        for (let sx = 0; sx < 4; sx++) {
-                            const offset = (sy % 2) * (stoneSize / 2);
-                            ctx.beginPath();
-                            ctx.roundRect(
-                                px + sx * stoneSize + offset + 1,
-                                py + sy * stoneSize + 1,
-                                stoneSize - 2,
-                                stoneSize - 2,
-                                2
-                            );
-                            ctx.fill();
+                // Draw path tiles
+                if (cellType === 2) {
+                    if (pathSprite) {
+                        ctx.drawImage(pathSprite, px, py, this.cellSize, this.cellSize);
+                    } else {
+                        // Fallback canvas drawing
+                        // Base path color
+                        ctx.fillStyle = this.currentMap.pathColor || '#3d2817';
+                        ctx.fillRect(px, py, this.cellSize, this.cellSize);
+
+                        // Draw cobblestones
+                        ctx.fillStyle = 'rgba(80, 60, 40, 0.5)';
+                        const stoneSize = this.cellSize / 4;
+                        for (let sy = 0; sy < 4; sy++) {
+                            for (let sx = 0; sx < 4; sx++) {
+                                const offset = (sy % 2) * (stoneSize / 2);
+                                ctx.beginPath();
+                                ctx.roundRect(
+                                    px + sx * stoneSize + offset + 1,
+                                    py + sy * stoneSize + 1,
+                                    stoneSize - 2,
+                                    stoneSize - 2,
+                                    2
+                                );
+                                ctx.fill();
+                            }
                         }
-                    }
 
-                    // Path edge shadows
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-                    ctx.fillRect(px, py, this.cellSize, 2);
-                    ctx.fillRect(px, py, 2, this.cellSize);
+                        // Path edge shadows
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                        ctx.fillRect(px, py, this.cellSize, 2);
+                        ctx.fillRect(px, py, 2, this.cellSize);
+                    }
                 }
             }
         }
@@ -919,6 +971,40 @@ class Game {
 
         ctx.save();
 
+        // Try to use sprite
+        if (typeof spriteManager !== 'undefined' && spriteManager.has('map', 'tavern')) {
+            const sprite = spriteManager.get('map', 'tavern');
+            const spriteSize = this.cellSize * 1.8;
+
+            // Glow effect behind sprite
+            const glowGradient = ctx.createRadialGradient(x, y, 0, x, y, spriteSize);
+            glowGradient.addColorStop(0, 'rgba(255, 200, 100, 0.2)');
+            glowGradient.addColorStop(1, 'rgba(255, 200, 100, 0)');
+            ctx.fillStyle = glowGradient;
+            ctx.beginPath();
+            ctx.arc(x, y, spriteSize, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(x + 5, y + spriteSize * 0.3, spriteSize * 0.4, spriteSize * 0.15, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw sprite
+            ctx.drawImage(
+                sprite,
+                x - spriteSize / 2,
+                y - spriteSize / 2 - 10,
+                spriteSize,
+                spriteSize
+            );
+
+            ctx.restore();
+            return;
+        }
+
+        // Fallback to canvas drawing
         // Building shadow
         ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
         ctx.fillRect(x - size / 2 + 5, y - size / 2 + 5, size, size);

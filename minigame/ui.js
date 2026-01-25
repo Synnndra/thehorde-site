@@ -155,6 +155,47 @@ class GameUI {
         }
     }
 
+    showLoadingScreen(message = 'Loading...') {
+        // Create loading overlay if it doesn't exist
+        let loadingOverlay = document.getElementById('loading-overlay');
+        if (!loadingOverlay) {
+            loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'loading-overlay';
+            loadingOverlay.className = 'screen loading-screen';
+            loadingOverlay.innerHTML = `
+                <div class="loading-content">
+                    <h2 id="loading-message">${message}</h2>
+                    <div class="loading-bar-container">
+                        <div class="loading-bar" id="loading-bar"></div>
+                    </div>
+                    <p id="loading-percent">0%</p>
+                </div>
+            `;
+            document.getElementById('game-wrapper').appendChild(loadingOverlay);
+        }
+
+        document.getElementById('loading-message').textContent = message;
+        loadingOverlay.classList.remove('hidden');
+        this.startScreen.classList.add('hidden');
+    }
+
+    updateLoadingProgress(percent) {
+        const bar = document.getElementById('loading-bar');
+        const percentText = document.getElementById('loading-percent');
+        if (bar) bar.style.width = `${percent}%`;
+        if (percentText) percentText.textContent = `${percent}%`;
+
+        // Hide loading screen when complete
+        if (percent >= 100) {
+            setTimeout(() => {
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if (loadingOverlay) {
+                    loadingOverlay.classList.add('hidden');
+                }
+            }, 300);
+        }
+    }
+
     updateGold(amount) {
         this.goldDisplay.textContent = amount;
         this.updateTowerButtons();
