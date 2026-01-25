@@ -855,6 +855,10 @@ class Game {
         const pathSprite = hasPathSprite ? spriteManager.get('map', 'path') : null;
         const grassSprite = hasGrassSprite ? spriteManager.get('map', 'grass') : null;
 
+        // Fill entire canvas with base grass color first to eliminate gaps
+        ctx.fillStyle = '#3d6b2d';
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
         for (let y = 0; y < this.currentMap.gridHeight; y++) {
             for (let x = 0; x < this.currentMap.gridWidth; x++) {
                 const px = x * this.cellSize;
@@ -864,8 +868,7 @@ class Game {
                 // Draw grass tiles (buildable areas)
                 if (cellType === 1) {
                     if (grassSprite) {
-                        // Draw slightly larger to eliminate gaps between tiles
-                        ctx.drawImage(grassSprite, px - 0.5, py - 0.5, this.cellSize + 1, this.cellSize + 1);
+                        ctx.drawImage(grassSprite, px, py, this.cellSize, this.cellSize);
                     } else {
                         ctx.fillStyle = '#2d4a2d';
                         ctx.fillRect(px, py, this.cellSize, this.cellSize);
@@ -878,8 +881,7 @@ class Game {
                 // Draw path tiles
                 if (cellType === 2) {
                     if (pathSprite) {
-                        // Draw slightly larger to eliminate gaps between tiles
-                        ctx.drawImage(pathSprite, px - 0.5, py - 0.5, this.cellSize + 1, this.cellSize + 1);
+                        ctx.drawImage(pathSprite, px, py, this.cellSize, this.cellSize);
                     } else {
                         ctx.fillStyle = this.currentMap.pathColor || '#3d2817';
                         ctx.fillRect(px, py, this.cellSize, this.cellSize);
