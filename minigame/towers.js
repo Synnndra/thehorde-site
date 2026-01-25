@@ -547,9 +547,9 @@ class Tower {
             }
 
             // Draw the sprite rotated to face path/target
-            // Offset by -90 degrees since sprites face "up" by default
+            // Offset by -90 degrees since sprites face "down" by default
             ctx.save();
-            ctx.rotate(this.rotation + Math.PI / 2);
+            ctx.rotate(this.rotation - Math.PI / 2);
             ctx.drawImage(
                 sprite,
                 -spriteSize / 2,
