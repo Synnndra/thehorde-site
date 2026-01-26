@@ -507,7 +507,7 @@ class Game {
         const mapGoldBonus = {
             easy: 0,
             medium: 50,
-            hard: 100
+            hard: 150
         }[mapDifficulty] || 0;
 
         this.gold = this.startingGold + mapGoldBonus;
