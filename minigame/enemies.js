@@ -63,7 +63,7 @@ const ENEMY_TYPES = {
         icon: "🐴",
         color: "#8B4513",
         hp: 300,
-        speed: 2.8,
+        speed: 2.2,
         armor: 2,
         goldReward: 25,
         damage: 2,
@@ -82,8 +82,8 @@ const ENEMY_TYPES = {
         damage: 1,
         size: 0.6,
         canDisable: true,
-        disableChance: 0.15, // 15% chance per second
-        disableDuration: 4.0
+        disableChance: 0.10, // 10% chance per second
+        disableDuration: 3.0
     }
 };
 
@@ -116,7 +116,7 @@ const BOSS_TYPES = {
         size: 0.9,
         isBoss: true,
         abilities: ['regenerate', 'massDisable'],
-        regenRate: 30 // HP per second
+        regenRate: 15 // HP per second
     },
 
     war_elephant: {
@@ -166,7 +166,7 @@ class Enemy {
         this.cellSize = cellSize;
 
         // Scale stats based on wave number
-        const waveScale = 1 + (waveNumber - 1) * 0.1; // 10% increase per wave
+        const waveScale = 1 + (waveNumber - 1) * 0.08; // 8% increase per wave
 
         // Stats
         this.maxHp = Math.round(typeData.hp * waveScale);
@@ -174,7 +174,7 @@ class Enemy {
         this.baseSpeed = typeData.speed;
         this.speed = typeData.speed;
         this.armor = typeData.armor;
-        this.goldReward = Math.round(typeData.goldReward * (1 + (waveNumber - 1) * 0.05));
+        this.goldReward = Math.round(typeData.goldReward * (1 + (waveNumber - 1) * 0.07));
         this.damage = typeData.damage;
         this.size = typeData.size;
         this.isBoss = typeData.isBoss || false;
@@ -758,11 +758,11 @@ function generateWave(waveNumber, mapDifficulty) {
     let cavalryCount = Math.max(0, Math.floor((waveNumber - 6) * 0.4));
     let mageCount = Math.max(0, Math.floor((waveNumber - 8) * 0.3));
 
-    // Difficulty multipliers
+    // Difficulty multipliers (adjusted for better balance)
     const difficultyMult = {
         easy: 0.8,
-        medium: 1.0,
-        hard: 1.3
+        medium: 0.85,
+        hard: 1.0
     }[mapDifficulty] || 1.0;
 
     squireCount = Math.round(squireCount * difficultyMult);

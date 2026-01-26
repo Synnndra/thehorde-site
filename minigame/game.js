@@ -502,7 +502,15 @@ class Game {
             }
         }
 
-        this.gold = this.startingGold;
+        // Starting gold bonus for harder maps
+        const mapDifficulty = MAPS[this.selectedMap]?.difficulty || 'easy';
+        const mapGoldBonus = {
+            easy: 0,
+            medium: 50,
+            hard: 100
+        }[mapDifficulty] || 0;
+
+        this.gold = this.startingGold + mapGoldBonus;
         this.lives = this.startingLives;
         this.currentWave = 0;
         this.waveActive = false;
