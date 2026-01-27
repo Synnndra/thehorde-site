@@ -219,6 +219,48 @@ function getPhantomProvider() {
     return null;
 }
 
+// Sign a message with the connected wallet for authentication
+async function signMessageForAuth(message) {
+    const provider = getPhantomProvider();
+    if (!provider) {
+        throw new Error('Wallet not connected');
+    }
+
+    const encodedMessage = new TextEncoder().encode(message);
+    const signedMessage = await provider.signMessage(encodedMessage, 'utf8');
+
+    // Convert signature to base58
+    const bs58Alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    let signature = signedMessage.signature;
+
+    // Convert Uint8Array to base58
+    function toBase58(bytes) {
+        const digits = [0];
+        for (let i = 0; i < bytes.length; i++) {
+            let carry = bytes[i];
+            for (let j = 0; j < digits.length; j++) {
+                carry += digits[j] << 8;
+                digits[j] = carry % 58;
+                carry = (carry / 58) | 0;
+            }
+            while (carry > 0) {
+                digits.push(carry % 58);
+                carry = (carry / 58) | 0;
+            }
+        }
+        let str = '';
+        for (let i = 0; i < bytes.length && bytes[i] === 0; i++) {
+            str += bs58Alphabet[0];
+        }
+        for (let i = digits.length - 1; i >= 0; i--) {
+            str += bs58Alphabet[digits[i]];
+        }
+        return str;
+    }
+
+    return toBase58(signature);
+}
+
 async function checkWalletConnection() {
     const provider = getPhantomProvider();
     if (provider) {
@@ -1649,6 +1691,18 @@ async function executeOfferAction(action) {
         let endpoint, body;
         let blockchainResult = null;
 
+        // Sign a message to verify wallet ownership
+        const timestamp = Date.now();
+        const message = `Midswap ${action} offer ${currentOffer.id} at ${timestamp}`;
+
+        showLoading('Please sign the message to verify wallet ownership...');
+        let signature;
+        try {
+            signature = await signMessageForAuth(message);
+        } catch (signErr) {
+            throw new Error('Message signing cancelled or failed: ' + signErr.message);
+        }
+
         if (action === 'accept') {
             // Execute blockchain swap first
             if (USE_BLOCKCHAIN) {
@@ -1664,11 +1718,19 @@ async function executeOfferAction(action) {
             body = {
                 offerId: currentOffer.id,
                 wallet: connectedWallet,
-                txSignature: blockchainResult?.signature || null
+                txSignature: blockchainResult?.signature || null,
+                signature: signature,
+                message: message
             };
         } else if (action === 'decline' || action === 'cancel') {
             endpoint = '/api/swap/cancel';
-            body = { offerId: currentOffer.id, wallet: connectedWallet, action: action };
+            body = {
+                offerId: currentOffer.id,
+                wallet: connectedWallet,
+                action: action,
+                signature: signature,
+                message: message
+            };
         }
 
         showLoading('Updating offer status...');
@@ -1718,16 +1780,30 @@ window.cancelOffer = async function(offerId, event) {
         return;
     }
 
-    showLoading('Cancelling offer...');
+    showLoading('Please sign the message to verify wallet ownership...');
 
     try {
+        // Sign a message to verify wallet ownership
+        const timestamp = Date.now();
+        const message = `Midswap cancel offer ${offerId} at ${timestamp}`;
+        let signature;
+        try {
+            signature = await signMessageForAuth(message);
+        } catch (signErr) {
+            throw new Error('Message signing cancelled or failed: ' + signErr.message);
+        }
+
+        showLoading('Cancelling offer...');
+
         const response = await fetch('/api/swap/cancel', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 offerId: offerId,
                 wallet: connectedWallet,
-                action: 'cancel'
+                action: 'cancel',
+                signature: signature,
+                message: message
             })
         });
 

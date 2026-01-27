@@ -2,6 +2,28 @@
 import { Connection, Keypair, PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
 import bs58 from 'bs58';
 
+// Rate limiting - stricter for admin endpoint
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const RATE_LIMIT_MAX = 3; // Max 3 requests per minute per IP
+
+function isRateLimited(ip) {
+    const now = Date.now();
+    const record = rateLimitMap.get(ip);
+
+    if (!record || now - record.timestamp > RATE_LIMIT_WINDOW) {
+        rateLimitMap.set(ip, { timestamp: now, count: 1 });
+        return false;
+    }
+
+    if (record.count >= RATE_LIMIT_MAX) {
+        return true;
+    }
+
+    record.count++;
+    return false;
+}
+
 const MPL_CORE_PROGRAM_ID = new PublicKey('CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d');
 const SPL_NOOP_PROGRAM_ID = new PublicKey('noopb9bkMVfRPU8AsbpTUg8AQkHtKwMYZiFUjNRtMmV');
 
@@ -10,9 +32,19 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // Rate limiting
+    const clientIp = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
+    if (isRateLimited(clientIp)) {
+        return res.status(429).json({ error: 'Too many requests. Try again later.' });
+    }
+
     const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
     const ESCROW_PRIVATE_KEY = process.env.ESCROW_PRIVATE_KEY;
-    const ADMIN_SECRET = process.env.ADMIN_SECRET || 'midevils-admin-2024';
+    const ADMIN_SECRET = process.env.ADMIN_SECRET;
+
+    if (!ADMIN_SECRET) {
+        return res.status(500).json({ error: 'Admin not configured' });
+    }
 
     if (!ESCROW_PRIVATE_KEY || !HELIUS_API_KEY) {
         return res.status(500).json({ error: 'Server not configured' });

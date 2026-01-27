@@ -1,11 +1,47 @@
 // Vercel Serverless Function - Accept Swap Offer with Escrow Release
 import { Connection, Keypair, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import bs58 from 'bs58';
+import nacl from 'tweetnacl';
+
+// Rate limiting
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const RATE_LIMIT_MAX = 10; // Max 10 requests per minute per IP
+
+function isRateLimited(ip) {
+    const now = Date.now();
+    const record = rateLimitMap.get(ip);
+
+    if (!record || now - record.timestamp > RATE_LIMIT_WINDOW) {
+        rateLimitMap.set(ip, { timestamp: now, count: 1 });
+        return false;
+    }
+
+    if (record.count >= RATE_LIMIT_MAX) {
+        return true;
+    }
+
+    record.count++;
+    return false;
+}
 
 function validateSolanaAddress(address) {
     if (!address || typeof address !== 'string') return false;
     if (address.length < 32 || address.length > 44) return false;
     return /^[1-9A-HJ-NP-Za-km-z]+$/.test(address);
+}
+
+// Verify a signed message
+function verifySignature(message, signature, publicKey) {
+    try {
+        const messageBytes = new TextEncoder().encode(message);
+        const signatureBytes = bs58.decode(signature);
+        const publicKeyBytes = bs58.decode(publicKey);
+        return nacl.sign.detached.verify(messageBytes, signatureBytes, publicKeyBytes);
+    } catch (err) {
+        console.error('Signature verification error:', err);
+        return false;
+    }
 }
 
 // Bubblegum program constants
@@ -21,6 +57,12 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // Rate limiting
+    const clientIp = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
+    if (isRateLimited(clientIp)) {
+        return res.status(429).json({ error: 'Too many requests. Try again later.' });
+    }
+
     const KV_REST_API_URL = process.env.KV_REST_API_URL;
     const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN;
     const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
@@ -31,7 +73,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { offerId, wallet, txSignature } = req.body;
+        const { offerId, wallet, txSignature, signature, message } = req.body;
 
         if (!offerId || typeof offerId !== 'string') {
             return res.status(400).json({ error: 'Invalid offer ID' });
@@ -39,6 +81,20 @@ export default async function handler(req, res) {
 
         if (!validateSolanaAddress(wallet)) {
             return res.status(400).json({ error: 'Invalid wallet address' });
+        }
+
+        // Verify wallet ownership via signed message
+        if (!signature || !message) {
+            return res.status(400).json({ error: 'Signature required to verify wallet ownership' });
+        }
+
+        // Message should contain the offer ID to prevent replay attacks
+        if (!message.includes(offerId)) {
+            return res.status(400).json({ error: 'Invalid message format' });
+        }
+
+        if (!verifySignature(message, signature, wallet)) {
+            return res.status(403).json({ error: 'Invalid signature - wallet ownership not verified' });
         }
 
         // Fetch the offer
