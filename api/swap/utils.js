@@ -19,13 +19,16 @@ export const MAX_NFTS_PER_SIDE = 5;
 export const OFFER_EXPIRY_HOURS = 24;
 export const PLATFORM_FEE = 0.02;
 export const HOLDER_FEE = 0;
-export const MAX_MESSAGE_AGE = 5 * 60 * 1000; // 5 minutes
+export const MAX_MESSAGE_AGE = 2 * 60 * 1000; // 2 minutes (reduced from 5)
+export const MAX_ACTIVE_OFFERS_PER_WALLET = 10;
+export const LOCK_TTL_SECONDS = 60; // Increased from 30
 
-// ========== Rate Limiting ==========
+// ========== Rate Limiting (KV-based for cross-instance support) ==========
 
-const rateLimitMaps = new Map(); // Separate maps per endpoint
+// In-memory fallback for when KV is not available
+const rateLimitMaps = new Map();
 
-export function isRateLimited(ip, endpoint = 'default', maxRequests = 10, windowMs = 60000) {
+export function isRateLimitedMemory(ip, endpoint = 'default', maxRequests = 10, windowMs = 60000) {
     const key = `${endpoint}:${ip}`;
     const now = Date.now();
 
@@ -46,6 +49,54 @@ export function isRateLimited(ip, endpoint = 'default', maxRequests = 10, window
 
     record.count++;
     return false;
+}
+
+// KV-based rate limiting (works across serverless instances)
+export async function isRateLimitedKV(ip, endpoint, maxRequests, windowMs, kvUrl, kvToken) {
+    if (!kvUrl || !kvToken) {
+        return isRateLimitedMemory(ip, endpoint, maxRequests, windowMs);
+    }
+
+    const key = `ratelimit:${endpoint}:${ip}`;
+    const now = Date.now();
+    const windowSeconds = Math.ceil(windowMs / 1000);
+
+    try {
+        const res = await fetch(`${kvUrl}/get/${key}`, {
+            headers: { 'Authorization': `Bearer ${kvToken}` }
+        });
+        const data = await res.json();
+        let record = data.result ? (typeof data.result === 'string' ? JSON.parse(data.result) : data.result) : null;
+
+        if (!record || now - record.timestamp > windowMs) {
+            record = { timestamp: now, count: 1 };
+        } else if (record.count >= maxRequests) {
+            return true;
+        } else {
+            record.count++;
+        }
+
+        // Save with TTL
+        await fetch(`${kvUrl}/set/${key}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${kvToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(record)
+        });
+        await fetch(`${kvUrl}/expire/${key}/${windowSeconds}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${kvToken}` }
+        });
+
+        return false;
+    } catch (err) {
+        console.error('KV rate limit error, falling back to memory:', err);
+        return isRateLimitedMemory(ip, endpoint, maxRequests, windowMs);
+    }
+}
+
+// Legacy wrapper for backward compatibility
+export function isRateLimited(ip, endpoint = 'default', maxRequests = 10, windowMs = 60000) {
+    return isRateLimitedMemory(ip, endpoint, maxRequests, windowMs);
 }
 
 export function getClientIp(req) {
@@ -93,6 +144,105 @@ export function validateTimestamp(message) {
     return { valid: true, timestamp: messageTimestamp };
 }
 
+// ========== Nonce/Signature Replay Prevention ==========
+
+export async function isSignatureUsed(signature, kvUrl, kvToken) {
+    if (!kvUrl || !kvToken) return false;
+
+    const key = `used_sig:${signature.slice(0, 32)}`; // Use prefix of signature as key
+    try {
+        const res = await fetch(`${kvUrl}/get/${key}`, {
+            headers: { 'Authorization': `Bearer ${kvToken}` }
+        });
+        const data = await res.json();
+        return data.result !== null;
+    } catch (err) {
+        console.error('Signature check error:', err);
+        return false; // Fail open to not break functionality, but log it
+    }
+}
+
+export async function markSignatureUsed(signature, kvUrl, kvToken) {
+    if (!kvUrl || !kvToken) return;
+
+    const key = `used_sig:${signature.slice(0, 32)}`;
+    const ttlSeconds = Math.ceil(MAX_MESSAGE_AGE / 1000) + 60; // Message age + buffer
+
+    try {
+        await fetch(`${kvUrl}/set/${key}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${kvToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ used: true, at: Date.now() })
+        });
+        await fetch(`${kvUrl}/expire/${key}/${ttlSeconds}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${kvToken}` }
+        });
+    } catch (err) {
+        console.error('Mark signature error:', err);
+    }
+}
+
+// ========== NFT Ownership Verification ==========
+
+export async function verifyNftOwnership(nftIds, expectedOwner, heliusApiKey) {
+    if (!nftIds?.length || !heliusApiKey) return { valid: true, issues: [] };
+
+    const issues = [];
+    for (const nftId of nftIds) {
+        try {
+            const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 1,
+                    method: 'getAsset',
+                    params: { id: nftId }
+                })
+            });
+            const data = await response.json();
+
+            if (!data.result) {
+                issues.push({ nftId, reason: 'NFT not found' });
+                continue;
+            }
+
+            const owner = data.result.ownership?.owner;
+            if (owner !== expectedOwner) {
+                issues.push({ nftId, reason: `NFT not owned by ${expectedOwner.slice(0, 8)}...`, actualOwner: owner });
+            }
+        } catch (err) {
+            issues.push({ nftId, reason: 'Verification failed: ' + err.message });
+        }
+    }
+
+    return { valid: issues.length === 0, issues };
+}
+
+// ========== Wallet Offer Limits ==========
+
+export async function countActiveOffers(wallet, kvUrl, kvToken) {
+    if (!kvUrl || !kvToken) return 0;
+
+    try {
+        const key = `wallet:${wallet}:offers`;
+        const offerIds = await kvGet(key, kvUrl, kvToken) || [];
+
+        let activeCount = 0;
+        for (const offerId of offerIds) {
+            const offer = await kvGet(`offer:${offerId}`, kvUrl, kvToken);
+            if (offer && offer.status === 'pending') {
+                activeCount++;
+            }
+        }
+        return activeCount;
+    } catch (err) {
+        console.error('Count active offers error:', err);
+        return 0;
+    }
+}
+
 // ========== KV Operations ==========
 
 export async function kvGet(key, kvUrl, kvToken) {
@@ -122,7 +272,7 @@ export async function kvDelete(key, kvUrl, kvToken) {
     });
 }
 
-export async function acquireLock(offerId, kvUrl, kvToken, ttlSeconds = 30) {
+export async function acquireLock(offerId, kvUrl, kvToken, ttlSeconds = LOCK_TTL_SECONDS) {
     const lockKey = `lock:offer:${offerId}`;
     const now = Date.now();
 

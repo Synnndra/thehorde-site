@@ -1,17 +1,21 @@
 // Vercel Serverless Function - Create Swap Offer
 import { randomBytes } from 'crypto';
 import {
-    isRateLimited,
+    isRateLimitedKV,
     getClientIp,
     validateSolanaAddress,
     verifySignature,
     validateTimestamp,
+    isSignatureUsed,
+    markSignatureUsed,
+    countActiveOffers,
     kvGet,
     kvSet,
     getAsset,
     verifyTransactionConfirmed,
     ALLOWED_COLLECTIONS,
     MAX_NFTS_PER_SIDE,
+    MAX_ACTIVE_OFFERS_PER_WALLET,
     OFFER_EXPIRY_HOURS,
     PLATFORM_FEE,
     HOLDER_FEE
@@ -130,17 +134,17 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const clientIp = getClientIp(req);
-    if (isRateLimited(clientIp, 'create', 10)) {
-        return res.status(429).json({ error: 'Too many requests. Try again later.' });
-    }
-
     const KV_REST_API_URL = process.env.KV_REST_API_URL;
     const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN;
     const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
 
     if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
         return res.status(500).json({ error: 'Server configuration error' });
+    }
+
+    const clientIp = getClientIp(req);
+    if (await isRateLimitedKV(clientIp, 'create', 10, 60000, KV_REST_API_URL, KV_REST_API_TOKEN)) {
+        return res.status(429).json({ error: 'Too many requests. Try again later.' });
     }
 
     try {
@@ -181,6 +185,17 @@ export default async function handler(req, res) {
             return res.status(403).json({ error: 'Invalid signature' });
         }
 
+        // Check signature replay
+        if (await isSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN)) {
+            return res.status(400).json({ error: 'This signature has already been used. Please sign a new message.' });
+        }
+
+        // Check active offer limit
+        const activeOffers = await countActiveOffers(initiatorWallet, KV_REST_API_URL, KV_REST_API_TOKEN);
+        if (activeOffers >= MAX_ACTIVE_OFFERS_PER_WALLET) {
+            return res.status(400).json({ error: `Maximum ${MAX_ACTIVE_OFFERS_PER_WALLET} active offers per wallet. Cancel some offers first.` });
+        }
+
         // Validate NFT arrays
         const initNfts = Array.isArray(initiatorNfts) ? initiatorNfts : [];
         const recvNfts = Array.isArray(receiverNfts) ? receiverNfts : [];
@@ -189,8 +204,11 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: `Maximum ${MAX_NFTS_PER_SIDE} NFTs per side` });
         }
 
-        // Verify collections
-        if (HELIUS_API_KEY && (initNfts.length > 0 || recvNfts.length > 0)) {
+        // Verify collections (FAIL CLOSED - if Helius unavailable, reject)
+        if (initNfts.length > 0 || recvNfts.length > 0) {
+            if (!HELIUS_API_KEY) {
+                return res.status(500).json({ error: 'NFT verification service unavailable' });
+            }
             const collectionCheck = await verifyNftCollections([...initNfts, ...recvNfts], HELIUS_API_KEY);
             if (!collectionCheck.valid) {
                 return res.status(400).json({
@@ -262,6 +280,9 @@ export default async function handler(req, res) {
             list.push(offerId);
             await kvSet(key, list, KV_REST_API_URL, KV_REST_API_TOKEN);
         }
+
+        // Mark signature as used to prevent replay
+        await markSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         return res.status(200).json({ success: true, offerId, offer });
 

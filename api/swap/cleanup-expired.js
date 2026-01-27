@@ -16,12 +16,13 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    // Auth for POST requests
-    if (req.method === 'POST') {
-        const { secret } = req.body || {};
-        if (!CLEANUP_SECRET || secret !== CLEANUP_SECRET) {
-            return res.status(403).json({ error: 'Unauthorized' });
-        }
+    // Auth required for all requests
+    const secret = req.method === 'POST'
+        ? (req.body?.secret)
+        : (req.query?.secret || req.headers['x-cleanup-secret']);
+
+    if (!CLEANUP_SECRET || secret !== CLEANUP_SECRET) {
+        return res.status(403).json({ error: 'Unauthorized' });
     }
 
     try {

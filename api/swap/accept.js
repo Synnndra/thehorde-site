@@ -1,10 +1,13 @@
 // Vercel Serverless Function - Accept Swap Offer with Escrow Release
 import {
-    isRateLimited,
+    isRateLimitedKV,
     getClientIp,
     validateSolanaAddress,
     verifySignature,
     validateTimestamp,
+    isSignatureUsed,
+    markSignatureUsed,
+    verifyNftOwnership,
     kvGet,
     kvSet,
     acquireLock,
@@ -18,11 +21,6 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const clientIp = getClientIp(req);
-    if (isRateLimited(clientIp, 'accept', 10)) {
-        return res.status(429).json({ error: 'Too many requests. Try again later.' });
-    }
-
     const KV_REST_API_URL = process.env.KV_REST_API_URL;
     const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN;
     const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
@@ -30,6 +28,11 @@ export default async function handler(req, res) {
 
     if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
         return res.status(500).json({ error: 'Server configuration error' });
+    }
+
+    const clientIp = getClientIp(req);
+    if (await isRateLimitedKV(clientIp, 'accept', 10, 60000, KV_REST_API_URL, KV_REST_API_TOKEN)) {
+        return res.status(429).json({ error: 'Too many requests. Try again later.' });
     }
 
     let lockKey = null;
@@ -60,6 +63,11 @@ export default async function handler(req, res) {
         // Verify signature
         if (!verifySignature(message, signature, wallet)) {
             return res.status(403).json({ error: 'Invalid signature - wallet ownership not verified' });
+        }
+
+        // Check signature replay
+        if (await isSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN)) {
+            return res.status(400).json({ error: 'This signature has already been used. Please sign a new message.' });
         }
 
         // Acquire lock
@@ -97,6 +105,18 @@ export default async function handler(req, res) {
             return res.status(403).json({ error: 'Only the receiver can accept this offer' });
         }
 
+        // Verify receiver still owns the NFTs they're supposed to give
+        if (HELIUS_API_KEY && offer.receiver.nfts?.length > 0) {
+            const ownershipCheck = await verifyNftOwnership(offer.receiver.nfts, wallet, HELIUS_API_KEY);
+            if (!ownershipCheck.valid) {
+                await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
+                return res.status(400).json({
+                    error: 'You no longer own some of the NFTs in this trade',
+                    issues: ownershipCheck.issues
+                });
+            }
+        }
+
         // Verify receiver's transaction if they have assets to send
         if (txSignature && HELIUS_API_KEY) {
             const txVerified = await verifyTransactionConfirmed(txSignature, HELIUS_API_KEY);
@@ -131,6 +151,9 @@ export default async function handler(req, res) {
         offer.status = 'accepted';
         offer.acceptedAt = now;
         await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
+
+        // Mark signature as used
+        await markSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         // Release lock
         await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
