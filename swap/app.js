@@ -1425,14 +1425,16 @@ async function completeInitiatorTransfer() {
 
             // Check if this is a compressed NFT
             const asset = await getAssetWithProof(nft.id);
+            console.log('Asset data for', nft.id, ':', JSON.stringify(asset, null, 2));
+            console.log('Compression field:', asset?.compression);
 
-            if (asset?.compression?.compressed) {
+            if (asset?.compression?.compressed || asset?.compression) {
                 // Compressed NFT - use Bubblegum transfer
                 console.log('NFT is compressed, using Bubblegum transfer');
                 await transferCompressedNFT(nft.id, initiatorPubkey, receiverPubkey, transaction);
             } else {
                 // Standard SPL token transfer
-                console.log('NFT is standard SPL token');
+                console.log('NFT is standard SPL token (no compression data)');
                 const mint = new solanaWeb3.PublicKey(nft.id);
                 const sourceAta = await getATA(mint, initiatorPubkey);
                 const destAta = await getATA(mint, receiverPubkey);
@@ -2309,14 +2311,20 @@ async function executeAtomicSwap(offer) {
 
             // Check if this is a compressed NFT
             const asset = await getAssetWithProof(nft.id);
+            console.log('Asset data for', nft.id, ':', JSON.stringify(asset, null, 2));
+            console.log('Compression field:', asset?.compression);
 
             if (asset?.compression?.compressed) {
                 // Compressed NFT - use Bubblegum transfer
                 console.log('NFT is compressed, using Bubblegum transfer');
                 await transferCompressedNFT(nft.id, receiverPubkey, initiatorPubkey, transaction);
+            } else if (asset?.compression) {
+                // Has compression data but not marked compressed - still try Bubblegum
+                console.log('NFT has compression data, trying Bubblegum transfer');
+                await transferCompressedNFT(nft.id, receiverPubkey, initiatorPubkey, transaction);
             } else {
                 // Standard SPL token transfer
-                console.log('NFT is standard SPL token');
+                console.log('NFT is standard SPL token (no compression data)');
                 const mint = new solanaWeb3.PublicKey(nft.id);
 
                 // Find the actual token account holding this NFT
