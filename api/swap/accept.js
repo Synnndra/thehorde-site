@@ -13,6 +13,9 @@ const BUBBLEGUM_PROGRAM_ID = new PublicKey('BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK7
 const SPL_NOOP_PROGRAM_ID = new PublicKey('noopb9bkMVfRPU8AsbpTUg8AQkHtKwMYZiFUjNRtMmV');
 const SPL_ACCOUNT_COMPRESSION_PROGRAM_ID = new PublicKey('cmtDvXumGCrqC1Age74AVPhSRVXJMd8PJS91L8KbNCK');
 
+// MPL Core program
+const MPL_CORE_PROGRAM_ID = new PublicKey('CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d');
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -172,10 +175,20 @@ async function releaseEscrowToReceiver(offer, escrowPrivateKeyBase58, heliusApiK
     for (const nft of initiatorNfts) {
         console.log('Processing escrowed NFT:', nft.id, nft.name);
 
-        // Get asset info to check if compressed
+        // Get asset info to check type
         const assetInfo = await getAsset(nft.id, heliusApiKey);
+        console.log('Asset interface:', assetInfo?.interface);
 
-        if (assetInfo?.compression?.compressed) {
+        if (assetInfo?.interface === 'MplCoreAsset') {
+            // Metaplex Core Asset - use MPL Core transfer
+            console.log('NFT is MPL Core Asset, building Core transfer');
+            const ix = createMplCoreTransferInstruction(
+                nft.id,
+                escrowKeypair.publicKey,
+                receiverPubkey
+            );
+            transaction.add(ix);
+        } else if (assetInfo?.compression?.compressed) {
             // Compressed NFT - use Bubblegum transfer
             console.log('NFT is compressed, building Bubblegum transfer');
             const proof = await getAssetProof(nft.id, heliusApiKey);
@@ -321,5 +334,32 @@ function createBubblegumTransferInstruction(fromPubkey, toPubkey, compression, p
         keys,
         programId: BUBBLEGUM_PROGRAM_ID,
         data
+    };
+}
+
+// Create MPL Core transfer instruction
+function createMplCoreTransferInstruction(assetId, fromPubkey, toPubkey) {
+    const asset = new PublicKey(assetId);
+
+    // MPL Core TransferV1 instruction - discriminator is 14
+    const discriminator = Buffer.from([14]);
+
+    const keys = [
+        { pubkey: asset, isSigner: false, isWritable: true },              // asset
+        { pubkey: MPL_CORE_PROGRAM_ID, isSigner: false, isWritable: false }, // collection (optional placeholder)
+        { pubkey: fromPubkey, isSigner: true, isWritable: true },           // payer
+        { pubkey: fromPubkey, isSigner: true, isWritable: false },          // authority
+        { pubkey: toPubkey, isSigner: false, isWritable: false },           // new_owner
+    ];
+
+    console.log('Creating MPL Core transfer instruction:');
+    console.log('  Asset:', asset.toBase58());
+    console.log('  From:', fromPubkey.toBase58());
+    console.log('  To:', toPubkey.toBase58());
+
+    return {
+        keys,
+        programId: MPL_CORE_PROGRAM_ID,
+        data: discriminator
     };
 }

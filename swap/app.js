@@ -905,11 +905,17 @@ async function escrowInitiatorAssets(nfts, solAmount) {
         for (const nft of nfts) {
             console.log('Processing NFT for escrow:', nft.id, nft.name);
 
-            // Check if compressed NFT
+            // Check asset type
             const asset = await getAssetWithProof(nft.id);
+            console.log('Asset interface:', asset?.interface);
             console.log('Asset compression:', asset?.compression);
 
-            if (asset?.compression?.compressed || asset?.compression) {
+            if (asset?.interface === 'MplCoreAsset') {
+                // Metaplex Core Asset - use MPL Core transfer
+                console.log('NFT is MPL Core Asset, using Core transfer to escrow');
+                const ix = createMplCoreTransferInstruction(nft.id, signer, escrowPubkey);
+                transaction.add(ix);
+            } else if (asset?.compression?.compressed === true) {
                 // Compressed NFT - use Bubblegum transfer to escrow
                 console.log('NFT is compressed, using Bubblegum transfer to escrow');
                 await transferCompressedNFT(nft.id, signer, escrowPubkey, transaction);
@@ -2175,6 +2181,44 @@ function createBubblegumTransferInstruction(
     });
 }
 
+// MPL Core program ID
+const MPL_CORE_PROGRAM_ID = 'CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d';
+
+// Create MPL Core transfer instruction
+function createMplCoreTransferInstruction(assetId, fromPubkey, toPubkey) {
+    const programId = new solanaWeb3.PublicKey(MPL_CORE_PROGRAM_ID);
+    const asset = new solanaWeb3.PublicKey(assetId);
+
+    // MPL Core TransferV1 instruction
+    // Discriminator: [163, 52, 200, 231, 140, 3, 69, 186] - this is actually the Anchor discriminator for "transfer"
+    // For MPL Core, the discriminator is different - it's a single byte: 14 for TransferV1
+    const discriminator = new Uint8Array([14]); // TransferV1
+
+    const keys = [
+        { pubkey: asset, isSigner: false, isWritable: true },           // asset
+        { pubkey: programId, isSigner: false, isWritable: false },      // collection (optional, use program as placeholder)
+        { pubkey: fromPubkey, isSigner: true, isWritable: true },       // payer
+        { pubkey: fromPubkey, isSigner: true, isWritable: false },      // authority (same as payer)
+        { pubkey: toPubkey, isSigner: false, isWritable: false },       // new_owner
+    ];
+
+    // Compression proof - empty for non-compressed
+    // The data is just the discriminator for a simple transfer
+    const data = discriminator;
+
+    console.log('Creating MPL Core transfer instruction:');
+    console.log('  Asset:', asset.toBase58());
+    console.log('  From:', fromPubkey.toBase58());
+    console.log('  To:', toPubkey.toBase58());
+    console.log('  Program:', programId.toBase58());
+
+    return new solanaWeb3.TransactionInstruction({
+        keys,
+        programId,
+        data,
+    });
+}
+
 // Helper to convert hex string to bytes
 function hexToBytes(hex) {
     // Remove '0x' prefix if present
@@ -2415,22 +2459,23 @@ async function executeAtomicSwap(offer) {
         for (const nft of receiverNfts) {
             console.log('Processing NFT:', nft.id, nft.name);
 
-            // Check if this is a compressed NFT
+            // Check asset type
             const asset = await getAssetWithProof(nft.id);
-            console.log('Asset data for', nft.id, ':', JSON.stringify(asset, null, 2));
-            console.log('Compression field:', asset?.compression);
+            console.log('Asset interface:', asset?.interface);
+            console.log('Asset compression:', asset?.compression);
 
-            if (asset?.compression?.compressed) {
+            if (asset?.interface === 'MplCoreAsset') {
+                // Metaplex Core Asset - use MPL Core transfer
+                console.log('NFT is MPL Core Asset, using Core transfer');
+                const ix = createMplCoreTransferInstruction(nft.id, receiverPubkey, initiatorPubkey);
+                transaction.add(ix);
+            } else if (asset?.compression?.compressed === true) {
                 // Compressed NFT - use Bubblegum transfer
                 console.log('NFT is compressed, using Bubblegum transfer');
                 await transferCompressedNFT(nft.id, receiverPubkey, initiatorPubkey, transaction);
-            } else if (asset?.compression) {
-                // Has compression data but not marked compressed - still try Bubblegum
-                console.log('NFT has compression data, trying Bubblegum transfer');
-                await transferCompressedNFT(nft.id, receiverPubkey, initiatorPubkey, transaction);
             } else {
                 // Standard SPL token transfer
-                console.log('NFT is standard SPL token (no compression data)');
+                console.log('NFT is standard SPL token');
                 const mint = new solanaWeb3.PublicKey(nft.id);
 
                 // Find the actual token account holding this NFT
