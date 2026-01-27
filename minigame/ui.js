@@ -548,13 +548,17 @@ class GameUI {
     }
 
     calculateScore(stats, victory = false) {
-        // Get map difficulty multiplier
-        const mapDifficulty = MAPS[this.game.selectedMap]?.difficulty || 'easy';
+        // Get map difficulty multiplier (use currentMap for procedural maps)
+        const mapDifficulty = this.game.currentMap?.difficulty || 'easy';
         const difficultyMultiplier = {
             'easy': 1.0,
             'medium': 1.5,
             'hard': 2.0
         }[mapDifficulty] || 1.0;
+
+        // Random map bonus (15%)
+        const isRandomMap = this.game.selectedMap.startsWith('random_');
+        const randomMapBonus = isRandomMap ? 1.15 : 1.0;
 
         // Base score formula
         let baseScore =
@@ -569,8 +573,8 @@ class GameUI {
             baseScore *= 1.5;
         }
 
-        // Apply difficulty multiplier
-        return Math.round(baseScore * difficultyMultiplier);
+        // Apply difficulty multiplier and random map bonus
+        return Math.round(baseScore * difficultyMultiplier * randomMapBonus);
     }
 
     // Wallet/NFT functions

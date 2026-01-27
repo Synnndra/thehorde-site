@@ -188,6 +188,16 @@ h2, h3 {
     background: var(--danger);
 }
 
+.map-bonus {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #ffd700, #ff8c00);
+    color: #000;
+    font-weight: bold;
+    margin-left: 5px;
+}
+
 /* Tutorial Section */
 .tutorial-section {
     margin: 25px 0;
