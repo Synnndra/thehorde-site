@@ -15,6 +15,7 @@ const ALLOWED_METHODS = [
     'getAssetsByGroup',
     'getAssetsByOwner',
     'getAsset',
+    'getAssetProof',
     'getBalance',
     'getLatestBlockhash',
     'sendTransaction',

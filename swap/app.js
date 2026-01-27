@@ -1421,17 +1421,30 @@ async function completeInitiatorTransfer() {
         // Transfer initiator's NFTs to receiver
         const initiatorNfts = currentOffer.initiator.nftDetails || [];
         for (const nft of initiatorNfts) {
-            const mint = new solanaWeb3.PublicKey(nft.id);
-            const sourceAta = await getATA(mint, initiatorPubkey);
-            const destAta = await getATA(mint, receiverPubkey);
+            console.log('Processing NFT:', nft.id, nft.name);
 
-            // Create destination ATA if needed
-            if (!(await ataExists(destAta))) {
-                transaction.add(createATAInstruction(mint, receiverPubkey, signer));
+            // Check if this is a compressed NFT
+            const asset = await getAssetWithProof(nft.id);
+
+            if (asset?.compression?.compressed) {
+                // Compressed NFT - use Bubblegum transfer
+                console.log('NFT is compressed, using Bubblegum transfer');
+                await transferCompressedNFT(nft.id, initiatorPubkey, receiverPubkey, transaction);
+            } else {
+                // Standard SPL token transfer
+                console.log('NFT is standard SPL token');
+                const mint = new solanaWeb3.PublicKey(nft.id);
+                const sourceAta = await getATA(mint, initiatorPubkey);
+                const destAta = await getATA(mint, receiverPubkey);
+
+                // Create destination ATA if needed
+                if (!(await ataExists(destAta))) {
+                    transaction.add(createATAInstruction(mint, receiverPubkey, signer));
+                }
+
+                // Transfer NFT
+                transaction.add(createTokenTransferInstruction(sourceAta, destAta, signer, 1));
             }
-
-            // Transfer NFT
-            transaction.add(createTokenTransferInstruction(sourceAta, destAta, signer, 1));
         }
 
         // Transfer initiator's SOL to receiver (if any)
@@ -1916,6 +1929,209 @@ async function getTokenAccountsForMint(owner, mint) {
     }
 }
 
+// Check if NFT is compressed using Helius DAS API
+async function getAssetWithProof(assetId) {
+    try {
+        const response = await fetch('/api/helius', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                id: 'get-asset-proof',
+                method: 'getAsset',
+                params: {
+                    id: assetId,
+                    displayOptions: {
+                        showFungible: false,
+                        showUnverifiedCollections: true
+                    }
+                }
+            })
+        });
+
+        const data = await response.json();
+        if (data.error) {
+            throw new Error(data.error.message);
+        }
+        return data.result;
+    } catch (err) {
+        console.error('Error getting asset:', err);
+        return null;
+    }
+}
+
+// Get asset proof for compressed NFT transfer
+async function getAssetProof(assetId) {
+    try {
+        const response = await fetch('/api/helius', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                id: 'get-proof',
+                method: 'getAssetProof',
+                params: {
+                    id: assetId
+                }
+            })
+        });
+
+        const data = await response.json();
+        if (data.error) {
+            throw new Error(data.error.message);
+        }
+        return data.result;
+    } catch (err) {
+        console.error('Error getting asset proof:', err);
+        return null;
+    }
+}
+
+// Create Bubblegum transfer instruction for compressed NFT
+function createBubblegumTransferInstruction(
+    treeAddress,
+    leafOwner,
+    newLeafOwner,
+    leafDelegate,
+    merkleTree,
+    rootHash,
+    dataHash,
+    creatorHash,
+    nonce,
+    index,
+    proof
+) {
+    const BUBBLEGUM_PROGRAM_ID = new solanaWeb3.PublicKey('BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY');
+    const SPL_NOOP_PROGRAM_ID = new solanaWeb3.PublicKey('noopb9bkMVfRPU8AsbpTUg8AQkHtKwMYZiFUjNRtMmV');
+    const SPL_ACCOUNT_COMPRESSION_PROGRAM_ID = new solanaWeb3.PublicKey('cmtDvXumGCrqC1Age74AVPhSRVXJMd8PJS91L8KbNCK');
+
+    // Get tree authority PDA
+    const [treeAuthority] = solanaWeb3.PublicKey.findProgramAddressSync(
+        [treeAddress.toBytes()],
+        BUBBLEGUM_PROGRAM_ID
+    );
+
+    const keys = [
+        { pubkey: treeAuthority, isSigner: false, isWritable: false },
+        { pubkey: leafOwner, isSigner: true, isWritable: false },
+        { pubkey: leafDelegate, isSigner: false, isWritable: false },
+        { pubkey: newLeafOwner, isSigner: false, isWritable: false },
+        { pubkey: merkleTree, isSigner: false, isWritable: true },
+        { pubkey: SPL_NOOP_PROGRAM_ID, isSigner: false, isWritable: false },
+        { pubkey: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID, isSigner: false, isWritable: false },
+        { pubkey: solanaWeb3.SystemProgram.programId, isSigner: false, isWritable: false },
+    ];
+
+    // Add proof accounts
+    for (const proofNode of proof) {
+        keys.push({ pubkey: new solanaWeb3.PublicKey(proofNode), isSigner: false, isWritable: false });
+    }
+
+    // Bubblegum transfer instruction discriminator: [163, 52, 200, 231, 140, 3, 69, 186]
+    // Followed by: root (32 bytes), dataHash (32 bytes), creatorHash (32 bytes), nonce (8 bytes), index (4 bytes)
+    const discriminator = new Uint8Array([163, 52, 200, 231, 140, 3, 69, 186]);
+
+    // Convert hex strings to bytes
+    const rootBytes = hexToBytes(rootHash);
+    const dataHashBytes = hexToBytes(dataHash);
+    const creatorHashBytes = hexToBytes(creatorHash);
+
+    // Nonce as u64 little-endian (8 bytes)
+    const nonceBytes = new Uint8Array(8);
+    const nonceBigInt = BigInt(nonce);
+    for (let i = 0; i < 8; i++) {
+        nonceBytes[i] = Number((nonceBigInt >> BigInt(8 * i)) & BigInt(0xff));
+    }
+
+    // Index as u32 little-endian (4 bytes)
+    const indexBytes = new Uint8Array(4);
+    indexBytes[0] = index & 0xff;
+    indexBytes[1] = (index >> 8) & 0xff;
+    indexBytes[2] = (index >> 16) & 0xff;
+    indexBytes[3] = (index >> 24) & 0xff;
+
+    // Combine all data
+    const data = new Uint8Array(8 + 32 + 32 + 32 + 8 + 4);
+    data.set(discriminator, 0);
+    data.set(rootBytes, 8);
+    data.set(dataHashBytes, 40);
+    data.set(creatorHashBytes, 72);
+    data.set(nonceBytes, 104);
+    data.set(indexBytes, 112);
+
+    console.log('Creating Bubblegum transfer instruction:');
+    console.log('  Tree:', merkleTree.toBase58());
+    console.log('  Tree Authority:', treeAuthority.toBase58());
+    console.log('  From:', leafOwner.toBase58());
+    console.log('  To:', newLeafOwner.toBase58());
+    console.log('  Index:', index);
+
+    return new solanaWeb3.TransactionInstruction({
+        keys,
+        programId: BUBBLEGUM_PROGRAM_ID,
+        data,
+    });
+}
+
+// Helper to convert hex string to bytes
+function hexToBytes(hex) {
+    // Remove '0x' prefix if present
+    if (hex.startsWith('0x')) {
+        hex = hex.slice(2);
+    }
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < bytes.length; i++) {
+        bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+    }
+    return bytes;
+}
+
+// Transfer a compressed NFT
+async function transferCompressedNFT(assetId, fromPubkey, toPubkey, transaction) {
+    console.log('Transferring compressed NFT:', assetId);
+
+    // Get asset info and proof
+    const [asset, proof] = await Promise.all([
+        getAssetWithProof(assetId),
+        getAssetProof(assetId)
+    ]);
+
+    if (!asset || !proof) {
+        throw new Error('Failed to get compressed NFT data');
+    }
+
+    console.log('Asset compression info:', asset.compression);
+    console.log('Proof:', proof);
+
+    const compression = asset.compression;
+    if (!compression || !compression.compressed) {
+        throw new Error('Asset is not a compressed NFT');
+    }
+
+    const merkleTree = new solanaWeb3.PublicKey(compression.tree);
+    const leafOwner = fromPubkey;
+    const leafDelegate = fromPubkey; // Usually same as owner unless delegated
+    const newLeafOwner = toPubkey;
+
+    // Create the transfer instruction
+    const ix = createBubblegumTransferInstruction(
+        merkleTree,
+        leafOwner,
+        newLeafOwner,
+        leafDelegate,
+        merkleTree,
+        proof.root,
+        compression.data_hash,
+        compression.creator_hash,
+        compression.leaf_id,
+        compression.leaf_id, // index is same as leaf_id for cNFTs
+        proof.proof
+    );
+
+    transaction.add(ix);
+    console.log('Added Bubblegum transfer instruction');
+}
+
 // Sign and submit transaction
 async function signAndSubmitTransaction(transaction) {
     const provider = getPhantomProvider();
@@ -2090,47 +2306,59 @@ async function executeAtomicSwap(offer) {
         console.log('Receiver NFTs to transfer:', receiverNfts.length);
         for (const nft of receiverNfts) {
             console.log('Processing NFT:', nft.id, nft.name);
-            const mint = new solanaWeb3.PublicKey(nft.id);
 
-            // Find the actual token account holding this NFT
-            const tokenAccounts = await getTokenAccountsForMint(receiverPubkey, mint);
-            console.log('Token accounts found:', tokenAccounts.length);
+            // Check if this is a compressed NFT
+            const asset = await getAssetWithProof(nft.id);
 
-            if (tokenAccounts.length === 0) {
-                throw new Error(`You don't own this NFT (${nft.name})`);
-            }
+            if (asset?.compression?.compressed) {
+                // Compressed NFT - use Bubblegum transfer
+                console.log('NFT is compressed, using Bubblegum transfer');
+                await transferCompressedNFT(nft.id, receiverPubkey, initiatorPubkey, transaction);
+            } else {
+                // Standard SPL token transfer
+                console.log('NFT is standard SPL token');
+                const mint = new solanaWeb3.PublicKey(nft.id);
 
-            // Use the first account that has balance
-            let sourceAta = null;
-            for (const ta of tokenAccounts) {
-                const balance = ta.account?.data?.parsed?.info?.tokenAmount?.uiAmount || 0;
-                console.log('Token account:', ta.pubkey, 'balance:', balance);
-                if (balance > 0) {
-                    sourceAta = new solanaWeb3.PublicKey(ta.pubkey);
-                    break;
+                // Find the actual token account holding this NFT
+                const tokenAccounts = await getTokenAccountsForMint(receiverPubkey, mint);
+                console.log('Token accounts found:', tokenAccounts.length);
+
+                if (tokenAccounts.length === 0) {
+                    throw new Error(`You don't own this NFT (${nft.name})`);
                 }
+
+                // Use the first account that has balance
+                let sourceAta = null;
+                for (const ta of tokenAccounts) {
+                    const balance = ta.account?.data?.parsed?.info?.tokenAmount?.uiAmount || 0;
+                    console.log('Token account:', ta.pubkey, 'balance:', balance);
+                    if (balance > 0) {
+                        sourceAta = new solanaWeb3.PublicKey(ta.pubkey);
+                        break;
+                    }
+                }
+
+                if (!sourceAta) {
+                    throw new Error(`No token account with balance found for ${nft.name}`);
+                }
+
+                console.log('Using source account:', sourceAta.toBase58());
+
+                // Destination is the standard ATA for the initiator
+                const destAta = await getATA(mint, initiatorPubkey);
+                console.log('Dest ATA (initiator):', destAta.toBase58());
+
+                // Create destination ATA if needed
+                const destExists = await ataExists(destAta);
+                console.log('Dest ATA exists:', destExists);
+                if (!destExists) {
+                    console.log('Creating destination ATA...');
+                    transaction.add(createATAInstruction(mint, initiatorPubkey, signer));
+                }
+
+                // Transfer NFT (1 token for NFT)
+                transaction.add(createTokenTransferInstruction(sourceAta, destAta, signer, 1));
             }
-
-            if (!sourceAta) {
-                throw new Error(`No token account with balance found for ${nft.name}`);
-            }
-
-            console.log('Using source account:', sourceAta.toBase58());
-
-            // Destination is the standard ATA for the initiator
-            const destAta = await getATA(mint, initiatorPubkey);
-            console.log('Dest ATA (initiator):', destAta.toBase58());
-
-            // Create destination ATA if needed
-            const destExists = await ataExists(destAta);
-            console.log('Dest ATA exists:', destExists);
-            if (!destExists) {
-                console.log('Creating destination ATA...');
-                transaction.add(createATAInstruction(mint, initiatorPubkey, signer));
-            }
-
-            // Transfer NFT (1 token for NFT)
-            transaction.add(createTokenTransferInstruction(sourceAta, destAta, signer, 1));
         }
 
         // 3. Transfer receiver's SOL to initiator (if requested)
