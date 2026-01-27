@@ -4,7 +4,7 @@
 const MIDEVIL_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
 const GRAVEYARD_COLLECTION = 'DpYLtgV5XcWPt3TM9FhXEh8uNg6QFYrj3zCGZxpcA3vF';
 const MAX_NFTS_PER_SIDE = 5;
-const PLATFORM_FEE = 0.01; // SOL
+const PLATFORM_FEE = 0.02; // SOL
 const OFFER_EXPIRY_HOURS = 24;
 
 // Solana Program Constants

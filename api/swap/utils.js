@@ -17,7 +17,7 @@ export const ALLOWED_COLLECTIONS = [
 
 export const MAX_NFTS_PER_SIDE = 5;
 export const OFFER_EXPIRY_HOURS = 24;
-export const PLATFORM_FEE = 0.01;
+export const PLATFORM_FEE = 0.02;
 export const HOLDER_FEE = 0;
 export const MAX_MESSAGE_AGE = 5 * 60 * 1000; // 5 minutes
 
