@@ -998,9 +998,7 @@ async function escrowInitiatorAssets(nfts, solAmount) {
             return { success: true, signature: null };
         }
 
-        // Get blockhash and sign
-        const { blockhash } = await getLatestBlockhash();
-        transaction.recentBlockhash = blockhash;
+        // Set fee payer (blockhash fetched fresh in signAndSubmitTransaction)
         transaction.feePayer = signer;
 
         console.log('Total instructions:', transaction.instructions.length);
@@ -1630,8 +1628,7 @@ async function completeInitiatorTransfer() {
             return;
         }
 
-        const { blockhash } = await getLatestBlockhash();
-        transaction.recentBlockhash = blockhash;
+        // Set fee payer (blockhash fetched fresh in signAndSubmitTransaction)
         transaction.feePayer = signer;
 
         showLoading('Please approve the transaction in Phantom...');
@@ -1959,7 +1956,12 @@ async function getLatestBlockhash() {
 async function sendTransaction(serializedTransaction) {
     // Convert Uint8Array to base64 without using Node's Buffer
     const base64Tx = btoa(String.fromCharCode.apply(null, serializedTransaction));
-    const signature = await rpcCall('sendTransaction', [base64Tx, { encoding: 'base64', preflightCommitment: 'confirmed' }]);
+    const signature = await rpcCall('sendTransaction', [base64Tx, {
+        encoding: 'base64',
+        skipPreflight: true,  // Skip simulation to avoid blockhash timing issues
+        preflightCommitment: 'confirmed',
+        maxRetries: 3
+    }]);
     return signature;
 }
 
@@ -2376,11 +2378,17 @@ async function transferCompressedNFT(assetId, fromPubkey, toPubkey, transaction)
     console.log('Added Bubblegum transfer instruction');
 }
 
-// Sign and submit transaction
-async function signAndSubmitTransaction(transaction) {
+// Sign and submit transaction with retry logic
+async function signAndSubmitTransaction(transaction, retryCount = 0) {
     const provider = getPhantomProvider();
+    const maxRetries = 2;
 
     try {
+        // Get fresh blockhash right before signing to minimize expiry risk
+        console.log('Getting fresh blockhash...');
+        const { blockhash } = await getLatestBlockhash();
+        transaction.recentBlockhash = blockhash;
+
         console.log('Requesting signature from Phantom...');
 
         // Sign with Phantom
@@ -2389,7 +2397,17 @@ async function signAndSubmitTransaction(transaction) {
 
         // Submit to network via our proxy
         console.log('Submitting to network...');
-        const signature = await sendTransaction(signed.serialize());
+        let signature;
+        try {
+            signature = await sendTransaction(signed.serialize());
+        } catch (sendErr) {
+            // If blockhash error, retry with fresh blockhash
+            if (sendErr.message?.includes('Blockhash not found') && retryCount < maxRetries) {
+                console.log('Blockhash expired, retrying with fresh blockhash...');
+                return signAndSubmitTransaction(transaction, retryCount + 1);
+            }
+            throw sendErr;
+        }
         console.log('Transaction submitted:', signature);
 
         // Wait for confirmation
@@ -2629,9 +2647,7 @@ async function executeAtomicSwap(offer) {
             );
         }
 
-        // Get recent blockhash
-        const { blockhash } = await getLatestBlockhash();
-        transaction.recentBlockhash = blockhash;
+        // Set fee payer (blockhash will be fetched fresh in signAndSubmitTransaction)
         transaction.feePayer = signer;
 
         console.log('=== TRANSACTION SUMMARY ===');
