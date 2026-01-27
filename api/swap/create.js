@@ -124,7 +124,9 @@ export default async function handler(req, res) {
             initiatorSol,
             receiverSol,
             initiatorNftDetails,
-            receiverNftDetails
+            receiverNftDetails,
+            escrowTxSignature,
+            isOrcHolder: clientIsOrcHolder
         } = req.body;
 
         // Validate wallets
@@ -189,7 +191,8 @@ export default async function handler(req, res) {
                 sol: recvSol
             },
             fee: fee,
-            isOrcHolder: isOrcHolder
+            isOrcHolder: isOrcHolder,
+            escrowTxSignature: escrowTxSignature || null
         };
 
         // Save to KV
