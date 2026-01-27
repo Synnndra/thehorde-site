@@ -228,8 +228,9 @@ function getPositionOnPath(path, distance) {
 }
 
 // Check if a grid cell is buildable
-function isBuildable(mapId, gridX, gridY) {
-    const map = MAPS[mapId];
+// mapOrId can be a map ID string or a map object directly
+function isBuildable(mapOrId, gridX, gridY) {
+    const map = typeof mapOrId === 'string' ? MAPS[mapOrId] : mapOrId;
     if (!map) return false;
 
     if (gridX < 0 || gridX >= map.gridWidth || gridY < 0 || gridY >= map.gridHeight) {

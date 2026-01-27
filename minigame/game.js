@@ -325,7 +325,7 @@ class Game {
     }
 
     placeTower(type, gridX, gridY) {
-        if (!isBuildable(this.selectedMap, gridX, gridY)) {
+        if (!isBuildable(this.currentMap, gridX, gridY)) {
             return false;
         }
 
@@ -1230,7 +1230,7 @@ class Game {
             return;
         }
 
-        const canPlace = isBuildable(this.selectedMap, x, y) &&
+        const canPlace = isBuildable(this.currentMap, x, y) &&
             !this.towers.some(t => t.gridX === x && t.gridY === y);
 
         const centerX = x * this.cellSize + this.cellSize / 2;
