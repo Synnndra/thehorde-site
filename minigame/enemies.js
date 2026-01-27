@@ -116,7 +116,7 @@ const BOSS_TYPES = {
         size: 0.9,
         isBoss: true,
         abilities: ['regenerate', 'massDisable'],
-        regenRate: 15 // HP per second
+        regenRate: 22 // HP per second
     },
 
     war_elephant: {
@@ -139,14 +139,15 @@ const BOSS_TYPES = {
         description: "The final boss! Flying death!",
         icon: "🐉",
         color: "#FF4500",
-        hp: 4500,
-        speed: 1.6,
-        armor: 12,
-        goldReward: 350,
-        damage: 20,
+        hp: 6000,
+        speed: 1.4,
+        armor: 15,
+        goldReward: 400,
+        damage: 25,
         size: 1.2,
         isBoss: true,
-        abilities: ['fly', 'fireBreath'],
+        abilities: ['fly', 'fireBreath', 'regenerate'],
+        regenRate: 10, // Slight regen to punish slow DPS
         ignoresPath: false // Could be true for flying
     }
 };
@@ -757,6 +758,14 @@ function generateWave(waveNumber, mapDifficulty) {
     let archerCount = Math.max(0, Math.floor((waveNumber - 4) * 0.6));
     let cavalryCount = Math.max(0, Math.floor((waveNumber - 6) * 0.4));
     let mageCount = Math.max(0, Math.floor((waveNumber - 8) * 0.3));
+
+    // Late-game surge (waves 16-20) - punish optimized builds
+    if (waveNumber >= 16) {
+        const lateGameBonus = waveNumber - 15; // 1-5 bonus
+        mageCount += lateGameBonus * 2;        // +2/4/6/8/10 extra mages
+        cavalryCount += lateGameBonus;         // +1/2/3/4/5 extra cavalry
+        knightCount += lateGameBonus * 2;      // +2/4/6/8/10 extra knights
+    }
 
     // Difficulty multipliers (adjusted for better balance)
     const difficultyMult = {
