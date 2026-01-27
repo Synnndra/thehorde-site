@@ -1,13 +1,18 @@
 // Vercel Serverless Function - Create Swap Offer
+import { randomBytes } from 'crypto';
+import bs58 from 'bs58';
+import nacl from 'tweetnacl';
 
 // Rate limiting
 const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
 const RATE_LIMIT_MAX = 10; // Max 10 offer creations per minute per IP
 
-// Valid MidEvils collection
-const MIDEVIL_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
-const GRAVEYARD_COLLECTION = 'DpYLtgV5XcWPt3TM9FhXEh8uNg6QFYrj3zCGZxpcA3vF';
+// Valid MidEvils collections
+const ALLOWED_COLLECTIONS = [
+    'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW',  // MidEvils
+    'DpYLtgV5XcWPt3TM9FhXEh8uNg6QFYrj3zCGZxpcA3vF'  // Graveyard
+];
 
 // Constraints
 const MAX_NFTS_PER_SIDE = 5;
@@ -32,13 +37,11 @@ function isRateLimited(ip) {
     return false;
 }
 
+// Generate cryptographically secure offer ID
 function generateOfferId() {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let id = 'offer_';
-    for (let i = 0; i < 12; i++) {
-        id += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return id;
+    const bytes = randomBytes(16);
+    const hex = bytes.toString('hex');
+    return `offer_${hex}`;
 }
 
 function validateSolanaAddress(address) {
@@ -46,6 +49,68 @@ function validateSolanaAddress(address) {
     if (!address || typeof address !== 'string') return false;
     if (address.length < 32 || address.length > 44) return false;
     return /^[1-9A-HJ-NP-Za-km-z]+$/.test(address);
+}
+
+// Verify a signed message
+function verifySignature(message, signature, publicKey) {
+    try {
+        const messageBytes = new TextEncoder().encode(message);
+        const signatureBytes = bs58.decode(signature);
+        const publicKeyBytes = bs58.decode(publicKey);
+        return nacl.sign.detached.verify(messageBytes, signatureBytes, publicKeyBytes);
+    } catch (err) {
+        console.error('Signature verification error:', err);
+        return false;
+    }
+}
+
+// Verify NFTs belong to allowed collections
+async function verifyNftCollections(nftIds, heliusApiKey) {
+    if (!nftIds || nftIds.length === 0) return { valid: true, invalidNfts: [] };
+
+    const invalidNfts = [];
+
+    for (const nftId of nftIds) {
+        try {
+            const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 1,
+                    method: 'getAsset',
+                    params: { id: nftId }
+                })
+            });
+            const data = await response.json();
+            const asset = data.result;
+
+            if (!asset) {
+                invalidNfts.push({ id: nftId, reason: 'NFT not found' });
+                continue;
+            }
+
+            // Check collection
+            const grouping = asset.grouping || [];
+            const collections = grouping
+                .filter(g => g.group_key === 'collection')
+                .map(g => g.group_value);
+
+            const isAllowedCollection = collections.some(c => ALLOWED_COLLECTIONS.includes(c));
+
+            if (!isAllowedCollection) {
+                invalidNfts.push({ id: nftId, reason: 'Not from allowed collection' });
+            }
+        } catch (err) {
+            console.error('Error verifying NFT:', nftId, err);
+            invalidNfts.push({ id: nftId, reason: 'Verification failed' });
+        }
+    }
+
+    return {
+        valid: invalidNfts.length === 0,
+        invalidNfts
+    };
 }
 
 // Check if wallet owns a MidEvils Orc
@@ -161,6 +226,8 @@ export default async function handler(req, res) {
         return res.status(429).json({ error: 'Too many requests. Try again later.' });
     }
 
+    const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
+
     try {
         const {
             initiatorWallet,
@@ -172,7 +239,9 @@ export default async function handler(req, res) {
             initiatorNftDetails,
             receiverNftDetails,
             escrowTxSignature,
-            isOrcHolder: clientIsOrcHolder
+            isOrcHolder: clientIsOrcHolder,
+            signature,
+            message
         } = req.body;
 
         // Validate wallets
@@ -186,6 +255,35 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Cannot trade with yourself' });
         }
 
+        // Verify wallet ownership via signed message
+        if (!signature || !message) {
+            return res.status(400).json({ error: 'Signature required to verify wallet ownership' });
+        }
+
+        // Message should contain initiator and receiver wallets
+        if (!message.includes(initiatorWallet) || !message.includes(receiverWallet)) {
+            return res.status(400).json({ error: 'Invalid message format' });
+        }
+
+        // Validate timestamp to prevent replay attacks
+        const timestampMatch = message.match(/at (\d+)$/);
+        if (!timestampMatch) {
+            return res.status(400).json({ error: 'Invalid message format - missing timestamp' });
+        }
+        const messageTimestamp = parseInt(timestampMatch[1], 10);
+        const now = Date.now();
+        const MAX_MESSAGE_AGE = 5 * 60 * 1000; // 5 minutes
+        if (now - messageTimestamp > MAX_MESSAGE_AGE) {
+            return res.status(400).json({ error: 'Message expired - please try again' });
+        }
+        if (messageTimestamp > now + 60000) {
+            return res.status(400).json({ error: 'Invalid message timestamp' });
+        }
+
+        if (!verifySignature(message, signature, initiatorWallet)) {
+            return res.status(403).json({ error: 'Invalid signature - wallet ownership not verified' });
+        }
+
         // Validate NFT arrays
         const initNfts = Array.isArray(initiatorNfts) ? initiatorNfts : [];
         const recvNfts = Array.isArray(receiverNfts) ? receiverNfts : [];
@@ -195,6 +293,19 @@ export default async function handler(req, res) {
         }
         if (recvNfts.length > MAX_NFTS_PER_SIDE) {
             return res.status(400).json({ error: `Maximum ${MAX_NFTS_PER_SIDE} NFTs per side` });
+        }
+
+        // Verify all NFTs are from allowed collections
+        if (HELIUS_API_KEY && (initNfts.length > 0 || recvNfts.length > 0)) {
+            const allNfts = [...initNfts, ...recvNfts];
+            const collectionCheck = await verifyNftCollections(allNfts, HELIUS_API_KEY);
+            if (!collectionCheck.valid) {
+                const invalidIds = collectionCheck.invalidNfts.map(n => n.id).join(', ');
+                return res.status(400).json({
+                    error: 'Some NFTs are not from allowed collections',
+                    invalidNfts: collectionCheck.invalidNfts
+                });
+            }
         }
 
         // Validate SOL amounts
@@ -217,7 +328,6 @@ export default async function handler(req, res) {
         const fee = isOrcHolder ? HOLDER_FEE : PLATFORM_FEE;
 
         // Verify escrow transaction if provided
-        const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
         if (escrowTxSignature && HELIUS_API_KEY) {
             const txVerified = await verifyEscrowTransaction(
                 escrowTxSignature,

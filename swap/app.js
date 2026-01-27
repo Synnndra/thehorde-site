@@ -853,7 +853,18 @@ async function createOffer() {
     elements.createOfferBtn.disabled = true;
 
     try {
-        // Step 1: Build and sign escrow transaction (NFTs + fee to escrow wallet)
+        // Step 1: Sign message to verify wallet ownership
+        showLoading('Please sign the message to verify wallet ownership...');
+        const timestamp = Date.now();
+        const message = `Midswap create offer from ${connectedWallet} to ${partnerWallet} at ${timestamp}`;
+        let signature;
+        try {
+            signature = await signMessageForAuth(message);
+        } catch (signErr) {
+            throw new Error('Message signing cancelled or failed: ' + signErr.message);
+        }
+
+        // Step 2: Build and sign escrow transaction (NFTs + fee to escrow wallet)
         showLoading('Building escrow transaction...');
         const escrowResult = await escrowInitiatorAssets(selectedYourNFTs, yourSol);
 
@@ -863,7 +874,7 @@ async function createOffer() {
 
         showLoading('Saving offer to database...');
 
-        // Step 2: Create database record with escrow tx signature
+        // Step 3: Create database record with escrow tx signature
         const response = await fetch('/api/swap/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -877,7 +888,9 @@ async function createOffer() {
                 initiatorNftDetails: selectedYourNFTs,
                 receiverNftDetails: selectedTheirNFTs,
                 escrowTxSignature: escrowResult.signature,
-                isOrcHolder: isOrcHolder
+                isOrcHolder: isOrcHolder,
+                signature: signature,
+                message: message
             })
         });
 
