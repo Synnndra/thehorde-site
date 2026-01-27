@@ -264,37 +264,37 @@ function generatePath(start, end, config, grid, gridWidth, gridHeight) {
 function addWaterFeatures(grid, paths) {
     const gridHeight = grid.length;
     const gridWidth = grid[0].length;
-    const poolCount = 1 + Math.floor(Math.random() * 2);
+    const poolCount = 2 + Math.floor(Math.random() * 2); // 2-3 pools
 
     for (let i = 0; i < poolCount; i++) {
         let attempts = 0;
-        while (attempts < 50) {
-            const x = 2 + Math.floor(Math.random() * (gridWidth - 5));
-            const y = 2 + Math.floor(Math.random() * (gridHeight - 5));
+        while (attempts < 100) {
+            const x = 1 + Math.floor(Math.random() * (gridWidth - 4));
+            const y = 1 + Math.floor(Math.random() * (gridHeight - 4));
 
-            // Check distance from paths
-            let tooClose = false;
-            for (const path of paths) {
-                for (const wp of path) {
-                    if (Math.abs(wp.x - x) <= 3 && Math.abs(wp.y - y) <= 3) {
-                        tooClose = true;
-                        break;
+            // Check if area is clear (not on path)
+            let isValid = true;
+            for (let cy = 0; cy < 3 && isValid; cy++) {
+                for (let cx = 0; cx < 3 && isValid; cx++) {
+                    const checkX = x + cx;
+                    const checkY = y + cy;
+                    if (checkY >= gridHeight || checkX >= gridWidth) {
+                        isValid = false;
+                    } else if (grid[checkY][checkX] !== 1) {
+                        isValid = false; // On path or water already
                     }
                 }
-                if (tooClose) break;
             }
 
-            if (!tooClose && grid[y][x] === 1) {
-                // Create small irregular pool
+            if (isValid) {
+                // Create pool (2x2 to 3x3)
                 const size = 2 + Math.floor(Math.random() * 2);
                 for (let dy = 0; dy < size; dy++) {
                     for (let dx = 0; dx < size; dx++) {
-                        if (Math.random() > 0.3) {
-                            const wx = x + dx;
-                            const wy = y + dy;
-                            if (wx < gridWidth - 1 && wy < gridHeight - 1 && grid[wy][wx] === 1) {
-                                grid[wy][wx] = 3;
-                            }
+                        const wx = x + dx;
+                        const wy = y + dy;
+                        if (wx < gridWidth && wy < gridHeight && grid[wy][wx] === 1) {
+                            grid[wy][wx] = 3;
                         }
                     }
                 }
