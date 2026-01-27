@@ -1750,7 +1750,8 @@ async function getLatestBlockhash() {
 
 // Send transaction via proxy
 async function sendTransaction(serializedTransaction) {
-    const base64Tx = Buffer.from(serializedTransaction).toString('base64');
+    // Convert Uint8Array to base64 without using Node's Buffer
+    const base64Tx = btoa(String.fromCharCode.apply(null, serializedTransaction));
     const signature = await rpcCall('sendTransaction', [base64Tx, { encoding: 'base64', preflightCommitment: 'confirmed' }]);
     return signature;
 }
