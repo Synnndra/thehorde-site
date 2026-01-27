@@ -10,7 +10,7 @@ const OFFER_EXPIRY_HOURS = 24;
 // Solana Program Constants
 const PROGRAM_ID = '5DM6men8RMszhKYD245ejzip49nhqu8nd4F2UJhtovkY';
 const FEE_WALLET = '6zLek4SZSKNhvzDZP4AZWyUYYLzEYCYBaYeqvdZgXpZq'; // Fee collection wallet
-const SOLANA_RPC = 'https://api.devnet.solana.com'; // Testing on devnet
+const SOLANA_RPC = 'https://api.mainnet-beta.solana.com'; // Production
 const TOKEN_PROGRAM_ID = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 const ASSOCIATED_TOKEN_PROGRAM_ID = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
 
