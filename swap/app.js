@@ -2075,6 +2075,9 @@ async function executeAtomicSwap(offer) {
         // 3. Transfer receiver's SOL to initiator (if requested)
         if (offer.receiver.sol > 0) {
             const lamports = Math.floor(offer.receiver.sol * solanaWeb3.LAMPORTS_PER_SOL);
+            console.log('Adding SOL transfer:', offer.receiver.sol, 'SOL =', lamports, 'lamports');
+            console.log('From:', signer.toBase58());
+            console.log('To:', initiatorPubkey.toBase58());
             transaction.add(
                 solanaWeb3.SystemProgram.transfer({
                     fromPubkey: signer,
@@ -2091,6 +2094,9 @@ async function executeAtomicSwap(offer) {
 
         console.log('=== TRANSACTION SUMMARY ===');
         console.log('Total instructions:', transaction.instructions.length);
+        transaction.instructions.forEach((ix, i) => {
+            console.log(`Instruction ${i}: programId=${ix.programId.toBase58()}, keys=${ix.keys.length}`);
+        });
         console.log('Fee payer:', signer.toBase58());
 
         // Check if transaction has any instructions
