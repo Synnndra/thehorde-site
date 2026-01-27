@@ -177,28 +177,21 @@ function markSegmentOnGrid(from, to, grid) {
     }
 }
 
-// Generate a single path from start to end
+// Generate a single path from start to end using orthogonal movements only
 function generatePath(start, end, config, grid, gridWidth, gridHeight) {
     const waypoints = [{ x: start.x, y: start.y }];
     let current = { x: start.x, y: start.y };
     let pathLength = 0;
-    let lastDirection = null;
+    let lastAxis = null; // 'x' or 'y' - to encourage turns
     let iterations = 0;
-    const maxIterations = 200;
-
-    const directions = [
-        { dx: 1, dy: 0 },
-        { dx: -1, dy: 0 },
-        { dx: 0, dy: 1 },
-        { dx: 0, dy: -1 }
-    ];
+    const maxIterations = 100;
 
     while (iterations < maxIterations) {
         iterations++;
         const distToEnd = manhattanDistance(current, end);
 
         // Check if we should finish
-        if (pathLength >= config.minPathLength && distToEnd <= 3) {
+        if (pathLength >= config.minPathLength && distToEnd <= 4) {
             break;
         }
 
@@ -207,52 +200,69 @@ function generatePath(start, end, config, grid, gridWidth, gridHeight) {
             break;
         }
 
-        // Score each direction
-        const candidates = directions
-            .map(dir => ({
-                dir,
-                score: scoreDirection(current, dir, end, lastDirection, config, grid, pathLength, gridWidth, gridHeight)
-            }))
-            .filter(c => c.score > 0);
+        // Decide whether to move in X or Y direction
+        const dx = end.x - current.x;
+        const dy = end.y - current.y;
 
-        let selected;
-        if (candidates.length === 0) {
-            // Stuck - force toward end
-            const dx = end.x - current.x;
-            const dy = end.y - current.y;
-            selected = {
-                dir: Math.abs(dx) > Math.abs(dy)
-                    ? { dx: dx > 0 ? 1 : -1, dy: 0 }
-                    : { dx: 0, dy: dy > 0 ? 1 : -1 },
-                score: 1
-            };
+        let moveX = false;
+        let moveY = false;
+
+        // Favor alternating axes for interesting paths
+        if (lastAxis === 'x' && dy !== 0 && Math.random() < config.turnFrequency) {
+            moveY = true;
+        } else if (lastAxis === 'y' && dx !== 0 && Math.random() < config.turnFrequency) {
+            moveX = true;
+        } else if (dx !== 0 && dy !== 0) {
+            // Both directions available - pick based on distance and randomness
+            moveX = Math.random() < 0.5;
+            moveY = !moveX;
+        } else if (dx !== 0) {
+            moveX = true;
+        } else if (dy !== 0) {
+            moveY = true;
         } else {
-            selected = weightedRandomSelect(candidates);
+            break; // Already at destination
         }
 
-        // Determine segment length
+        // Calculate segment length (2-4 cells)
         const segmentLength = 2 + Math.floor(Math.random() * 3);
+        let newX = current.x;
+        let newY = current.y;
 
-        // Calculate new position
-        const newX = clamp(current.x + selected.dir.dx * segmentLength, 1, gridWidth - 2);
-        const newY = clamp(current.y + selected.dir.dy * segmentLength, 1, gridHeight - 2);
+        if (moveX) {
+            const dir = dx > 0 ? 1 : -1;
+            const maxMove = Math.min(segmentLength, Math.abs(dx));
+            newX = current.x + dir * maxMove;
+            newX = clamp(newX, 1, gridWidth - 2);
+            lastAxis = 'x';
+        } else if (moveY) {
+            const dir = dy > 0 ? 1 : -1;
+            const maxMove = Math.min(segmentLength, Math.abs(dy));
+            newY = current.y + dir * maxMove;
+            newY = clamp(newY, 1, gridHeight - 2);
+            lastAxis = 'y';
+        }
+
         const newPoint = { x: newX, y: newY };
-
-        // Mark cells on grid
-        markSegmentOnGrid(current, newPoint, grid);
-
-        pathLength += Math.abs(newPoint.x - current.x) + Math.abs(newPoint.y - current.y);
 
         // Only add waypoint if we actually moved
         if (newPoint.x !== current.x || newPoint.y !== current.y) {
+            // Mark cells on grid
+            markSegmentOnGrid(current, newPoint, grid);
+            pathLength += Math.abs(newPoint.x - current.x) + Math.abs(newPoint.y - current.y);
             waypoints.push({ x: newPoint.x, y: newPoint.y });
             current = newPoint;
-            lastDirection = selected.dir;
         }
     }
 
-    // Add final waypoint to end
-    if (current.x !== end.x || current.y !== end.y) {
+    // Connect to end point with orthogonal segments
+    if (current.x !== end.x) {
+        const midPoint = { x: end.x, y: current.y };
+        markSegmentOnGrid(current, midPoint, grid);
+        waypoints.push(midPoint);
+        current = midPoint;
+    }
+    if (current.y !== end.y) {
         markSegmentOnGrid(current, end, grid);
         waypoints.push({ x: end.x, y: end.y });
     }
