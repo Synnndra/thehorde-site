@@ -2077,8 +2077,21 @@ async function executeAtomicSwap(offer) {
             const sourceAta = await getATA(mint, receiverPubkey);
             const destAta = await getATA(mint, initiatorPubkey);
 
+            console.log('Source ATA (receiver):', sourceAta.toBase58());
+            console.log('Dest ATA (initiator):', destAta.toBase58());
+
+            // Check if source ATA exists (receiver should have the NFT)
+            const sourceExists = await ataExists(sourceAta);
+            console.log('Source ATA exists:', sourceExists);
+            if (!sourceExists) {
+                throw new Error(`You don't have an ATA for this NFT. The NFT might be in a different account.`);
+            }
+
             // Create destination ATA if needed
-            if (!(await ataExists(destAta))) {
+            const destExists = await ataExists(destAta);
+            console.log('Dest ATA exists:', destExists);
+            if (!destExists) {
+                console.log('Creating destination ATA...');
                 transaction.add(createATAInstruction(mint, initiatorPubkey, signer));
             }
 
