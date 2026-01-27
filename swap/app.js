@@ -1965,9 +1965,19 @@ async function executeAtomicSwap(offer) {
     const signer = provider.publicKey;
     const feeWallet = getFeeWallet();
 
+    console.log('=== ACCEPT OFFER DEBUG ===');
+    console.log('Offer:', offer);
+    console.log('Fee:', offer.fee);
+    console.log('Receiver NFTs:', offer.receiver?.nftDetails);
+    console.log('Receiver SOL:', offer.receiver?.sol);
+    console.log('Signer:', signer.toBase58());
+
     try {
         const initiatorPubkey = new solanaWeb3.PublicKey(offer.initiator.wallet);
         const receiverPubkey = new solanaWeb3.PublicKey(offer.receiver.wallet);
+
+        console.log('Initiator:', initiatorPubkey.toBase58());
+        console.log('Receiver:', receiverPubkey.toBase58());
 
         // Verify signer is the receiver
         if (signer.toBase58() !== offer.receiver.wallet) {
@@ -1979,6 +1989,7 @@ async function executeAtomicSwap(offer) {
         // 1. Pay platform fee
         if (offer.fee > 0) {
             const feeLamports = Math.floor(offer.fee * solanaWeb3.LAMPORTS_PER_SOL);
+            console.log('Adding fee payment:', offer.fee, 'SOL =', feeLamports, 'lamports');
             transaction.add(
                 solanaWeb3.SystemProgram.transfer({
                     fromPubkey: signer,
@@ -1986,11 +1997,15 @@ async function executeAtomicSwap(offer) {
                     lamports: feeLamports,
                 })
             );
+        } else {
+            console.log('No fee (Orc holder or fee is 0)');
         }
 
         // 2. Transfer receiver's NFTs to initiator
         const receiverNfts = offer.receiver.nftDetails || [];
+        console.log('Receiver NFTs to transfer:', receiverNfts.length);
         for (const nft of receiverNfts) {
+            console.log('Processing NFT:', nft.id, nft.name);
             const mint = new solanaWeb3.PublicKey(nft.id);
             const sourceAta = await getATA(mint, receiverPubkey);
             const destAta = await getATA(mint, initiatorPubkey);
@@ -2020,6 +2035,10 @@ async function executeAtomicSwap(offer) {
         const { blockhash } = await connection.getLatestBlockhash();
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = signer;
+
+        console.log('=== TRANSACTION SUMMARY ===');
+        console.log('Total instructions:', transaction.instructions.length);
+        console.log('Fee payer:', signer.toBase58());
 
         // Check if transaction has any instructions
         if (transaction.instructions.length === 0) {
