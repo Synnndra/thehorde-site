@@ -1403,6 +1403,21 @@ async function completeInitiatorTransfer() {
 
         const transaction = new solanaWeb3.Transaction();
 
+        // Pay platform fee (initiator pays)
+        if (currentOffer.fee > 0) {
+            const feeLamports = Math.floor(currentOffer.fee * solanaWeb3.LAMPORTS_PER_SOL);
+            console.log('Adding fee payment:', currentOffer.fee, 'SOL =', feeLamports, 'lamports');
+            transaction.add(
+                solanaWeb3.SystemProgram.transfer({
+                    fromPubkey: signer,
+                    toPubkey: getFeeWallet(),
+                    lamports: feeLamports,
+                })
+            );
+        } else {
+            console.log('No fee (Orc holder)');
+        }
+
         // Transfer initiator's NFTs to receiver
         const initiatorNfts = currentOffer.initiator.nftDetails || [];
         for (const nft of initiatorNfts) {
@@ -1492,12 +1507,10 @@ function showConfirmModal(action) {
         cancel: 'Cancel Offer'
     };
 
-    const feeText = currentOffer?.fee > 0 ? `A ${currentOffer.fee} SOL platform fee will be charged.` : 'No platform fee (Orc holder discount).';
-
     const messages = {
         accept: USE_BLOCKCHAIN
-            ? `Are you sure you want to accept this trade?\n\nYou will sign a blockchain transaction that:\n• Transfers your NFTs/SOL to the other party\n• Pays the platform fee\n\n${feeText}\n\nThis action cannot be undone.`
-            : `Are you sure you want to accept this trade? You will receive the offered NFTs/SOL and give the requested NFTs/SOL. ${feeText}`,
+            ? `Are you sure you want to accept this trade?\n\nYou will sign a blockchain transaction that transfers your NFTs/SOL to the other party.\n\nThis action cannot be undone.`
+            : `Are you sure you want to accept this trade? You will receive the offered NFTs/SOL and give the requested NFTs/SOL.`,
         decline: 'Are you sure you want to decline this offer?',
         cancel: 'Are you sure you want to cancel this offer?'
     };
@@ -2032,20 +2045,8 @@ async function executeAtomicSwap(offer) {
 
         const transaction = new solanaWeb3.Transaction();
 
-        // 1. Pay platform fee
-        if (offer.fee > 0) {
-            const feeLamports = Math.floor(offer.fee * solanaWeb3.LAMPORTS_PER_SOL);
-            console.log('Adding fee payment:', offer.fee, 'SOL =', feeLamports, 'lamports');
-            transaction.add(
-                solanaWeb3.SystemProgram.transfer({
-                    fromPubkey: signer,
-                    toPubkey: feeWallet,
-                    lamports: feeLamports,
-                })
-            );
-        } else {
-            console.log('No fee (Orc holder or fee is 0)');
-        }
+        // Fee is paid by initiator when they complete their transfer, not by receiver
+        console.log('Fee will be paid by initiator on completion');
 
         // 2. Transfer receiver's NFTs to initiator
         const receiverNfts = offer.receiver.nftDetails || [];
