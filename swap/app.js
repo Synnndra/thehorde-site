@@ -10,7 +10,7 @@ const OFFER_EXPIRY_HOURS = 24;
 // Solana Program Constants
 const PROGRAM_ID = '5DM6men8RMszhKYD245ejzip49nhqu8nd4F2UJhtovkY';
 const FEE_WALLET = '6zLek4SZSKNhvzDZP4AZWyUYYLzEYCYBaYeqvdZgXpZq'; // Fee collection wallet
-const SOLANA_RPC = 'https://rpc.ankr.com/solana'; // Ankr free RPC
+const SOLANA_RPC = '/api/rpc'; // Use our proxy
 const TOKEN_PROGRAM_ID = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 const ASSOCIATED_TOKEN_PROGRAM_ID = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
 
@@ -1411,7 +1411,7 @@ async function completeInitiatorTransfer() {
             const destAta = await getATA(mint, receiverPubkey);
 
             // Create destination ATA if needed
-            if (!(await ataExists(connection, destAta))) {
+            if (!(await ataExists(destAta))) {
                 transaction.add(createATAInstruction(mint, receiverPubkey, signer));
             }
 
@@ -1442,7 +1442,7 @@ async function completeInitiatorTransfer() {
             return;
         }
 
-        const { blockhash } = await connection.getLatestBlockhash();
+        const { blockhash } = await getLatestBlockhash();
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = signer;
 
@@ -1707,9 +1707,59 @@ function clearCountdowns() {
 
 // ========== Solana Blockchain Functions ==========
 
-// Get Solana connection
+// RPC helper - calls our proxy endpoint
+async function rpcCall(method, params = []) {
+    const response = await fetch(SOLANA_RPC, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: Date.now(),
+            method,
+            params
+        })
+    });
+    const data = await response.json();
+    if (data.error) {
+        throw new Error(data.error.message || JSON.stringify(data.error));
+    }
+    return data.result;
+}
+
+// Get latest blockhash via proxy
+async function getLatestBlockhash() {
+    const result = await rpcCall('getLatestBlockhash', [{ commitment: 'confirmed' }]);
+    return {
+        blockhash: result.value.blockhash,
+        lastValidBlockHeight: result.value.lastValidBlockHeight
+    };
+}
+
+// Send transaction via proxy
+async function sendTransaction(serializedTransaction) {
+    const base64Tx = Buffer.from(serializedTransaction).toString('base64');
+    const signature = await rpcCall('sendTransaction', [base64Tx, { encoding: 'base64', preflightCommitment: 'confirmed' }]);
+    return signature;
+}
+
+// Get signature status via proxy
+async function getSignatureStatus(signature) {
+    const result = await rpcCall('getSignatureStatuses', [[signature]]);
+    return result.value[0];
+}
+
+// Check if account exists via proxy
+async function getAccountInfo(pubkey) {
+    const result = await rpcCall('getAccountInfo', [pubkey.toBase58(), { encoding: 'base64' }]);
+    return result.value;
+}
+
+// Get Solana connection (for compatibility, but we mostly use rpcCall now)
 function getSolanaConnection() {
-    return new solanaWeb3.Connection(SOLANA_RPC, 'confirmed');
+    // Return a minimal connection object - we'll use rpcCall for most things
+    return {
+        rpcEndpoint: SOLANA_RPC
+    };
 }
 
 // Get program ID as PublicKey
@@ -1807,9 +1857,9 @@ function createTokenTransferInstruction(source, destination, owner, amount) {
 }
 
 // Check if ATA exists
-async function ataExists(connection, ata) {
+async function ataExists(ata) {
     try {
-        const account = await connection.getAccountInfo(ata);
+        const account = await getAccountInfo(ata);
         return account !== null;
     } catch {
         return false;
@@ -1819,7 +1869,6 @@ async function ataExists(connection, ata) {
 // Sign and submit transaction
 async function signAndSubmitTransaction(transaction) {
     const provider = getPhantomProvider();
-    const connection = getSolanaConnection();
 
     try {
         console.log('Requesting signature from Phantom...');
@@ -1828,42 +1877,39 @@ async function signAndSubmitTransaction(transaction) {
         const signed = await provider.signTransaction(transaction);
         console.log('Transaction signed');
 
-        // Submit to network
+        // Submit to network via our proxy
         console.log('Submitting to network...');
-        const signature = await connection.sendRawTransaction(signed.serialize(), {
-            skipPreflight: false,
-            preflightCommitment: 'confirmed',
-        });
+        const signature = await sendTransaction(signed.serialize());
         console.log('Transaction submitted:', signature);
 
-        // Wait for confirmation with longer timeout
+        // Wait for confirmation
         console.log('Waiting for confirmation...');
-        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+        let confirmed = false;
+        let attempts = 0;
+        const maxAttempts = 30;
 
-        try {
-            const confirmation = await connection.confirmTransaction({
-                signature,
-                blockhash,
-                lastValidBlockHeight
-            }, 'confirmed');
+        while (!confirmed && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+            attempts++;
 
-            if (confirmation.value.err) {
-                console.error('Transaction error:', confirmation.value.err);
-                throw new Error('Transaction failed: ' + JSON.stringify(confirmation.value.err));
+            try {
+                const status = await getSignatureStatus(signature);
+                console.log('Status check', attempts, ':', status?.confirmationStatus);
+
+                if (status?.confirmationStatus === 'confirmed' || status?.confirmationStatus === 'finalized') {
+                    if (status.err) {
+                        throw new Error('Transaction failed: ' + JSON.stringify(status.err));
+                    }
+                    confirmed = true;
+                    console.log('Transaction confirmed!');
+                }
+            } catch (statusErr) {
+                console.log('Status check error:', statusErr.message);
             }
-            console.log('Transaction confirmed!');
-        } catch (confirmErr) {
-            // Transaction might still have succeeded, check status
-            console.log('Confirmation timed out, checking status...');
-            const status = await connection.getSignatureStatus(signature);
-            if (status.value?.confirmationStatus === 'confirmed' || status.value?.confirmationStatus === 'finalized') {
-                console.log('Transaction confirmed via status check!');
-            } else if (status.value?.err) {
-                throw new Error('Transaction failed: ' + JSON.stringify(status.value.err));
-            } else {
-                // Assume success if no error - user can verify on explorer
-                console.log('Transaction submitted, please verify on explorer:', signature);
-            }
+        }
+
+        if (!confirmed) {
+            console.log('Confirmation timed out - transaction may still succeed. Signature:', signature);
         }
 
         return { success: true, signature };
@@ -1908,7 +1954,7 @@ async function buildSwapTransaction(offer, isAccepting = false) {
             const destAta = await getATA(mint, initiatorPubkey);
 
             // Create destination ATA if needed
-            if (!(await ataExists(connection, destAta))) {
+            if (!(await ataExists(destAta))) {
                 transaction.add(createATAInstruction(mint, initiatorPubkey, signer));
             }
 
@@ -1943,7 +1989,7 @@ async function buildSwapTransaction(offer, isAccepting = false) {
         }
     }
 
-    const { blockhash } = await connection.getLatestBlockhash();
+    const { blockhash } = await getLatestBlockhash();
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = signer;
 
@@ -2011,7 +2057,7 @@ async function executeAtomicSwap(offer) {
             const destAta = await getATA(mint, initiatorPubkey);
 
             // Create destination ATA if needed
-            if (!(await ataExists(connection, destAta))) {
+            if (!(await ataExists(destAta))) {
                 transaction.add(createATAInstruction(mint, initiatorPubkey, signer));
             }
 
@@ -2032,7 +2078,7 @@ async function executeAtomicSwap(offer) {
         }
 
         // Get recent blockhash
-        const { blockhash } = await connection.getLatestBlockhash();
+        const { blockhash } = await getLatestBlockhash();
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = signer;
 

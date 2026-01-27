@@ -8,6 +8,7 @@
     { "source": "/api/swap/cancel", "destination": "/api/swap/cancel.js" },
     { "source": "/api/swap/accept", "destination": "/api/swap/accept.js" },
     { "source": "/api/swap/complete-transfer", "destination": "/api/swap/complete-transfer.js" },
+    { "source": "/api/rpc", "destination": "/api/rpc.js" },
     { "source": "/minigame", "destination": "/minigame/index.html" },
     { "source": "/swap", "destination": "/swap/index.html" }
   ],
