@@ -2186,24 +2186,27 @@ function createBubblegumTransferInstruction(
 
 // MPL Core program ID
 const MPL_CORE_PROGRAM_ID = 'CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d';
+const SPL_NOOP_PROGRAM_ID = 'noopb9bkMVfRPU8AsbpTUg8AQkHtKwMYZiFUjNRtMmV';
 
 // Create MPL Core transfer instruction
 function createMplCoreTransferInstruction(assetId, fromPubkey, toPubkey, collectionAddress = null) {
     const programId = new solanaWeb3.PublicKey(MPL_CORE_PROGRAM_ID);
     const asset = new solanaWeb3.PublicKey(assetId);
     const systemProgram = solanaWeb3.SystemProgram.programId;
+    const logWrapper = new solanaWeb3.PublicKey(SPL_NOOP_PROGRAM_ID);
 
     // MPL Core TransferV1 uses discriminator 14, followed by Option<CompressionProof> = None (0)
     const data = new Uint8Array([14, 0]); // 14 = TransferV1, 0 = None for compression proof
 
-    // All accounts must be provided - use program ID for optional "None" accounts
+    // All accounts in order per MPL Core TransferV1
     const keys = [
         { pubkey: asset, isSigner: false, isWritable: true },                                    // 0: asset
-        { pubkey: collectionAddress ? new solanaWeb3.PublicKey(collectionAddress) : programId, isSigner: false, isWritable: false }, // 1: collection (or program ID if none)
+        { pubkey: collectionAddress ? new solanaWeb3.PublicKey(collectionAddress) : programId, isSigner: false, isWritable: false }, // 1: collection
         { pubkey: fromPubkey, isSigner: true, isWritable: true },                                // 2: payer
         { pubkey: fromPubkey, isSigner: true, isWritable: false },                               // 3: authority (owner)
         { pubkey: toPubkey, isSigner: false, isWritable: false },                                // 4: newOwner
         { pubkey: systemProgram, isSigner: false, isWritable: false },                           // 5: systemProgram
+        { pubkey: logWrapper, isSigner: false, isWritable: false },                              // 6: logWrapper (SPL Noop)
     ];
 
     console.log('Creating MPL Core transfer instruction:');

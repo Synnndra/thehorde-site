@@ -320,7 +320,7 @@ function createMplCoreTransferInstruction(assetId, fromPubkey, toPubkey, collect
     // MPL Core TransferV1 uses discriminator 14, followed by Option<CompressionProof> = None (0)
     const data = Buffer.from([14, 0]);
 
-    // All accounts must be provided - use program ID for optional "None" accounts
+    // All accounts in order per MPL Core TransferV1
     const keys = [
         { pubkey: asset, isSigner: false, isWritable: true },                                    // 0: asset
         { pubkey: collectionAddress ? new PublicKey(collectionAddress) : MPL_CORE_PROGRAM_ID, isSigner: false, isWritable: false }, // 1: collection
@@ -328,6 +328,7 @@ function createMplCoreTransferInstruction(assetId, fromPubkey, toPubkey, collect
         { pubkey: fromPubkey, isSigner: true, isWritable: false },                               // 3: authority
         { pubkey: toPubkey, isSigner: false, isWritable: false },                                // 4: newOwner
         { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },                 // 5: systemProgram
+        { pubkey: SPL_NOOP_PROGRAM_ID, isSigner: false, isWritable: false },                     // 6: logWrapper
     ];
 
     console.log('Creating MPL Core transfer instruction:');
