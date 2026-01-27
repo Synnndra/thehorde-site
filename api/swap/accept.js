@@ -344,22 +344,18 @@ function createBubblegumTransferInstruction(fromPubkey, toPubkey, compression, p
 function createMplCoreTransferInstruction(assetId, fromPubkey, toPubkey, collectionAddress = null) {
     const asset = new PublicKey(assetId);
 
-    // MPL Core TransferV1 - Anchor discriminator
-    const discriminator = Buffer.from([163, 52, 200, 231, 140, 3, 69, 186]);
+    // MPL Core TransferV1 uses discriminator 14, followed by Option<CompressionProof> = None (0)
+    const data = Buffer.from([14, 0]);
 
+    // All accounts must be provided - use program ID for optional "None" accounts
     const keys = [
-        { pubkey: asset, isSigner: false, isWritable: true },              // asset
+        { pubkey: asset, isSigner: false, isWritable: true },                                    // 0: asset
+        { pubkey: collectionAddress ? new PublicKey(collectionAddress) : MPL_CORE_PROGRAM_ID, isSigner: false, isWritable: false }, // 1: collection
+        { pubkey: fromPubkey, isSigner: true, isWritable: true },                                // 2: payer
+        { pubkey: fromPubkey, isSigner: true, isWritable: false },                               // 3: authority
+        { pubkey: toPubkey, isSigner: false, isWritable: false },                                // 4: newOwner
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },                 // 5: systemProgram
     ];
-
-    // Collection is optional
-    if (collectionAddress) {
-        keys.push({ pubkey: new PublicKey(collectionAddress), isSigner: false, isWritable: false });
-    }
-
-    keys.push(
-        { pubkey: fromPubkey, isSigner: true, isWritable: true },           // payer
-        { pubkey: toPubkey, isSigner: false, isWritable: false },           // newOwner
-    );
 
     console.log('Creating MPL Core transfer instruction:');
     console.log('  Asset:', asset.toBase58());
@@ -370,6 +366,6 @@ function createMplCoreTransferInstruction(assetId, fromPubkey, toPubkey, collect
     return {
         keys,
         programId: MPL_CORE_PROGRAM_ID,
-        data: discriminator
+        data
     };
 }

@@ -2191,33 +2191,24 @@ const MPL_CORE_PROGRAM_ID = 'CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d';
 function createMplCoreTransferInstruction(assetId, fromPubkey, toPubkey, collectionAddress = null) {
     const programId = new solanaWeb3.PublicKey(MPL_CORE_PROGRAM_ID);
     const asset = new solanaWeb3.PublicKey(assetId);
+    const systemProgram = solanaWeb3.SystemProgram.programId;
 
-    // MPL Core TransferV1 discriminator
-    // From mpl-core: TransferV1 = 14, but needs proper Anchor serialization
-    // Anchor discriminator = first 8 bytes of sha256("global:transfer")
-    const discriminator = new Uint8Array([163, 52, 200, 231, 140, 3, 69, 186]);
+    // MPL Core TransferV1 uses discriminator 14, followed by Option<CompressionProof> = None (0)
+    const data = new Uint8Array([14, 0]); // 14 = TransferV1, 0 = None for compression proof
 
-    // Build accounts - order matters!
+    // All accounts must be provided - use program ID for optional "None" accounts
     const keys = [
-        { pubkey: asset, isSigner: false, isWritable: true },           // 0: asset
+        { pubkey: asset, isSigner: false, isWritable: true },                                    // 0: asset
+        { pubkey: collectionAddress ? new solanaWeb3.PublicKey(collectionAddress) : programId, isSigner: false, isWritable: false }, // 1: collection (or program ID if none)
+        { pubkey: fromPubkey, isSigner: true, isWritable: true },                                // 2: payer
+        { pubkey: fromPubkey, isSigner: true, isWritable: false },                               // 3: authority (owner)
+        { pubkey: toPubkey, isSigner: false, isWritable: false },                                // 4: newOwner
+        { pubkey: systemProgram, isSigner: false, isWritable: false },                           // 5: systemProgram
     ];
-
-    // Collection is optional - if provided, add it; if not, we skip it
-    if (collectionAddress) {
-        keys.push({ pubkey: new solanaWeb3.PublicKey(collectionAddress), isSigner: false, isWritable: false });
-    }
-
-    keys.push(
-        { pubkey: fromPubkey, isSigner: true, isWritable: true },       // payer
-        { pubkey: toPubkey, isSigner: false, isWritable: false },       // newOwner
-    );
-
-    // No compression proof needed for basic transfer
-    const data = discriminator;
 
     console.log('Creating MPL Core transfer instruction:');
     console.log('  Asset:', asset.toBase58());
-    console.log('  Collection:', collectionAddress || 'none');
+    console.log('  Collection:', collectionAddress || 'none (using program ID)');
     console.log('  From:', fromPubkey.toBase58());
     console.log('  To:', toPubkey.toBase58());
 
