@@ -2,7 +2,14 @@
   "rewrites": [
     { "source": "/api/helius", "destination": "/api/helius.js" },
     { "source": "/api/leaderboard", "destination": "/api/leaderboard.js" },
-    { "source": "/minigame", "destination": "/minigame/index.html" }
+    { "source": "/api/swap/create", "destination": "/api/swap/create.js" },
+    { "source": "/api/swap/offers", "destination": "/api/swap/offers.js" },
+    { "source": "/api/swap/offer/:id", "destination": "/api/swap/[id].js" },
+    { "source": "/api/swap/cancel", "destination": "/api/swap/cancel.js" },
+    { "source": "/api/swap/accept", "destination": "/api/swap/accept.js" },
+    { "source": "/api/swap/complete-transfer", "destination": "/api/swap/complete-transfer.js" },
+    { "source": "/minigame", "destination": "/minigame/index.html" },
+    { "source": "/swap", "destination": "/swap/index.html" }
   ],
   "headers": [
     {
@@ -14,7 +21,7 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
         { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://mainnet.helius-rpc.com https://*.vercel-storage.com" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://mainnet.helius-rpc.com https://api.devnet.solana.com https://api.mainnet-beta.solana.com https://*.vercel-storage.com" }
       ]
     }
   ]

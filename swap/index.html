@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MidEvils NFT Swap - Create Trade Offer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/swap/style.css">
+    <link rel="icon" href="/orclogo.jpg" type="image/jpeg">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="swap-header">
+            <h1>MidEvils NFT Swap</h1>
+            <p>Create trustless P2P trades with other MidEvils holders</p>
+            <nav class="swap-nav">
+                <a href="/swap" class="nav-link active">Create Offer</a>
+                <a href="/swap/offers.html" class="nav-link">My Offers</a>
+            </nav>
+        </header>
+
+        <!-- Wallet Connection -->
+        <section class="wallet-section">
+            <div class="wallet-status" id="walletStatus">
+                <span class="status-text">Not Connected</span>
+            </div>
+            <button id="connectWalletBtn" class="connect-btn">Connect Phantom</button>
+            <button id="disconnectWalletBtn" class="disconnect-btn" style="display: none;">Disconnect</button>
+        </section>
+
+        <!-- Trade Partner Section -->
+        <section class="trade-partner-section" id="tradePartnerSection" style="display: none;">
+            <h2>Trade With</h2>
+            <div class="input-row">
+                <input type="text" id="partnerWalletInput" class="wallet-input" placeholder="Enter wallet address to trade with...">
+                <button id="loadPartnerBtn" class="load-btn">Load NFTs</button>
+            </div>
+        </section>
+
+        <!-- Loading State -->
+        <div class="loading" id="loading" style="display: none;">Loading NFTs...</div>
+        <div class="error" id="error" style="display: none;"></div>
+
+        <!-- Trade Builder -->
+        <section class="trade-builder" id="tradeBuilder" style="display: none;">
+            <div class="trade-columns">
+                <!-- Your Offer Side -->
+                <div class="trade-column your-offer">
+                    <div class="column-header">
+                        <h3>You Give</h3>
+                        <span class="selection-count" id="yourSelectionCount">0 selected</span>
+                    </div>
+
+                    <div class="sol-input-section">
+                        <label for="yourSolAmount">+ Add SOL:</label>
+                        <div class="sol-input-wrapper">
+                            <input type="number" id="yourSolAmount" class="sol-input" min="0" step="0.01" value="0" placeholder="0.00">
+                            <span class="sol-symbol">SOL</span>
+                        </div>
+                    </div>
+
+                    <div class="nft-selection-area">
+                        <p class="instruction">Select NFTs to offer (max 5)</p>
+                        <div class="nft-grid" id="yourNFTGrid">
+                            <div class="empty-state">Connect wallet to see your NFTs</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Arrow Divider -->
+                <div class="trade-arrow">
+                    <span class="arrow-icon">&#8644;</span>
+                </div>
+
+                <!-- What You Want Side -->
+                <div class="trade-column you-want">
+                    <div class="column-header">
+                        <h3>You Get</h3>
+                        <span class="selection-count" id="theirSelectionCount">0 selected</span>
+                    </div>
+
+                    <div class="sol-input-section">
+                        <label for="theirSolAmount">+ Request SOL:</label>
+                        <div class="sol-input-wrapper">
+                            <input type="number" id="theirSolAmount" class="sol-input" min="0" step="0.01" value="0" placeholder="0.00">
+                            <span class="sol-symbol">SOL</span>
+                        </div>
+                    </div>
+
+                    <div class="nft-selection-area">
+                        <p class="instruction">Select NFTs you want (max 5)</p>
+                        <div class="nft-grid" id="theirNFTGrid">
+                            <div class="empty-state">Enter a wallet address above to see their NFTs</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Trade Summary -->
+        <section class="trade-summary" id="tradeSummary" style="display: none;">
+            <h3>Trade Summary</h3>
+            <div class="summary-content">
+                <div class="summary-side giving">
+                    <h4>You Give:</h4>
+                    <div class="summary-items" id="summaryGiving">
+                        <span class="placeholder">Nothing selected</span>
+                    </div>
+                </div>
+                <div class="summary-arrow">&#10132;</div>
+                <div class="summary-side receiving">
+                    <h4>You Get:</h4>
+                    <div class="summary-items" id="summaryReceiving">
+                        <span class="placeholder">Nothing selected</span>
+                    </div>
+                </div>
+            </div>
+            <div class="fee-notice">
+                <span class="fee-icon">&#9432;</span>
+                <span>Platform fee: <strong>0.01 SOL</strong> (paid when offer is accepted) - <em>Free for Orc holders!</em></span>
+            </div>
+            <button id="createOfferBtn" class="create-offer-btn" disabled>Create Offer</button>
+        </section>
+
+        <!-- Success Modal -->
+        <div class="modal" id="successModal" style="display: none;">
+            <div class="modal-content success-modal">
+                <div class="modal-header">
+                    <h2>Offer Created!</h2>
+                    <button class="close-modal-btn" id="closeSuccessModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Your trade offer has been created successfully.</p>
+                    <div class="offer-link-section">
+                        <label>Share this link with the receiver:</label>
+                        <div class="link-copy-row">
+                            <input type="text" id="offerLinkInput" class="offer-link-input" readonly>
+                            <button id="copyLinkBtn" class="copy-btn">Copy</button>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <a href="/swap/offers.html" class="view-offers-btn">View My Offers</a>
+                        <button id="createAnotherBtn" class="create-another-btn">Create Another</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="swap-footer">
+            <p>MidEvils NFT Swap &copy; 2024 | <a href="/">Back to The Horde</a></p>
+        </footer>
+    </div>
+
+    <!-- Solana Web3.js for blockchain transactions -->
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="/swap/app.js"></script>
+</body>
+</html>

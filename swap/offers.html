@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MidEvils NFT Swap - My Offers</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/swap/style.css">
+    <link rel="icon" href="/orclogo.jpg" type="image/jpeg">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="swap-header">
+            <h1>My Trade Offers</h1>
+            <p>View and manage your pending swap offers</p>
+            <nav class="swap-nav">
+                <a href="/swap" class="nav-link">Create Offer</a>
+                <a href="/swap/offers.html" class="nav-link active">My Offers</a>
+            </nav>
+        </header>
+
+        <!-- Wallet Connection -->
+        <section class="wallet-section">
+            <div class="wallet-status" id="walletStatus">
+                <span class="status-text">Not Connected</span>
+            </div>
+            <button id="connectWalletBtn" class="connect-btn">Connect Phantom</button>
+            <button id="disconnectWalletBtn" class="disconnect-btn" style="display: none;">Disconnect</button>
+        </section>
+
+        <!-- Loading State -->
+        <div class="loading" id="loading" style="display: none;">Loading offers...</div>
+        <div class="error" id="error" style="display: none;"></div>
+
+        <!-- Offers Section -->
+        <section class="offers-section" id="offersSection" style="display: none;">
+            <!-- Tabs -->
+            <div class="offers-tabs">
+                <button class="tab-btn active" data-tab="received">
+                    Offers Received
+                    <span class="tab-count" id="receivedCount">0</span>
+                </button>
+                <button class="tab-btn" data-tab="sent">
+                    Offers I Made
+                    <span class="tab-count" id="sentCount">0</span>
+                </button>
+                <button class="tab-btn" data-tab="history">
+                    History
+                    <span class="tab-count" id="historyCount">0</span>
+                </button>
+            </div>
+
+            <!-- Received Offers Tab -->
+            <div class="tab-content active" id="receivedTab">
+                <div class="offers-list" id="receivedOffersList">
+                    <div class="empty-state">No offers received yet</div>
+                </div>
+            </div>
+
+            <!-- Sent Offers Tab -->
+            <div class="tab-content" id="sentTab">
+                <div class="offers-list" id="sentOffersList">
+                    <div class="empty-state">You haven't made any offers yet</div>
+                </div>
+            </div>
+
+            <!-- History Tab -->
+            <div class="tab-content" id="historyTab">
+                <div class="offers-list" id="historyOffersList">
+                    <div class="empty-state">No completed or cancelled swaps yet</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="swap-footer">
+            <p>MidEvils NFT Swap &copy; 2024 | <a href="/">Back to The Horde</a></p>
+        </footer>
+    </div>
+
+    <!-- Solana Web3.js for blockchain transactions -->
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="/swap/app.js"></script>
+</body>
+</html>

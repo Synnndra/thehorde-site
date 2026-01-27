@@ -14,7 +14,8 @@ const ALLOWED_COLLECTIONS = [
 const ALLOWED_METHODS = [
     'getAssetsByGroup',
     'getAssetsByOwner',
-    'getAsset'
+    'getAsset',
+    'getBalance'
 ];
 
 function isRateLimited(ip) {

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MidEvils NFT Swap - Offer Details</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/swap/style.css">
+    <link rel="icon" href="/orclogo.jpg" type="image/jpeg">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="swap-header">
+            <h1>Trade Offer Details</h1>
+            <p>Review the offer and accept or decline</p>
+            <nav class="swap-nav">
+                <a href="/swap" class="nav-link">Create Offer</a>
+                <a href="/swap/offers.html" class="nav-link">My Offers</a>
+            </nav>
+        </header>
+
+        <!-- Wallet Connection -->
+        <section class="wallet-section">
+            <div class="wallet-status" id="walletStatus">
+                <span class="status-text">Not Connected</span>
+            </div>
+            <button id="connectWalletBtn" class="connect-btn">Connect Phantom</button>
+            <button id="disconnectWalletBtn" class="disconnect-btn" style="display: none;">Disconnect</button>
+        </section>
+
+        <!-- Loading State -->
+        <div class="loading" id="loading" style="display: none;">Loading offer...</div>
+        <div class="error" id="error" style="display: none;"></div>
+
+        <!-- Offer Details -->
+        <section class="offer-details" id="offerDetails" style="display: none;">
+            <!-- Status Badge -->
+            <div class="offer-status-banner" id="offerStatusBanner">
+                <span class="status-badge pending">Pending</span>
+                <span class="expires-text" id="expiresText">Expires in 24 hours</span>
+            </div>
+
+            <!-- Trade Visualization -->
+            <div class="offer-visualization">
+                <!-- Initiator Side -->
+                <div class="offer-side initiator-side">
+                    <div class="side-header">
+                        <h3 id="initiatorLabel">Initiator Offers</h3>
+                        <span class="wallet-badge" id="initiatorWallet">...</span>
+                    </div>
+                    <div class="offer-items" id="initiatorItems">
+                        <!-- NFT cards and SOL will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Arrow -->
+                <div class="offer-arrow">
+                    <span class="arrow-icon">&#8644;</span>
+                </div>
+
+                <!-- Receiver Side -->
+                <div class="offer-side receiver-side">
+                    <div class="side-header">
+                        <h3 id="receiverLabel">In Exchange For</h3>
+                        <span class="wallet-badge" id="receiverWallet">...</span>
+                    </div>
+                    <div class="offer-items" id="receiverItems">
+                        <!-- NFT cards and SOL will be inserted here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fee Notice -->
+            <div class="fee-notice" id="feeNotice">
+                <span class="fee-icon">&#9432;</span>
+                <span>Platform fee: <strong>0.01 SOL</strong> (deducted on accept)</span>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="offer-actions" id="offerActions">
+                <!-- Buttons will be shown based on user role and offer status -->
+            </div>
+        </section>
+
+        <!-- Confirmation Modal -->
+        <div class="modal" id="confirmModal" style="display: none;">
+            <div class="modal-content confirm-modal">
+                <div class="modal-header">
+                    <h2 id="confirmModalTitle">Confirm Action</h2>
+                    <button class="close-modal-btn" id="closeConfirmModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmModalMessage">Are you sure you want to proceed?</p>
+                    <div class="modal-actions">
+                        <button id="confirmActionBtn" class="confirm-btn">Confirm</button>
+                        <button id="cancelActionBtn" class="cancel-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Modal -->
+        <div class="modal" id="resultModal" style="display: none;">
+            <div class="modal-content result-modal">
+                <div class="modal-header">
+                    <h2 id="resultModalTitle">Success!</h2>
+                    <button class="close-modal-btn" id="closeResultModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="resultModalMessage">The action was completed successfully.</p>
+                    <div class="modal-actions">
+                        <a href="/swap/offers.html" class="view-offers-btn">Back to Offers</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="swap-footer">
+            <p>MidEvils NFT Swap &copy; 2024 | <a href="/">Back to The Horde</a></p>
+        </footer>
+    </div>
+
+    <!-- Solana Web3.js for blockchain transactions -->
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="/swap/app.js"></script>
+</body>
+</html>

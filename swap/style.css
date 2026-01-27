@@ -1,0 +1,1632 @@
+/* MidEvils NFT Swap - Styles */
+
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Page */
+body {
+    font-family: 'Crimson Text', serif;
+    background: #000 url('/background.jpg') no-repeat center center fixed;
+    background-size: cover;
+    min-height: 100vh;
+    padding: 20px;
+    color: #e8e4d9;
+}
+
+/* Main Container */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: rgba(26, 26, 46, 0.95);
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Header */
+.swap-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.swap-header h1 {
+    font-family: 'Cinzel', serif;
+    color: #c9a227;
+    font-size: 36px;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+}
+
+.swap-header p {
+    color: #9a9484;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+/* Navigation */
+.swap-nav {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.nav-link {
+    font-family: 'Cinzel', serif;
+    color: #e8e4d9;
+    text-decoration: none;
+    padding: 10px 25px;
+    border: 2px solid #333;
+    border-radius: 5px;
+    transition: all 0.3s;
+}
+
+.nav-link:hover {
+    border-color: #667eea;
+    color: #667eea;
+}
+
+.nav-link.active {
+    background: #667eea;
+    border-color: #667eea;
+    color: white;
+}
+
+/* Wallet Section */
+.wallet-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 30px;
+    padding: 15px;
+    background: #2a2a3e;
+    border-radius: 8px;
+}
+
+.wallet-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.wallet-status .status-text {
+    color: #9a9484;
+    font-size: 14px;
+}
+
+.wallet-status.connected .status-text {
+    color: #28a745;
+}
+
+.connect-btn {
+    font-family: 'Cinzel', serif;
+    padding: 12px 25px;
+    background: linear-gradient(135deg, #ab9ff2 0%, #7c3aed 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.connect-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
+}
+
+.connect-btn.connected {
+    background: #28a745;
+}
+
+.disconnect-btn {
+    font-family: 'Cinzel', serif;
+    padding: 12px 25px;
+    background: transparent;
+    color: #dc3545;
+    border: 2px solid #dc3545;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.disconnect-btn:hover {
+    background: #dc3545;
+    color: white;
+}
+
+/* Trade Partner Section */
+.trade-partner-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #2a2a3e;
+    border-radius: 8px;
+}
+
+.trade-partner-section h2 {
+    font-family: 'Cinzel', serif;
+    color: #c9a227;
+    font-size: 20px;
+    margin-bottom: 15px;
+}
+
+.input-row {
+    display: flex;
+    gap: 15px;
+}
+
+.wallet-input {
+    flex: 1;
+    font-family: 'Crimson Text', serif;
+    padding: 12px 15px;
+    font-size: 16px;
+    border: 2px solid #333;
+    border-radius: 5px;
+    background: #1a1a2e;
+    color: #eee;
+    outline: none;
+}
+
+.wallet-input:focus {
+    border-color: #667eea;
+}
+
+.wallet-input::placeholder {
+    color: #666;
+}
+
+.load-btn {
+    font-family: 'Cinzel', serif;
+    padding: 12px 25px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.load-btn:hover {
+    background: #5568d3;
+}
+
+.load-btn:disabled {
+    background: #555;
+    cursor: not-allowed;
+}
+
+/* Loading & Error */
+.loading, .error {
+    text-align: center;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.loading {
+    background: #1e3a5f;
+    color: #64b5f6;
+}
+
+.error {
+    background: #3d1f1f;
+    color: #ef5350;
+}
+
+/* Trade Builder */
+.trade-builder {
+    margin-bottom: 30px;
+}
+
+.trade-columns {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+.trade-column {
+    background: #2a2a3e;
+    border-radius: 8px;
+    padding: 20px;
+    border: 2px solid #333;
+}
+
+.trade-column.your-offer {
+    border-color: #c9a227;
+}
+
+.trade-column.you-want {
+    border-color: #28a745;
+}
+
+.column-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #333;
+}
+
+.column-header h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 20px;
+}
+
+.your-offer .column-header h3 {
+    color: #c9a227;
+}
+
+.you-want .column-header h3 {
+    color: #28a745;
+}
+
+.selection-count {
+    font-size: 14px;
+    color: #9a9484;
+    background: #1a1a2e;
+    padding: 5px 10px;
+    border-radius: 15px;
+}
+
+/* SOL Input */
+.sol-input-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #1a1a2e;
+    border-radius: 5px;
+}
+
+.sol-input-section label {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    color: #9a9484;
+    white-space: nowrap;
+}
+
+.sol-input-section label .sol-balance {
+    color: #c9a227;
+    font-weight: 600;
+}
+
+.sol-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.sol-input {
+    width: 100px;
+    padding: 8px 10px;
+    font-family: 'Crimson Text', serif;
+    font-size: 16px;
+    border: 2px solid #333;
+    border-radius: 5px;
+    background: #2a2a3e;
+    color: #eee;
+    outline: none;
+    text-align: right;
+}
+
+.sol-input:focus {
+    border-color: #667eea;
+}
+
+.sol-symbol {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    color: #c9a227;
+    font-weight: 600;
+}
+
+/* NFT Selection Area */
+.nft-selection-area {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.instruction {
+    font-size: 14px;
+    color: #9a9484;
+    margin-bottom: 10px;
+}
+
+.nft-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+}
+
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+    font-style: italic;
+}
+
+/* NFT Card */
+.nft-card {
+    position: relative;
+    border: 2px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #1a1a2e;
+}
+
+.nft-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    border-color: #667eea;
+}
+
+.nft-card.selected {
+    border-color: #c9a227;
+    box-shadow: 0 0 15px rgba(201, 162, 39, 0.5);
+}
+
+.nft-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.nft-card .nft-image {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+}
+
+.nft-card .nft-name {
+    padding: 8px;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    color: #e8e4d9;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: #1a1a2e;
+}
+
+.nft-card .selection-indicator {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 22px;
+    height: 22px;
+    background: #c9a227;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    color: #1a1a2e;
+}
+
+.nft-card.selected .selection-indicator {
+    display: flex;
+}
+
+/* Locked/Staked NFT styles */
+.nft-card.not-tradeable {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.nft-card.not-tradeable:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: #dc3545;
+}
+
+.nft-card .lock-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    pointer-events: none;
+}
+
+.nft-card .lock-icon {
+    font-size: 24px;
+}
+
+.nft-card .lock-reason {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    color: #ff6b6b;
+    text-transform: uppercase;
+    font-weight: 700;
+    text-align: center;
+    padding: 2px 6px;
+    background: rgba(220, 53, 69, 0.8);
+    border-radius: 3px;
+}
+
+/* Trade Arrow */
+.trade-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 0;
+}
+
+.arrow-icon {
+    font-size: 40px;
+    color: #c9a227;
+}
+
+/* Trade Summary */
+.trade-summary {
+    background: #2a2a3e;
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 30px;
+}
+
+.trade-summary h3 {
+    font-family: 'Cinzel', serif;
+    color: #c9a227;
+    font-size: 22px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.summary-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.summary-side {
+    flex: 1;
+    min-width: 200px;
+    max-width: 400px;
+    padding: 15px;
+    background: #1a1a2e;
+    border-radius: 8px;
+}
+
+.summary-side h4 {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.summary-side.giving h4 {
+    color: #c9a227;
+}
+
+.summary-side.receiving h4 {
+    color: #28a745;
+}
+
+.summary-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.summary-items .placeholder {
+    color: #666;
+    font-style: italic;
+}
+
+.summary-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    background: #2a2a3e;
+    border-radius: 5px;
+    font-size: 13px;
+}
+
+.summary-item img {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.summary-item.sol-item {
+    color: #c9a227;
+    font-weight: 600;
+}
+
+.summary-arrow {
+    font-size: 30px;
+    color: #c9a227;
+}
+
+/* Fee Notice */
+.fee-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 15px;
+    background: #1e3a5f;
+    border-radius: 5px;
+    margin: 20px 0;
+    color: #64b5f6;
+    font-size: 14px;
+}
+
+.fee-icon {
+    font-size: 18px;
+}
+
+/* Create Offer Button */
+.create-offer-btn {
+    display: block;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+    padding: 15px 30px;
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.create-offer-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);
+}
+
+.create-offer-btn:disabled {
+    background: #555;
+    cursor: not-allowed;
+}
+
+/* Modals */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-content {
+    background: #1a1a2e;
+    border-radius: 10px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.8);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 2px solid #333;
+}
+
+.modal-header h2 {
+    font-family: 'Cinzel', serif;
+    color: #c9a227;
+    font-size: 22px;
+}
+
+.close-modal-btn {
+    background: none;
+    border: none;
+    font-size: 30px;
+    color: #888;
+    cursor: pointer;
+    transition: color 0.3s;
+    padding: 0;
+    line-height: 1;
+}
+
+.close-modal-btn:hover {
+    color: #eee;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.modal-body p {
+    color: #e8e4d9;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.offer-link-section {
+    margin-bottom: 25px;
+}
+
+.offer-link-section label {
+    display: block;
+    font-size: 14px;
+    color: #9a9484;
+    margin-bottom: 10px;
+}
+
+.link-copy-row {
+    display: flex;
+    gap: 10px;
+}
+
+.offer-link-input {
+    flex: 1;
+    padding: 12px;
+    font-family: monospace;
+    font-size: 13px;
+    background: #2a2a3e;
+    border: 2px solid #333;
+    border-radius: 5px;
+    color: #e8e4d9;
+}
+
+.copy-btn {
+    font-family: 'Cinzel', serif;
+    padding: 12px 20px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.copy-btn:hover {
+    background: #5568d3;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.view-offers-btn,
+.create-another-btn {
+    font-family: 'Cinzel', serif;
+    padding: 12px 25px;
+    border-radius: 5px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.view-offers-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+}
+
+.view-offers-btn:hover {
+    background: #5568d3;
+}
+
+.create-another-btn {
+    background: transparent;
+    color: #e8e4d9;
+    border: 2px solid #333;
+}
+
+.create-another-btn:hover {
+    border-color: #667eea;
+    color: #667eea;
+}
+
+/* Offers Page Styles */
+.offers-section {
+    margin-bottom: 30px;
+}
+
+.offers-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    flex: 1;
+    font-family: 'Cinzel', serif;
+    padding: 15px 20px;
+    background: #2a2a3e;
+    border: 2px solid #333;
+    border-radius: 8px;
+    color: #e8e4d9;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.tab-btn:hover {
+    border-color: #667eea;
+}
+
+.tab-btn.active {
+    background: #667eea;
+    border-color: #667eea;
+}
+
+.tab-count {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 13px;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.offers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Offer Card */
+.offer-card {
+    background: #2a2a3e;
+    border: 2px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+    transition: all 0.3s;
+}
+
+.offer-card:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+}
+
+.offer-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.offer-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.offer-countdown {
+    font-size: 12px;
+    color: #9a9484;
+    padding: 4px 8px;
+    background: #1a1a2e;
+    border-radius: 4px;
+}
+
+.offer-countdown.urgent {
+    color: #ff6b6b;
+    background: rgba(220, 53, 69, 0.2);
+    animation: pulse 1s infinite;
+}
+
+.offer-countdown.expired {
+    color: #6c757d;
+    background: rgba(108, 117, 125, 0.2);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.offer-id {
+    font-family: monospace;
+    font-size: 12px;
+    color: #9a9484;
+}
+
+.status-badge {
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.pending {
+    background: #c9a227;
+    color: #1a1a2e;
+}
+
+.status-badge.accepted {
+    background: #28a745;
+    color: white;
+}
+
+.status-badge.cancelled {
+    background: #dc3545;
+    color: white;
+}
+
+.status-badge.expired {
+    background: #6c757d;
+    color: white;
+}
+
+/* History card styles */
+.history-card {
+    border-color: #444;
+}
+
+.history-card .status-badge.accepted {
+    background: #28a745;
+}
+
+.history-partner {
+    font-size: 12px;
+    color: #9a9484;
+}
+
+.offer-card-body {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.offer-preview-side {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.offer-preview-images {
+    display: flex;
+    gap: 5px;
+}
+
+.offer-preview-images img {
+    width: 50px;
+    height: 50px;
+    border-radius: 5px;
+    object-fit: cover;
+    border: 2px solid #333;
+}
+
+.offer-preview-text {
+    font-size: 14px;
+    color: #9a9484;
+}
+
+.offer-preview-text strong {
+    color: #e8e4d9;
+}
+
+.offer-preview-arrow {
+    font-size: 24px;
+    color: #c9a227;
+}
+
+.offer-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 15px;
+    border-top: 1px solid #333;
+}
+
+.offer-meta {
+    font-size: 12px;
+    color: #666;
+}
+
+.offer-card-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.view-offer-btn,
+.cancel-offer-btn {
+    font-family: 'Cinzel', serif;
+    padding: 8px 16px;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.view-offer-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    text-decoration: none;
+}
+
+.view-offer-btn:hover {
+    background: #5568d3;
+}
+
+.cancel-offer-btn {
+    background: transparent;
+    color: #dc3545;
+    border: 2px solid #dc3545;
+}
+
+.cancel-offer-btn:hover {
+    background: #dc3545;
+    color: white;
+}
+
+/* Offer Detail Page Styles */
+.offer-status-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 15px;
+    background: #2a2a3e;
+    border-radius: 8px;
+    margin-bottom: 25px;
+}
+
+.expires-text {
+    font-size: 14px;
+    color: #9a9484;
+}
+
+.expires-text.urgent {
+    color: #ff6b6b;
+    font-weight: 600;
+}
+
+.expires-text.expired {
+    color: #6c757d;
+}
+
+.offer-visualization {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 20px;
+    align-items: start;
+    margin-bottom: 20px;
+}
+
+.offer-side {
+    background: #2a2a3e;
+    border-radius: 8px;
+    padding: 20px;
+    border: 2px solid #333;
+}
+
+.offer-side.initiator-side {
+    border-color: #c9a227;
+}
+
+.offer-side.receiver-side {
+    border-color: #28a745;
+}
+
+.side-header {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #333;
+}
+
+.side-header h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    margin-bottom: 5px;
+}
+
+.initiator-side .side-header h3 {
+    color: #c9a227;
+}
+
+.receiver-side .side-header h3 {
+    color: #28a745;
+}
+
+.wallet-badge {
+    font-family: monospace;
+    font-size: 12px;
+    color: #9a9484;
+    word-break: break-all;
+}
+
+.offer-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.offer-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    background: #1a1a2e;
+    border-radius: 8px;
+    width: 100px;
+}
+
+.offer-item img {
+    width: 80px;
+    height: 80px;
+    border-radius: 5px;
+    object-fit: cover;
+    margin-bottom: 8px;
+}
+
+.offer-item .item-name {
+    font-size: 11px;
+    color: #e8e4d9;
+    text-align: center;
+    word-break: break-word;
+}
+
+.offer-item.sol-item {
+    justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #c9a227;
+}
+
+.offer-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Action Buttons */
+.offer-actions {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 25px;
+}
+
+.accept-btn,
+.decline-btn,
+.cancel-btn,
+.confirm-btn {
+    font-family: 'Cinzel', serif;
+    padding: 15px 35px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.accept-btn {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    color: white;
+    border: none;
+}
+
+.accept-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);
+}
+
+.decline-btn,
+.cancel-btn {
+    background: transparent;
+    color: #dc3545;
+    border: 2px solid #dc3545;
+}
+
+.decline-btn:hover,
+.cancel-btn:hover {
+    background: #dc3545;
+    color: white;
+}
+
+.confirm-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+}
+
+.confirm-btn:hover {
+    background: #5568d3;
+}
+
+/* Footer */
+.swap-footer {
+    text-align: center;
+    padding-top: 20px;
+    border-top: 1px solid #333;
+    margin-top: 30px;
+}
+
+.swap-footer p {
+    color: #666;
+    font-size: 14px;
+}
+
+.swap-footer a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.swap-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Scrollbar Styling */
+.nft-selection-area::-webkit-scrollbar {
+    width: 8px;
+}
+
+.nft-selection-area::-webkit-scrollbar-track {
+    background: #1a1a2e;
+    border-radius: 4px;
+}
+
+.nft-selection-area::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 4px;
+}
+
+.nft-selection-area::-webkit-scrollbar-thumb:hover {
+    background: #444;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .trade-columns,
+    .offer-visualization {
+        grid-template-columns: 1fr;
+    }
+
+    .trade-arrow,
+    .offer-arrow {
+        transform: rotate(90deg);
+        padding: 10px 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 12px;
+    }
+
+    .swap-header h1 {
+        font-size: 24px;
+    }
+
+    .swap-header p {
+        font-size: 14px;
+    }
+
+    .swap-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .nav-link {
+        padding: 12px 16px;
+        font-size: 13px;
+        flex: 1;
+        text-align: center;
+        min-width: 120px;
+    }
+
+    .wallet-section {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .connect-btn,
+    .disconnect-btn {
+        width: 100%;
+        padding: 14px 20px;
+        font-size: 15px;
+    }
+
+    .input-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .wallet-input {
+        font-size: 14px;
+        padding: 14px;
+    }
+
+    .load-btn {
+        width: 100%;
+        padding: 14px;
+    }
+
+    /* Trade columns mobile */
+    .trade-column {
+        padding: 15px;
+    }
+
+    .column-header h3 {
+        font-size: 18px;
+    }
+
+    .sol-input-section {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .sol-input-wrapper {
+        width: 100%;
+    }
+
+    .sol-input {
+        width: 100%;
+        text-align: left;
+        padding: 12px;
+    }
+
+    /* NFT grid mobile - larger cards for easier tapping */
+    .nft-grid {
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 8px;
+    }
+
+    .nft-card {
+        min-height: 120px;
+    }
+
+    .nft-card .nft-image {
+        aspect-ratio: 1;
+    }
+
+    .nft-card .nft-name {
+        padding: 6px;
+        font-size: 10px;
+    }
+
+    .nft-card .selection-indicator {
+        width: 26px;
+        height: 26px;
+        font-size: 14px;
+    }
+
+    .nft-card .lock-overlay {
+        gap: 3px;
+    }
+
+    .nft-card .lock-icon {
+        font-size: 20px;
+    }
+
+    .nft-card .lock-reason {
+        font-size: 8px;
+        padding: 2px 4px;
+    }
+
+    /* Offers tabs mobile */
+    .offers-tabs {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 8px;
+        padding-bottom: 5px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tab-btn {
+        flex: 0 0 auto;
+        padding: 12px 16px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .tab-count {
+        font-size: 11px;
+        padding: 2px 8px;
+    }
+
+    /* Offer cards mobile */
+    .offer-card {
+        padding: 15px;
+    }
+
+    .offer-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .offer-header-right {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .offer-card-body {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .offer-preview-side {
+        width: 100%;
+    }
+
+    .offer-preview-images img {
+        width: 45px;
+        height: 45px;
+    }
+
+    .offer-preview-arrow {
+        transform: rotate(90deg);
+        font-size: 20px;
+    }
+
+    .offer-card-footer {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .offer-card-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .view-offer-btn,
+    .cancel-offer-btn {
+        flex: 1;
+        text-align: center;
+        padding: 12px 16px;
+    }
+
+    /* Trade summary mobile */
+    .summary-content {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .summary-side {
+        min-width: 100%;
+    }
+
+    .summary-arrow {
+        transform: rotate(90deg);
+    }
+
+    .create-offer-btn {
+        width: 100%;
+        max-width: none;
+        padding: 16px;
+        font-size: 16px;
+    }
+
+    /* Offer detail mobile */
+    .offer-status-banner {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .offer-side {
+        padding: 15px;
+    }
+
+    .side-header h3 {
+        font-size: 16px;
+    }
+
+    .offer-items {
+        justify-content: center;
+    }
+
+    .offer-item {
+        width: 80px;
+    }
+
+    .offer-item img {
+        width: 60px;
+        height: 60px;
+    }
+
+    .offer-actions {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .accept-btn,
+    .decline-btn,
+    .cancel-btn {
+        width: 100%;
+        padding: 16px;
+    }
+
+    /* Modal mobile */
+    .modal-content {
+        margin: 10px;
+        max-height: 95vh;
+    }
+
+    .modal-header {
+        padding: 15px;
+    }
+
+    .modal-header h2 {
+        font-size: 18px;
+    }
+
+    .modal-body {
+        padding: 15px;
+    }
+
+    .modal-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .view-offers-btn,
+    .create-another-btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    /* Fee notice mobile */
+    .fee-notice {
+        flex-direction: column;
+        text-align: center;
+        gap: 5px;
+        padding: 12px;
+        font-size: 13px;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 400px) {
+    .container {
+        padding: 10px;
+    }
+
+    .swap-header h1 {
+        font-size: 20px;
+    }
+
+    .nft-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+
+    .nft-card .nft-name {
+        font-size: 9px;
+        padding: 4px;
+    }
+
+    .offers-tabs {
+        gap: 6px;
+    }
+
+    .tab-btn {
+        padding: 10px 12px;
+        font-size: 12px;
+    }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+    /* Remove hover effects that don't work well on touch */
+    .nft-card:hover {
+        transform: none;
+    }
+
+    .nft-card:active {
+        transform: scale(0.98);
+        opacity: 0.9;
+    }
+
+    .offer-card:hover {
+        transform: none;
+    }
+
+    .offer-card:active {
+        transform: scale(0.99);
+    }
+
+    /* Larger touch targets */
+    .nft-card {
+        min-height: 100px;
+    }
+
+    button, .nav-link, .view-offer-btn, .cancel-offer-btn {
+        min-height: 44px;
+    }
+}
+
+/* Action notices */
+.action-notice {
+    background: #2a4a6a;
+    color: #a8d4ff;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    text-align: center;
+    border-left: 4px solid #4a9eff;
+}
+
+.success-notice {
+    background: #1e5f3a;
+    color: #6bf6a0;
+    padding: 15px 20px;
+    border-radius: 8px;
+    text-align: center;
+    border-left: 4px solid #4aff7a;
+}
+
+/* Blockchain status indicator */
+.blockchain-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 15px;
+    background: #1a3a5a;
+    color: #64b5f6;
+    margin-top: 10px;
+}
+
+.blockchain-status.on-chain {
+    background: #1e5f3a;
+    color: #6bf6a0;
+}
+
+.blockchain-status::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+}
