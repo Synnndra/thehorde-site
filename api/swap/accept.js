@@ -182,10 +182,13 @@ async function releaseEscrowToReceiver(offer, escrowPrivateKeyBase58, heliusApiK
         if (assetInfo?.interface === 'MplCoreAsset') {
             // Metaplex Core Asset - use MPL Core transfer
             console.log('NFT is MPL Core Asset, building Core transfer');
+            const collection = assetInfo.grouping?.find(g => g.group_key === 'collection')?.group_value;
+            console.log('Collection:', collection);
             const ix = createMplCoreTransferInstruction(
                 nft.id,
                 escrowKeypair.publicKey,
-                receiverPubkey
+                receiverPubkey,
+                collection
             );
             transaction.add(ix);
         } else if (assetInfo?.compression?.compressed) {
@@ -338,22 +341,29 @@ function createBubblegumTransferInstruction(fromPubkey, toPubkey, compression, p
 }
 
 // Create MPL Core transfer instruction
-function createMplCoreTransferInstruction(assetId, fromPubkey, toPubkey) {
+function createMplCoreTransferInstruction(assetId, fromPubkey, toPubkey, collectionAddress = null) {
     const asset = new PublicKey(assetId);
 
-    // MPL Core TransferV1 instruction - discriminator is 14
-    const discriminator = Buffer.from([14]);
+    // MPL Core TransferV1 - Anchor discriminator
+    const discriminator = Buffer.from([163, 52, 200, 231, 140, 3, 69, 186]);
 
     const keys = [
         { pubkey: asset, isSigner: false, isWritable: true },              // asset
-        { pubkey: MPL_CORE_PROGRAM_ID, isSigner: false, isWritable: false }, // collection (optional placeholder)
-        { pubkey: fromPubkey, isSigner: true, isWritable: true },           // payer
-        { pubkey: fromPubkey, isSigner: true, isWritable: false },          // authority
-        { pubkey: toPubkey, isSigner: false, isWritable: false },           // new_owner
     ];
+
+    // Collection is optional
+    if (collectionAddress) {
+        keys.push({ pubkey: new PublicKey(collectionAddress), isSigner: false, isWritable: false });
+    }
+
+    keys.push(
+        { pubkey: fromPubkey, isSigner: true, isWritable: true },           // payer
+        { pubkey: toPubkey, isSigner: false, isWritable: false },           // newOwner
+    );
 
     console.log('Creating MPL Core transfer instruction:');
     console.log('  Asset:', asset.toBase58());
+    console.log('  Collection:', collectionAddress || 'none');
     console.log('  From:', fromPubkey.toBase58());
     console.log('  To:', toPubkey.toBase58());
 
