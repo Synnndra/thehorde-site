@@ -1889,13 +1889,28 @@ function createTokenTransferInstruction(source, destination, owner, amount) {
     });
 }
 
-// Check if ATA exists
+// Check if ATA exists and has tokens
 async function ataExists(ata) {
     try {
         const account = await getAccountInfo(ata);
         return account !== null;
     } catch {
         return false;
+    }
+}
+
+// Get token accounts for a mint owned by a wallet
+async function getTokenAccountsForMint(owner, mint) {
+    try {
+        const result = await rpcCall('getTokenAccountsByOwner', [
+            owner.toBase58(),
+            { mint: mint.toBase58() },
+            { encoding: 'jsonParsed' }
+        ]);
+        return result.value || [];
+    } catch (err) {
+        console.error('Error getting token accounts:', err);
+        return [];
     }
 }
 
@@ -2074,18 +2089,35 @@ async function executeAtomicSwap(offer) {
         for (const nft of receiverNfts) {
             console.log('Processing NFT:', nft.id, nft.name);
             const mint = new solanaWeb3.PublicKey(nft.id);
-            const sourceAta = await getATA(mint, receiverPubkey);
-            const destAta = await getATA(mint, initiatorPubkey);
 
-            console.log('Source ATA (receiver):', sourceAta.toBase58());
-            console.log('Dest ATA (initiator):', destAta.toBase58());
+            // Find the actual token account holding this NFT
+            const tokenAccounts = await getTokenAccountsForMint(receiverPubkey, mint);
+            console.log('Token accounts found:', tokenAccounts.length);
 
-            // Check if source ATA exists (receiver should have the NFT)
-            const sourceExists = await ataExists(sourceAta);
-            console.log('Source ATA exists:', sourceExists);
-            if (!sourceExists) {
-                throw new Error(`You don't have an ATA for this NFT. The NFT might be in a different account.`);
+            if (tokenAccounts.length === 0) {
+                throw new Error(`You don't own this NFT (${nft.name})`);
             }
+
+            // Use the first account that has balance
+            let sourceAta = null;
+            for (const ta of tokenAccounts) {
+                const balance = ta.account?.data?.parsed?.info?.tokenAmount?.uiAmount || 0;
+                console.log('Token account:', ta.pubkey, 'balance:', balance);
+                if (balance > 0) {
+                    sourceAta = new solanaWeb3.PublicKey(ta.pubkey);
+                    break;
+                }
+            }
+
+            if (!sourceAta) {
+                throw new Error(`No token account with balance found for ${nft.name}`);
+            }
+
+            console.log('Using source account:', sourceAta.toBase58());
+
+            // Destination is the standard ATA for the initiator
+            const destAta = await getATA(mint, initiatorPubkey);
+            console.log('Dest ATA (initiator):', destAta.toBase58());
 
             // Create destination ATA if needed
             const destExists = await ataExists(destAta);
