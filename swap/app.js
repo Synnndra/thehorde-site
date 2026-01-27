@@ -10,6 +10,7 @@ const OFFER_EXPIRY_HOURS = 24;
 // Solana Program Constants
 const PROGRAM_ID = '5DM6men8RMszhKYD245ejzip49nhqu8nd4F2UJhtovkY';
 const FEE_WALLET = '6zLek4SZSKNhvzDZP4AZWyUYYLzEYCYBaYeqvdZgXpZq'; // Fee collection wallet
+const ESCROW_WALLET = '6zLek4SZSKNhvzDZP4AZWyUYYLzEYCYBaYeqvdZgXpZq'; // Escrow wallet (same as fee for now, change later)
 const SOLANA_RPC = '/api/rpc'; // Use our proxy
 const TOKEN_PROGRAM_ID = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 const ASSOCIATED_TOKEN_PROGRAM_ID = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
@@ -462,7 +463,7 @@ function updateFeeNotice() {
         } else {
             notice.innerHTML = `
                 <span class="fee-icon">&#9432;</span>
-                <span>Platform fee: <strong>0.01 SOL</strong> (paid when offer is accepted) - <em>Free for Orc holders!</em></span>
+                <span>Platform fee: <strong>0.01 SOL</strong> (paid when creating offer) - <em>Free for Orc holders!</em></span>
             `;
             notice.style.background = '#1e3a5f';
             notice.style.color = '#64b5f6';
@@ -810,6 +811,17 @@ async function createOffer() {
     elements.createOfferBtn.disabled = true;
 
     try {
+        // Step 1: Build and sign escrow transaction (NFTs + fee to escrow wallet)
+        showLoading('Building escrow transaction...');
+        const escrowResult = await escrowInitiatorAssets(selectedYourNFTs, yourSol);
+
+        if (!escrowResult.success) {
+            throw new Error(escrowResult.error || 'Failed to escrow assets');
+        }
+
+        showLoading('Saving offer to database...');
+
+        // Step 2: Create database record with escrow tx signature
         const response = await fetch('/api/swap/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -820,9 +832,10 @@ async function createOffer() {
                 receiverNfts: selectedTheirNFTs.map(n => n.id),
                 initiatorSol: yourSol,
                 receiverSol: theirSol,
-                // Include NFT metadata for display purposes
                 initiatorNftDetails: selectedYourNFTs,
-                receiverNftDetails: selectedTheirNFTs
+                receiverNftDetails: selectedTheirNFTs,
+                escrowTxSignature: escrowResult.signature,
+                isOrcHolder: isOrcHolder
             })
         });
 
@@ -843,6 +856,98 @@ async function createOffer() {
         console.error('Error creating offer:', err);
         showError('Failed to create offer: ' + err.message);
         elements.createOfferBtn.disabled = false;
+    }
+}
+
+// Escrow initiator's NFTs and SOL to escrow wallet
+async function escrowInitiatorAssets(nfts, solAmount) {
+    const provider = getPhantomProvider();
+    const signer = provider.publicKey;
+    const escrowPubkey = new solanaWeb3.PublicKey(ESCROW_WALLET);
+    const feePubkey = new solanaWeb3.PublicKey(FEE_WALLET);
+
+    console.log('=== ESCROW INITIATOR ASSETS ===');
+    console.log('NFTs to escrow:', nfts.length);
+    console.log('SOL to escrow:', solAmount);
+    console.log('Signer:', signer.toBase58());
+    console.log('Escrow wallet:', escrowPubkey.toBase58());
+
+    try {
+        const transaction = new solanaWeb3.Transaction();
+
+        // 1. Pay platform fee (if not Orc holder)
+        if (!isOrcHolder) {
+            const feeLamports = Math.floor(PLATFORM_FEE * solanaWeb3.LAMPORTS_PER_SOL);
+            console.log('Adding fee payment:', PLATFORM_FEE, 'SOL');
+            transaction.add(
+                solanaWeb3.SystemProgram.transfer({
+                    fromPubkey: signer,
+                    toPubkey: feePubkey,
+                    lamports: feeLamports,
+                })
+            );
+        }
+
+        // 2. Transfer SOL to escrow (if offering SOL)
+        if (solAmount > 0) {
+            const lamports = Math.floor(solAmount * solanaWeb3.LAMPORTS_PER_SOL);
+            console.log('Adding SOL escrow:', solAmount, 'SOL');
+            transaction.add(
+                solanaWeb3.SystemProgram.transfer({
+                    fromPubkey: signer,
+                    toPubkey: escrowPubkey,
+                    lamports: lamports,
+                })
+            );
+        }
+
+        // 3. Transfer NFTs to escrow
+        for (const nft of nfts) {
+            console.log('Processing NFT for escrow:', nft.id, nft.name);
+
+            // Check if compressed NFT
+            const asset = await getAssetWithProof(nft.id);
+            console.log('Asset compression:', asset?.compression);
+
+            if (asset?.compression?.compressed || asset?.compression) {
+                // Compressed NFT - use Bubblegum transfer to escrow
+                console.log('NFT is compressed, using Bubblegum transfer to escrow');
+                await transferCompressedNFT(nft.id, signer, escrowPubkey, transaction);
+            } else {
+                // Standard SPL token transfer to escrow
+                console.log('NFT is standard SPL token');
+                const mint = new solanaWeb3.PublicKey(nft.id);
+                const sourceAta = await getATA(mint, signer);
+                const destAta = await getATA(mint, escrowPubkey);
+
+                // Create escrow ATA if needed
+                if (!(await ataExists(destAta))) {
+                    transaction.add(createATAInstruction(mint, escrowPubkey, signer));
+                }
+
+                transaction.add(createTokenTransferInstruction(sourceAta, destAta, signer, 1));
+            }
+        }
+
+        if (transaction.instructions.length === 0) {
+            console.log('No instructions - nothing to escrow');
+            return { success: true, signature: null };
+        }
+
+        // Get blockhash and sign
+        const { blockhash } = await getLatestBlockhash();
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer = signer;
+
+        console.log('Total instructions:', transaction.instructions.length);
+        showLoading('Please approve the escrow transaction in Phantom...');
+
+        const result = await signAndSubmitTransaction(transaction);
+        return result;
+
+    } catch (err) {
+        console.error('Escrow failed:', err);
+        return { success: false, error: err.message };
     }
 }
 
@@ -1270,7 +1375,7 @@ function displayOfferDetails() {
         } else {
             feeNotice.innerHTML = `
                 <span class="fee-icon">&#9432;</span>
-                <span>Platform fee: <strong>${currentOffer.fee} SOL</strong> (deducted on accept)</span>
+                <span>Platform fee: <strong>${currentOffer.fee} SOL</strong> (paid by initiator at creation)</span>
             `;
         }
     }
@@ -1315,23 +1420,12 @@ function displayOfferActions() {
 
     // Show different UI based on status
     if (currentOffer.status === 'accepted') {
-        const isInitiator = connectedWallet === currentOffer.initiator.wallet;
-
-        // Check if initiator needs to complete their transfer
-        if (isInitiator && !currentOffer.initiatorTransferComplete) {
-            const completeBtn = document.createElement('button');
-            completeBtn.className = 'accept-btn';
-            completeBtn.textContent = 'Complete Transfer (Send Your NFTs)';
-            completeBtn.addEventListener('click', () => completeInitiatorTransfer());
-
-            const notice = document.createElement('p');
-            notice.className = 'action-notice';
-            notice.textContent = 'The receiver has sent their NFTs. Now send yours to complete the swap.';
-
-            elements.offerActions.appendChild(notice);
-            elements.offerActions.appendChild(completeBtn);
+        if (currentOffer.initiatorTransferComplete) {
+            elements.offerActions.innerHTML = '<p class="success-notice">Trade completed successfully! Assets have been exchanged.</p>';
+        } else if (currentOffer.escrowReleaseError) {
+            elements.offerActions.innerHTML = `<p class="error-notice">Escrow release pending. Error: ${currentOffer.escrowReleaseError}</p>`;
         } else {
-            elements.offerActions.innerHTML = '<p class="success-notice">Trade completed successfully!</p>';
+            elements.offerActions.innerHTML = '<p class="success-notice">Trade accepted! Escrowed assets are being released...</p>';
         }
         return;
     }
