@@ -1,65 +1,25 @@
 // Vercel Serverless Function - Accept Swap Offer with Escrow Release
-import { Connection, Keypair, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import bs58 from 'bs58';
-import nacl from 'tweetnacl';
-
-// Rate limiting
-const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW = 60000; // 1 minute
-const RATE_LIMIT_MAX = 10; // Max 10 requests per minute per IP
-
-function isRateLimited(ip) {
-    const now = Date.now();
-    const record = rateLimitMap.get(ip);
-
-    if (!record || now - record.timestamp > RATE_LIMIT_WINDOW) {
-        rateLimitMap.set(ip, { timestamp: now, count: 1 });
-        return false;
-    }
-
-    if (record.count >= RATE_LIMIT_MAX) {
-        return true;
-    }
-
-    record.count++;
-    return false;
-}
-
-function validateSolanaAddress(address) {
-    if (!address || typeof address !== 'string') return false;
-    if (address.length < 32 || address.length > 44) return false;
-    return /^[1-9A-HJ-NP-Za-km-z]+$/.test(address);
-}
-
-// Verify a signed message
-function verifySignature(message, signature, publicKey) {
-    try {
-        const messageBytes = new TextEncoder().encode(message);
-        const signatureBytes = bs58.decode(signature);
-        const publicKeyBytes = bs58.decode(publicKey);
-        return nacl.sign.detached.verify(messageBytes, signatureBytes, publicKeyBytes);
-    } catch (err) {
-        console.error('Signature verification error:', err);
-        return false;
-    }
-}
-
-// Bubblegum program constants
-const BUBBLEGUM_PROGRAM_ID = new PublicKey('BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY');
-const SPL_NOOP_PROGRAM_ID = new PublicKey('noopb9bkMVfRPU8AsbpTUg8AQkHtKwMYZiFUjNRtMmV');
-const SPL_ACCOUNT_COMPRESSION_PROGRAM_ID = new PublicKey('cmtDvXumGCrqC1Age74AVPhSRVXJMd8PJS91L8KbNCK');
-
-// MPL Core program
-const MPL_CORE_PROGRAM_ID = new PublicKey('CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d');
+import {
+    isRateLimited,
+    getClientIp,
+    validateSolanaAddress,
+    verifySignature,
+    validateTimestamp,
+    kvGet,
+    kvSet,
+    acquireLock,
+    releaseLock,
+    verifyTransactionConfirmed,
+    releaseEscrowToReceiver
+} from './utils.js';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Rate limiting
-    const clientIp = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
-    if (isRateLimited(clientIp)) {
+    const clientIp = getClientIp(req);
+    if (isRateLimited(clientIp, 'accept', 10)) {
         return res.status(429).json({ error: 'Too many requests. Try again later.' });
     }
 
@@ -69,143 +29,93 @@ export default async function handler(req, res) {
     const ESCROW_PRIVATE_KEY = process.env.ESCROW_PRIVATE_KEY;
 
     if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
-        return res.status(500).json({ error: 'KV not configured' });
+        return res.status(500).json({ error: 'Server configuration error' });
     }
+
+    let lockKey = null;
 
     try {
         const { offerId, wallet, txSignature, signature, message } = req.body;
 
+        // Validate inputs
         if (!offerId || typeof offerId !== 'string') {
             return res.status(400).json({ error: 'Invalid offer ID' });
         }
-
         if (!validateSolanaAddress(wallet)) {
             return res.status(400).json({ error: 'Invalid wallet address' });
         }
-
-        // Verify wallet ownership via signed message
         if (!signature || !message) {
             return res.status(400).json({ error: 'Signature required to verify wallet ownership' });
         }
-
-        // Message should contain the offer ID to prevent replay attacks
         if (!message.includes(offerId)) {
             return res.status(400).json({ error: 'Invalid message format' });
         }
 
-        // Validate timestamp to prevent replay attacks (message format: "Midswap accept offer {id} at {timestamp}")
-        const timestampMatch = message.match(/at (\d+)$/);
-        if (!timestampMatch) {
-            return res.status(400).json({ error: 'Invalid message format - missing timestamp' });
-        }
-        const messageTimestamp = parseInt(timestampMatch[1], 10);
-        const now = Date.now();
-        const MAX_MESSAGE_AGE = 5 * 60 * 1000; // 5 minutes
-        if (now - messageTimestamp > MAX_MESSAGE_AGE) {
-            return res.status(400).json({ error: 'Message expired - please try again' });
-        }
-        if (messageTimestamp > now + 60000) { // Allow 1 minute clock drift
-            return res.status(400).json({ error: 'Invalid message timestamp' });
+        // Validate timestamp
+        const timestampResult = validateTimestamp(message);
+        if (!timestampResult.valid) {
+            return res.status(400).json({ error: timestampResult.error });
         }
 
+        // Verify signature
         if (!verifySignature(message, signature, wallet)) {
             return res.status(403).json({ error: 'Invalid signature - wallet ownership not verified' });
         }
 
-        // Acquire lock to prevent race conditions
-        const lockKey = `lock:offer:${offerId}`;
-        const lockRes = await fetch(`${KV_REST_API_URL}/setnx/${lockKey}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ locked: true, at: now })
-        });
-        const lockData = await lockRes.json();
-
-        // setnx returns 1 if key was set (lock acquired), 0 if key already exists (locked by another request)
-        if (lockData.result === 0) {
-            return res.status(409).json({ error: 'Offer is being processed by another request. Please try again.' });
+        // Acquire lock
+        const lock = await acquireLock(offerId, KV_REST_API_URL, KV_REST_API_TOKEN);
+        if (!lock.acquired) {
+            return res.status(409).json({ error: 'Offer is being processed. Please try again.' });
         }
+        lockKey = lock.lockKey;
 
-        // Set lock expiry (30 seconds) to prevent deadlocks
-        await fetch(`${KV_REST_API_URL}/expire/${lockKey}/30`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-        });
-
-        try {
-        // Fetch the offer
-        const offerRes = await fetch(`${KV_REST_API_URL}/get/offer:${offerId}`, {
-            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-        });
-        const offerData = await offerRes.json();
-
-        if (!offerData.result) {
+        // Fetch offer
+        const offer = await kvGet(`offer:${offerId}`, KV_REST_API_URL, KV_REST_API_TOKEN);
+        if (!offer) {
+            await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
             return res.status(404).json({ error: 'Offer not found' });
         }
 
-        const offer = typeof offerData.result === 'string' ?
-            JSON.parse(offerData.result) : offerData.result;
-
-        // Check if offer is still pending
+        // Validate offer state
         if (offer.status !== 'pending') {
+            await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
             return res.status(400).json({ error: 'Offer is no longer pending' });
         }
 
-        // Check if offer has expired
+        // Check expiry
         const now = Date.now();
         if (offer.expiresAt && offer.expiresAt < now) {
             offer.status = 'expired';
-            await fetch(`${KV_REST_API_URL}/set/offer:${offerId}`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(offer)
-            });
+            await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
+            await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
             return res.status(400).json({ error: 'Offer has expired' });
         }
 
         // Only receiver can accept
         if (wallet !== offer.receiver.wallet) {
+            await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
             return res.status(403).json({ error: 'Only the receiver can accept this offer' });
         }
 
-        // Verify receiver's transaction on-chain before releasing escrow
+        // Verify receiver's transaction if they have assets to send
         if (txSignature && HELIUS_API_KEY) {
             const txVerified = await verifyTransactionConfirmed(txSignature, HELIUS_API_KEY);
             if (!txVerified) {
-                // Release lock before returning error
-                await fetch(`${KV_REST_API_URL}/del/${lockKey}`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-                });
-                return res.status(400).json({ error: 'Receiver transaction not confirmed on-chain. Please wait and try again.' });
+                await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
+                return res.status(400).json({ error: 'Transaction not confirmed. Please wait and try again.' });
             }
             offer.receiverTxSignature = txSignature;
             offer.receiverTransferComplete = true;
         } else if (!txSignature && (offer.receiver.nfts?.length > 0 || offer.receiver.sol > 0)) {
-            // Receiver has assets to send but didn't provide tx signature
-            // Release lock before returning error
-            await fetch(`${KV_REST_API_URL}/del/${lockKey}`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-            });
-            return res.status(400).json({ error: 'Transaction signature required - you must transfer your assets first' });
+            await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
+            return res.status(400).json({ error: 'Transaction signature required' });
         }
 
-        // Release escrowed assets to receiver
+        // Release escrow to receiver
         let escrowReleaseTx = null;
         if (ESCROW_PRIVATE_KEY && HELIUS_API_KEY) {
             try {
-                escrowReleaseTx = await releaseEscrowToReceiver(
-                    offer,
-                    ESCROW_PRIVATE_KEY,
-                    HELIUS_API_KEY
-                );
+                escrowReleaseTx = await releaseEscrowToReceiver(offer, ESCROW_PRIVATE_KEY, HELIUS_API_KEY);
                 if (escrowReleaseTx) {
                     offer.escrowReleaseTxSignature = escrowReleaseTx;
                     offer.initiatorTransferComplete = true;
@@ -215,312 +125,28 @@ export default async function handler(req, res) {
                 offer.escrowReleaseError = escrowErr.message;
                 offer.initiatorTransferComplete = false;
             }
-        } else {
-            console.log('Escrow key not configured');
-            offer.initiatorTransferComplete = false;
         }
 
-        // Update offer status
+        // Update offer
         offer.status = 'accepted';
         offer.acceptedAt = now;
+        await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
 
-        // Save updated offer
-        await fetch(`${KV_REST_API_URL}/set/offer:${offerId}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(offer)
-        });
-
-        // Release lock after successful completion
-        await fetch(`${KV_REST_API_URL}/del/${lockKey}`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-        });
+        // Release lock
+        await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         return res.status(200).json({
             success: true,
-            message: escrowReleaseTx
-                ? 'Swap completed! Assets have been exchanged.'
-                : 'Offer accepted. Initiator assets will be released shortly.',
+            message: escrowReleaseTx ? 'Swap completed!' : 'Offer accepted.',
             offer,
             escrowReleaseTx
         });
 
-        } catch (lockError) {
-            // Release lock on any error within the locked section
-            await fetch(`${KV_REST_API_URL}/del/${lockKey}`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-            });
-            throw lockError;
-        }
-
     } catch (error) {
         console.error('Accept offer error:', error);
+        if (lockKey) {
+            await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN).catch(() => {});
+        }
         return res.status(500).json({ error: 'Failed to accept offer: ' + error.message });
     }
-}
-
-// Verify a transaction is confirmed on-chain
-async function verifyTransactionConfirmed(signature, heliusApiKey) {
-    try {
-        const RPC_URL = `https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`;
-        const response = await fetch(RPC_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                jsonrpc: '2.0',
-                id: 1,
-                method: 'getTransaction',
-                params: [signature, { encoding: 'json', commitment: 'confirmed' }]
-            })
-        });
-        const data = await response.json();
-
-        // Transaction exists and was successful (no error)
-        if (data.result && data.result.meta && data.result.meta.err === null) {
-            return true;
-        }
-        return false;
-    } catch (err) {
-        console.error('Transaction verification error:', err);
-        return false;
-    }
-}
-
-// Release escrowed NFTs and SOL to the receiver
-async function releaseEscrowToReceiver(offer, escrowPrivateKeyBase58, heliusApiKey) {
-    const RPC_URL = `https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`;
-    const connection = new Connection(RPC_URL, 'confirmed');
-
-    // Decode escrow keypair
-    const escrowKeypair = Keypair.fromSecretKey(bs58.decode(escrowPrivateKeyBase58));
-    console.log('Escrow wallet:', escrowKeypair.publicKey.toBase58());
-
-    const receiverPubkey = new PublicKey(offer.receiver.wallet);
-    const initiatorNfts = offer.initiator.nftDetails || [];
-    const initiatorSol = offer.initiator.sol || 0;
-
-    // If nothing to release, return early
-    if (initiatorNfts.length === 0 && initiatorSol === 0) {
-        console.log('Nothing to release from escrow');
-        return null;
-    }
-
-    const transaction = new Transaction();
-
-    // 1. Transfer escrowed SOL to receiver
-    if (initiatorSol > 0) {
-        const lamports = Math.floor(initiatorSol * LAMPORTS_PER_SOL);
-        console.log('Releasing SOL:', initiatorSol, '=', lamports, 'lamports');
-        transaction.add(
-            SystemProgram.transfer({
-                fromPubkey: escrowKeypair.publicKey,
-                toPubkey: receiverPubkey,
-                lamports: lamports,
-            })
-        );
-    }
-
-    // 2. Transfer escrowed NFTs to receiver
-    for (const nft of initiatorNfts) {
-        console.log('Processing escrowed NFT:', nft.id, nft.name);
-
-        // Get asset info to check type
-        const assetInfo = await getAsset(nft.id, heliusApiKey);
-        console.log('Asset interface:', assetInfo?.interface);
-
-        if (assetInfo?.interface === 'MplCoreAsset') {
-            // Metaplex Core Asset - use MPL Core transfer
-            console.log('NFT is MPL Core Asset, building Core transfer');
-            const collection = assetInfo.grouping?.find(g => g.group_key === 'collection')?.group_value;
-            console.log('Collection:', collection);
-            const ix = createMplCoreTransferInstruction(
-                nft.id,
-                escrowKeypair.publicKey,
-                receiverPubkey,
-                collection
-            );
-            transaction.add(ix);
-        } else if (assetInfo?.compression?.compressed) {
-            // Compressed NFT - use Bubblegum transfer
-            console.log('NFT is compressed, building Bubblegum transfer');
-            const proof = await getAssetProof(nft.id, heliusApiKey);
-
-            if (!proof) {
-                console.error('Failed to get proof for', nft.id);
-                continue;
-            }
-
-            const ix = createBubblegumTransferInstruction(
-                escrowKeypair.publicKey,
-                receiverPubkey,
-                assetInfo.compression,
-                proof
-            );
-            transaction.add(ix);
-        } else {
-            // Standard SPL token - would need token transfer logic
-            console.log('Standard SPL token transfer not yet implemented for escrow release');
-        }
-    }
-
-    if (transaction.instructions.length === 0) {
-        console.log('No instructions to execute');
-        return null;
-    }
-
-    // Get recent blockhash
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
-    transaction.recentBlockhash = blockhash;
-    transaction.feePayer = escrowKeypair.publicKey;
-
-    // Sign with escrow keypair
-    transaction.sign(escrowKeypair);
-
-    // Send transaction
-    const signature = await connection.sendRawTransaction(transaction.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed'
-    });
-
-    console.log('Escrow release transaction sent:', signature);
-
-    // Wait for confirmation
-    await connection.confirmTransaction({
-        signature,
-        blockhash,
-        lastValidBlockHeight
-    }, 'confirmed');
-
-    console.log('Escrow release confirmed:', signature);
-    return signature;
-}
-
-// Helius API helpers
-async function getAsset(assetId, apiKey) {
-    const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'getAsset',
-            params: { id: assetId }
-        })
-    });
-    const data = await response.json();
-    return data.result;
-}
-
-async function getAssetProof(assetId, apiKey) {
-    const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'getAssetProof',
-            params: { id: assetId }
-        })
-    });
-    const data = await response.json();
-    return data.result;
-}
-
-// Create Bubblegum transfer instruction
-function createBubblegumTransferInstruction(fromPubkey, toPubkey, compression, proof) {
-    const merkleTree = new PublicKey(compression.tree);
-
-    // Get tree authority PDA
-    const [treeAuthority] = PublicKey.findProgramAddressSync(
-        [merkleTree.toBytes()],
-        BUBBLEGUM_PROGRAM_ID
-    );
-
-    const keys = [
-        { pubkey: treeAuthority, isSigner: false, isWritable: false },
-        { pubkey: fromPubkey, isSigner: true, isWritable: false },
-        { pubkey: fromPubkey, isSigner: false, isWritable: false }, // delegate (same as owner)
-        { pubkey: toPubkey, isSigner: false, isWritable: false },
-        { pubkey: merkleTree, isSigner: false, isWritable: true },
-        { pubkey: SPL_NOOP_PROGRAM_ID, isSigner: false, isWritable: false },
-        { pubkey: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID, isSigner: false, isWritable: false },
-        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-    ];
-
-    // Add proof nodes
-    for (const proofNode of proof.proof) {
-        keys.push({ pubkey: new PublicKey(proofNode), isSigner: false, isWritable: false });
-    }
-
-    // Build instruction data
-    // Discriminator: [163, 52, 200, 231, 140, 3, 69, 186]
-    const discriminator = Buffer.from([163, 52, 200, 231, 140, 3, 69, 186]);
-
-    // root (32 bytes)
-    const rootBytes = Buffer.from(proof.root.replace('0x', ''), 'hex');
-
-    // dataHash (32 bytes)
-    const dataHashBytes = Buffer.from(compression.data_hash.replace('0x', ''), 'hex');
-
-    // creatorHash (32 bytes)
-    const creatorHashBytes = Buffer.from(compression.creator_hash.replace('0x', ''), 'hex');
-
-    // nonce (u64, 8 bytes, little-endian)
-    const nonceBuffer = Buffer.alloc(8);
-    nonceBuffer.writeBigUInt64LE(BigInt(compression.leaf_id), 0);
-
-    // index (u32, 4 bytes, little-endian)
-    const indexBuffer = Buffer.alloc(4);
-    indexBuffer.writeUInt32LE(compression.leaf_id, 0);
-
-    const data = Buffer.concat([
-        discriminator,
-        rootBytes,
-        dataHashBytes,
-        creatorHashBytes,
-        nonceBuffer,
-        indexBuffer
-    ]);
-
-    return {
-        keys,
-        programId: BUBBLEGUM_PROGRAM_ID,
-        data
-    };
-}
-
-// Create MPL Core transfer instruction
-function createMplCoreTransferInstruction(assetId, fromPubkey, toPubkey, collectionAddress = null) {
-    const asset = new PublicKey(assetId);
-
-    // MPL Core TransferV1 uses discriminator 14, followed by Option<CompressionProof> = None (0)
-    const data = Buffer.from([14, 0]);
-
-    // All accounts in order per MPL Core TransferV1
-    const keys = [
-        { pubkey: asset, isSigner: false, isWritable: true },                                    // 0: asset
-        { pubkey: collectionAddress ? new PublicKey(collectionAddress) : MPL_CORE_PROGRAM_ID, isSigner: false, isWritable: false }, // 1: collection
-        { pubkey: fromPubkey, isSigner: true, isWritable: true },                                // 2: payer
-        { pubkey: fromPubkey, isSigner: true, isWritable: false },                               // 3: authority
-        { pubkey: toPubkey, isSigner: false, isWritable: false },                                // 4: newOwner
-        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },                 // 5: systemProgram
-        { pubkey: SPL_NOOP_PROGRAM_ID, isSigner: false, isWritable: false },                     // 6: logWrapper
-    ];
-
-    console.log('Creating MPL Core transfer instruction:');
-    console.log('  Asset:', asset.toBase58());
-    console.log('  Collection:', collectionAddress || 'none');
-    console.log('  From:', fromPubkey.toBase58());
-    console.log('  To:', toPubkey.toBase58());
-
-    return {
-        keys,
-        programId: MPL_CORE_PROGRAM_ID,
-        data
-    };
 }

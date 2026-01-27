@@ -1,160 +1,60 @@
 // Vercel Serverless Function - Create Swap Offer
 import { randomBytes } from 'crypto';
-import bs58 from 'bs58';
-import nacl from 'tweetnacl';
-
-// Rate limiting
-const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW = 60000; // 1 minute
-const RATE_LIMIT_MAX = 10; // Max 10 offer creations per minute per IP
-
-// Valid MidEvils collections
-const ALLOWED_COLLECTIONS = [
-    'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW',  // MidEvils
-    'DpYLtgV5XcWPt3TM9FhXEh8uNg6QFYrj3zCGZxpcA3vF'  // Graveyard
-];
-
-// Constraints
-const MAX_NFTS_PER_SIDE = 5;
-const OFFER_EXPIRY_HOURS = 24;
-const PLATFORM_FEE = 0.01; // SOL - only for non-holders
-const HOLDER_FEE = 0; // Free for MidEvils holders
-
-function isRateLimited(ip) {
-    const now = Date.now();
-    const record = rateLimitMap.get(ip);
-
-    if (!record || now - record.timestamp > RATE_LIMIT_WINDOW) {
-        rateLimitMap.set(ip, { timestamp: now, count: 1 });
-        return false;
-    }
-
-    if (record.count >= RATE_LIMIT_MAX) {
-        return true;
-    }
-
-    record.count++;
-    return false;
-}
+import {
+    isRateLimited,
+    getClientIp,
+    validateSolanaAddress,
+    verifySignature,
+    validateTimestamp,
+    kvGet,
+    kvSet,
+    getAsset,
+    verifyTransactionConfirmed,
+    ALLOWED_COLLECTIONS,
+    MAX_NFTS_PER_SIDE,
+    OFFER_EXPIRY_HOURS,
+    PLATFORM_FEE,
+    HOLDER_FEE
+} from './utils.js';
 
 // Generate cryptographically secure offer ID
 function generateOfferId() {
-    const bytes = randomBytes(16);
-    const hex = bytes.toString('hex');
-    return `offer_${hex}`;
-}
-
-function validateSolanaAddress(address) {
-    // Basic validation: 32-44 characters, base58 characters only
-    if (!address || typeof address !== 'string') return false;
-    if (address.length < 32 || address.length > 44) return false;
-    return /^[1-9A-HJ-NP-Za-km-z]+$/.test(address);
-}
-
-// Verify a signed message
-function verifySignature(message, signature, publicKey) {
-    try {
-        const messageBytes = new TextEncoder().encode(message);
-        const signatureBytes = bs58.decode(signature);
-        const publicKeyBytes = bs58.decode(publicKey);
-        return nacl.sign.detached.verify(messageBytes, signatureBytes, publicKeyBytes);
-    } catch (err) {
-        console.error('Signature verification error:', err);
-        return false;
-    }
-}
-
-// Verify NFTs belong to allowed collections
-async function verifyNftCollections(nftIds, heliusApiKey) {
-    if (!nftIds || nftIds.length === 0) return { valid: true, invalidNfts: [] };
-
-    const invalidNfts = [];
-
-    for (const nftId of nftIds) {
-        try {
-            const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    jsonrpc: '2.0',
-                    id: 1,
-                    method: 'getAsset',
-                    params: { id: nftId }
-                })
-            });
-            const data = await response.json();
-            const asset = data.result;
-
-            if (!asset) {
-                invalidNfts.push({ id: nftId, reason: 'NFT not found' });
-                continue;
-            }
-
-            // Check collection
-            const grouping = asset.grouping || [];
-            const collections = grouping
-                .filter(g => g.group_key === 'collection')
-                .map(g => g.group_value);
-
-            const isAllowedCollection = collections.some(c => ALLOWED_COLLECTIONS.includes(c));
-
-            if (!isAllowedCollection) {
-                invalidNfts.push({ id: nftId, reason: 'Not from allowed collection' });
-            }
-        } catch (err) {
-            console.error('Error verifying NFT:', nftId, err);
-            invalidNfts.push({ id: nftId, reason: 'Verification failed' });
-        }
-    }
-
-    return {
-        valid: invalidNfts.length === 0,
-        invalidNfts
-    };
+    return `offer_${randomBytes(16).toString('hex')}`;
 }
 
 // Check if wallet owns a MidEvils Orc
-async function ownsOrc(walletAddress) {
-    const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
-    if (!HELIUS_API_KEY) return false;
+async function ownsOrc(walletAddress, heliusApiKey) {
+    if (!heliusApiKey) return false;
 
     try {
-        const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`, {
+        const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 jsonrpc: '2.0',
                 id: 'orc-check',
                 method: 'getAssetsByOwner',
-                params: {
-                    ownerAddress: walletAddress,
-                    page: 1,
-                    limit: 1000
-                }
+                params: { ownerAddress: walletAddress, page: 1, limit: 1000 }
             })
         });
 
         const data = await response.json();
         const items = data.result?.items || [];
 
-        // Check if any NFT is a MidEvils Orc
         for (const item of items) {
-            const grouping = item.grouping || [];
-            const collections = grouping
+            const collections = (item.grouping || [])
                 .filter(g => g.group_key === 'collection')
                 .map(g => g.group_value);
 
-            const isMidEvil = collections.includes(MIDEVIL_COLLECTION);
-            const isGraveyard = collections.includes(GRAVEYARD_COLLECTION);
+            const isMidEvil = collections.includes(ALLOWED_COLLECTIONS[0]);
+            const isGraveyard = collections.includes(ALLOWED_COLLECTIONS[1]);
             const name = (item.content?.metadata?.name || '').toLowerCase();
             const isBurnt = item.burnt === true;
 
-            // Must be MidEvil, not Graveyard, not burnt, and have "orc" in name
             if (isMidEvil && !isGraveyard && !isBurnt && name.includes('orc')) {
                 return true;
             }
         }
-
         return false;
     } catch (err) {
         console.error('Error checking Orc ownership:', err);
@@ -162,11 +62,38 @@ async function ownsOrc(walletAddress) {
     }
 }
 
-// Verify escrow transaction is confirmed on-chain
-async function verifyEscrowTransaction(signature, initiatorWallet, nfts, solAmount, heliusApiKey) {
+// Verify NFTs belong to allowed collections
+async function verifyNftCollections(nftIds, heliusApiKey) {
+    if (!nftIds?.length) return { valid: true, invalidNfts: [] };
+
+    const invalidNfts = [];
+    for (const nftId of nftIds) {
+        try {
+            const asset = await getAsset(nftId, heliusApiKey);
+            if (!asset) {
+                invalidNfts.push({ id: nftId, reason: 'NFT not found' });
+                continue;
+            }
+
+            const collections = (asset.grouping || [])
+                .filter(g => g.group_key === 'collection')
+                .map(g => g.group_value);
+
+            if (!collections.some(c => ALLOWED_COLLECTIONS.includes(c))) {
+                invalidNfts.push({ id: nftId, reason: 'Not from allowed collection' });
+            }
+        } catch (err) {
+            invalidNfts.push({ id: nftId, reason: 'Verification failed' });
+        }
+    }
+
+    return { valid: invalidNfts.length === 0, invalidNfts };
+}
+
+// Verify escrow transaction
+async function verifyEscrowTransaction(signature, initiatorWallet, heliusApiKey) {
     try {
-        const RPC_URL = `https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`;
-        const response = await fetch(RPC_URL, {
+        const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -178,30 +105,20 @@ async function verifyEscrowTransaction(signature, initiatorWallet, nfts, solAmou
         });
         const data = await response.json();
 
-        // Check transaction exists and was successful
-        if (!data.result || !data.result.meta || data.result.meta.err !== null) {
-            console.error('Escrow transaction failed or not found:', signature);
+        if (!data.result?.meta || data.result.meta.err !== null) {
             return false;
         }
 
-        // Verify the transaction was signed by the initiator
-        const accountKeys = data.result.transaction?.message?.accountKeys || [];
-        const staticAccountKeys = data.result.transaction?.message?.staticAccountKeys || [];
-        const allKeys = [...accountKeys, ...staticAccountKeys];
+        // Verify initiator signed the transaction
+        const allKeys = [
+            ...(data.result.transaction?.message?.accountKeys || []),
+            ...(data.result.transaction?.message?.staticAccountKeys || [])
+        ];
 
-        // Check if initiator wallet is in the signers (first accounts are signers)
-        const signerFound = allKeys.some((key, index) => {
+        return allKeys.some((key, i) => {
             const keyStr = typeof key === 'string' ? key : key.pubkey;
-            return keyStr === initiatorWallet && index < (data.result.transaction?.signatures?.length || 1);
+            return keyStr === initiatorWallet && i < (data.result.transaction?.signatures?.length || 1);
         });
-
-        if (!signerFound) {
-            console.error('Initiator wallet not found as signer in escrow transaction');
-            return false;
-        }
-
-        console.log('Escrow transaction verified:', signature);
-        return true;
     } catch (err) {
         console.error('Escrow verification error:', err);
         return false;
@@ -213,35 +130,27 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const KV_REST_API_URL = process.env.KV_REST_API_URL;
-    const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN;
-
-    if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
-        return res.status(500).json({ error: 'KV not configured' });
-    }
-
-    // Rate limiting
-    const clientIp = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
-    if (isRateLimited(clientIp)) {
+    const clientIp = getClientIp(req);
+    if (isRateLimited(clientIp, 'create', 10)) {
         return res.status(429).json({ error: 'Too many requests. Try again later.' });
     }
 
+    const KV_REST_API_URL = process.env.KV_REST_API_URL;
+    const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN;
     const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
+
+    if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
+        return res.status(500).json({ error: 'Server configuration error' });
+    }
 
     try {
         const {
-            initiatorWallet,
-            receiverWallet,
-            initiatorNfts,
-            receiverNfts,
-            initiatorSol,
-            receiverSol,
-            initiatorNftDetails,
-            receiverNftDetails,
+            initiatorWallet, receiverWallet,
+            initiatorNfts, receiverNfts,
+            initiatorSol, receiverSol,
+            initiatorNftDetails, receiverNftDetails,
             escrowTxSignature,
-            isOrcHolder: clientIsOrcHolder,
-            signature,
-            message
+            signature, message
         } = req.body;
 
         // Validate wallets
@@ -255,52 +164,35 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Cannot trade with yourself' });
         }
 
-        // Verify wallet ownership via signed message
+        // Verify signature
         if (!signature || !message) {
-            return res.status(400).json({ error: 'Signature required to verify wallet ownership' });
+            return res.status(400).json({ error: 'Signature required' });
         }
-
-        // Message should contain initiator and receiver wallets
         if (!message.includes(initiatorWallet) || !message.includes(receiverWallet)) {
             return res.status(400).json({ error: 'Invalid message format' });
         }
 
-        // Validate timestamp to prevent replay attacks
-        const timestampMatch = message.match(/at (\d+)$/);
-        if (!timestampMatch) {
-            return res.status(400).json({ error: 'Invalid message format - missing timestamp' });
-        }
-        const messageTimestamp = parseInt(timestampMatch[1], 10);
-        const now = Date.now();
-        const MAX_MESSAGE_AGE = 5 * 60 * 1000; // 5 minutes
-        if (now - messageTimestamp > MAX_MESSAGE_AGE) {
-            return res.status(400).json({ error: 'Message expired - please try again' });
-        }
-        if (messageTimestamp > now + 60000) {
-            return res.status(400).json({ error: 'Invalid message timestamp' });
+        const timestampResult = validateTimestamp(message);
+        if (!timestampResult.valid) {
+            return res.status(400).json({ error: timestampResult.error });
         }
 
         if (!verifySignature(message, signature, initiatorWallet)) {
-            return res.status(403).json({ error: 'Invalid signature - wallet ownership not verified' });
+            return res.status(403).json({ error: 'Invalid signature' });
         }
 
         // Validate NFT arrays
         const initNfts = Array.isArray(initiatorNfts) ? initiatorNfts : [];
         const recvNfts = Array.isArray(receiverNfts) ? receiverNfts : [];
 
-        if (initNfts.length > MAX_NFTS_PER_SIDE) {
-            return res.status(400).json({ error: `Maximum ${MAX_NFTS_PER_SIDE} NFTs per side` });
-        }
-        if (recvNfts.length > MAX_NFTS_PER_SIDE) {
+        if (initNfts.length > MAX_NFTS_PER_SIDE || recvNfts.length > MAX_NFTS_PER_SIDE) {
             return res.status(400).json({ error: `Maximum ${MAX_NFTS_PER_SIDE} NFTs per side` });
         }
 
-        // Verify all NFTs are from allowed collections
+        // Verify collections
         if (HELIUS_API_KEY && (initNfts.length > 0 || recvNfts.length > 0)) {
-            const allNfts = [...initNfts, ...recvNfts];
-            const collectionCheck = await verifyNftCollections(allNfts, HELIUS_API_KEY);
+            const collectionCheck = await verifyNftCollections([...initNfts, ...recvNfts], HELIUS_API_KEY);
             if (!collectionCheck.valid) {
-                const invalidIds = collectionCheck.invalidNfts.map(n => n.id).join(', ');
                 return res.status(400).json({
                     error: 'Some NFTs are not from allowed collections',
                     invalidNfts: collectionCheck.invalidNfts
@@ -312,41 +204,30 @@ export default async function handler(req, res) {
         const initSol = typeof initiatorSol === 'number' && initiatorSol >= 0 ? initiatorSol : 0;
         const recvSol = typeof receiverSol === 'number' && receiverSol >= 0 ? receiverSol : 0;
 
-        // Must have something on both sides
-        const hasInitiatorOffer = initNfts.length > 0 || initSol > 0;
-        const hasReceiverRequest = recvNfts.length > 0 || recvSol > 0;
-
-        if (!hasInitiatorOffer) {
+        if (initNfts.length === 0 && initSol === 0) {
             return res.status(400).json({ error: 'Must offer at least one NFT or SOL' });
         }
-        if (!hasReceiverRequest) {
+        if (recvNfts.length === 0 && recvSol === 0) {
             return res.status(400).json({ error: 'Must request at least one NFT or SOL' });
         }
 
-        // Check if initiator owns an Orc - free if they do
-        const isOrcHolder = await ownsOrc(initiatorWallet);
+        // Check Orc ownership for fee
+        const isOrcHolder = await ownsOrc(initiatorWallet, HELIUS_API_KEY);
         const fee = isOrcHolder ? HOLDER_FEE : PLATFORM_FEE;
 
-        // Verify escrow transaction if provided
+        // Verify escrow transaction
         if (escrowTxSignature && HELIUS_API_KEY) {
-            const txVerified = await verifyEscrowTransaction(
-                escrowTxSignature,
-                initiatorWallet,
-                initNfts,
-                initSol,
-                HELIUS_API_KEY
-            );
+            const txVerified = await verifyEscrowTransaction(escrowTxSignature, initiatorWallet, HELIUS_API_KEY);
             if (!txVerified) {
-                return res.status(400).json({ error: 'Escrow transaction not confirmed or invalid. Please wait for confirmation and try again.' });
+                return res.status(400).json({ error: 'Escrow transaction not confirmed' });
             }
         } else if (initNfts.length > 0 || initSol > 0) {
-            // If initiator is offering NFTs or SOL, escrow tx is required
             if (!escrowTxSignature) {
                 return res.status(400).json({ error: 'Escrow transaction signature required' });
             }
         }
 
-        // Create offer object
+        // Create offer
         const now = Date.now();
         const offerId = generateOfferId();
         const offer = {
@@ -366,67 +247,23 @@ export default async function handler(req, res) {
                 nftDetails: receiverNftDetails || [],
                 sol: recvSol
             },
-            fee: fee,
-            isOrcHolder: isOrcHolder,
+            fee,
+            isOrcHolder,
             escrowTxSignature: escrowTxSignature || null
         };
 
-        // Save to KV
-        // We store in multiple keys for efficient lookups:
-        // 1. offer:{id} - the full offer
-        // 2. wallet:{address}:offers - list of offer IDs for that wallet
+        // Save offer
+        await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
 
-        // Save the offer
-        await fetch(`${KV_REST_API_URL}/set/offer:${offerId}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(offer)
-        });
+        // Update wallet offer lists
+        for (const wallet of [initiatorWallet, receiverWallet]) {
+            const key = `wallet:${wallet}:offers`;
+            const list = await kvGet(key, KV_REST_API_URL, KV_REST_API_TOKEN) || [];
+            list.push(offerId);
+            await kvSet(key, list, KV_REST_API_URL, KV_REST_API_TOKEN);
+        }
 
-        // Add to initiator's offer list
-        const initiatorKey = `wallet:${initiatorWallet}:offers`;
-        const initiatorListRes = await fetch(`${KV_REST_API_URL}/get/${initiatorKey}`, {
-            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-        });
-        const initiatorListData = await initiatorListRes.json();
-        const initiatorList = initiatorListData.result ?
-            (typeof initiatorListData.result === 'string' ? JSON.parse(initiatorListData.result) : initiatorListData.result) : [];
-        initiatorList.push(offerId);
-        await fetch(`${KV_REST_API_URL}/set/${initiatorKey}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(initiatorList)
-        });
-
-        // Add to receiver's offer list
-        const receiverKey = `wallet:${receiverWallet}:offers`;
-        const receiverListRes = await fetch(`${KV_REST_API_URL}/get/${receiverKey}`, {
-            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-        });
-        const receiverListData = await receiverListRes.json();
-        const receiverList = receiverListData.result ?
-            (typeof receiverListData.result === 'string' ? JSON.parse(receiverListData.result) : receiverListData.result) : [];
-        receiverList.push(offerId);
-        await fetch(`${KV_REST_API_URL}/set/${receiverKey}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(receiverList)
-        });
-
-        return res.status(200).json({
-            success: true,
-            offerId: offerId,
-            offer: offer
-        });
+        return res.status(200).json({ success: true, offerId, offer });
 
     } catch (error) {
         console.error('Create offer error:', error);
