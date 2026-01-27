@@ -2028,6 +2028,7 @@ async function getTokenAccountsForMint(owner, mint) {
 // Check if NFT is compressed using Helius DAS API
 async function getAssetWithProof(assetId) {
     try {
+        console.log('Fetching asset data for:', assetId);
         const response = await fetch('/api/helius', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2046,7 +2047,9 @@ async function getAssetWithProof(assetId) {
         });
 
         const data = await response.json();
+        console.log('getAsset response:', data);
         if (data.error) {
+            console.error('getAsset API error:', data.error);
             throw new Error(data.error.message);
         }
         return data.result;
@@ -2059,6 +2062,7 @@ async function getAssetWithProof(assetId) {
 // Get asset proof for compressed NFT transfer
 async function getAssetProof(assetId) {
     try {
+        console.log('Fetching asset proof for:', assetId);
         const response = await fetch('/api/helius', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2073,7 +2077,9 @@ async function getAssetProof(assetId) {
         });
 
         const data = await response.json();
+        console.log('getAssetProof response:', data);
         if (data.error) {
+            console.error('getAssetProof API error:', data.error);
             throw new Error(data.error.message);
         }
         return data.result;
@@ -2192,8 +2198,14 @@ async function transferCompressedNFT(assetId, fromPubkey, toPubkey, transaction)
         getAssetProof(assetId)
     ]);
 
-    if (!asset || !proof) {
-        throw new Error('Failed to get compressed NFT data');
+    console.log('Asset result:', asset);
+    console.log('Proof result:', proof);
+
+    if (!asset) {
+        throw new Error('Failed to get asset data for ' + assetId);
+    }
+    if (!proof) {
+        throw new Error('Failed to get proof for ' + assetId + '. Asset compression: ' + JSON.stringify(asset?.compression));
     }
 
     console.log('Asset compression info:', asset.compression);
