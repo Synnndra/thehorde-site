@@ -14,13 +14,48 @@
     <div class="container">
         <!-- Header -->
         <header class="swap-header">
-            <h1>MidEvils NFT Swap</h1>
-            <p>Create trustless P2P trades with other MidEvils holders</p>
+            <h1>Midswap</h1>
+            <p>Trade MidEvils NFTs directly with other collectors</p>
             <nav class="swap-nav">
                 <a href="/swap" class="nav-link active">Create Offer</a>
                 <a href="/swap/offers.html" class="nav-link">My Offers</a>
             </nav>
         </header>
+
+        <!-- How It Works -->
+        <section class="how-it-works" id="howItWorks">
+            <button class="how-it-works-toggle" id="howItWorksToggle">
+                How does Midswap work? <span class="toggle-icon">+</span>
+            </button>
+            <div class="how-it-works-content" id="howItWorksContent" style="display: none;">
+                <div class="how-it-works-steps">
+                    <div class="step">
+                        <span class="step-number">1</span>
+                        <div class="step-text">
+                            <strong>Create an offer</strong>
+                            <p>Select NFTs you want to trade and NFTs you want in return. Your offered NFTs are held in escrow until the trade completes.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">2</span>
+                        <div class="step-text">
+                            <strong>Share with your trade partner</strong>
+                            <p>Send them the offer link. They can review the trade and decide to accept or decline.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">3</span>
+                        <div class="step-text">
+                            <strong>Trade completes automatically</strong>
+                            <p>When accepted, NFTs are exchanged. If declined or cancelled, your NFTs are returned to you.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="trust-notice">
+                    <strong>About Escrow:</strong> When you create an offer, your NFTs are transferred to a Midswap-managed escrow wallet until the trade completes or is cancelled. This is a managed service operated by MidHorde DAO, not a smart contract. Only trade amounts you're comfortable with.
+                </div>
+            </div>
+        </section>
 
         <!-- Wallet Connection -->
         <section class="wallet-section">

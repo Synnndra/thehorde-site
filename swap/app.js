@@ -77,6 +77,10 @@ function initializeElements() {
         copyLinkBtn: document.getElementById('copyLinkBtn'),
         createAnotherBtn: document.getElementById('createAnotherBtn'),
 
+        // How It Works toggle
+        howItWorksToggle: document.getElementById('howItWorksToggle'),
+        howItWorksContent: document.getElementById('howItWorksContent'),
+
         // Offers page elements
         offersSection: document.getElementById('offersSection'),
         receivedCount: document.getElementById('receivedCount'),
@@ -156,6 +160,21 @@ function initializeEventListeners() {
 
     if (elements.createAnotherBtn) {
         elements.createAnotherBtn.addEventListener('click', resetCreateOfferPage);
+    }
+
+    // How It Works toggle
+    if (elements.howItWorksToggle) {
+        elements.howItWorksToggle.addEventListener('click', () => {
+            const content = elements.howItWorksContent;
+            const icon = elements.howItWorksToggle.querySelector('.toggle-icon');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                if (icon) icon.textContent = '−';
+            } else {
+                content.style.display = 'none';
+                if (icon) icon.textContent = '+';
+            }
+        });
     }
 
     // Offers page tabs
