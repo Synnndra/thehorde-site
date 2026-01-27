@@ -1902,11 +1902,13 @@ async function ataExists(ata) {
 // Get token accounts for a mint owned by a wallet
 async function getTokenAccountsForMint(owner, mint) {
     try {
+        console.log('Getting token accounts for owner:', owner.toBase58(), 'mint:', mint.toBase58());
         const result = await rpcCall('getTokenAccountsByOwner', [
             owner.toBase58(),
             { mint: mint.toBase58() },
             { encoding: 'jsonParsed' }
         ]);
+        console.log('Token accounts result:', result);
         return result.value || [];
     } catch (err) {
         console.error('Error getting token accounts:', err);

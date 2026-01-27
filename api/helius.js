@@ -20,7 +20,8 @@ const ALLOWED_METHODS = [
     'sendTransaction',
     'getSignatureStatuses',
     'confirmTransaction',
-    'getAccountInfo'
+    'getAccountInfo',
+    'getTokenAccountsByOwner'
 ];
 
 function isRateLimited(ip) {
