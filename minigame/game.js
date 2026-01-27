@@ -502,8 +502,16 @@ class Game {
             }
         }
 
+        // Check if using procedural map
+        if (this.selectedMap.startsWith('random_')) {
+            const difficulty = this.selectedMap.split('_')[1];
+            this.currentMap = generateProceduralMap(difficulty);
+        } else {
+            this.currentMap = MAPS[this.selectedMap];
+        }
+
         // Starting gold bonus for harder maps
-        const mapDifficulty = MAPS[this.selectedMap]?.difficulty || 'easy';
+        const mapDifficulty = this.currentMap?.difficulty || 'easy';
         const mapGoldBonus = {
             easy: 0,
             medium: 50,
@@ -537,7 +545,10 @@ class Game {
             speedBonusPoints: 0
         };
 
-        this.currentMap = MAPS[this.selectedMap];
+        // currentMap already set above for random maps, load static map if not set
+        if (!this.currentMap) {
+            this.currentMap = MAPS[this.selectedMap];
+        }
         if (!this.currentMap) {
             console.error('Map not found:', this.selectedMap);
             return;
