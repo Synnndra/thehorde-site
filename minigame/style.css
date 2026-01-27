@@ -277,6 +277,36 @@ h2, h3 {
     color: var(--accent-gold);
 }
 
+.leaderboard-tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.lb-tab {
+    flex: 1;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-secondary);
+    border-radius: 5px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.lb-tab:hover {
+    background: rgba(139, 105, 20, 0.3);
+    border-color: var(--accent-gold-dim);
+}
+
+.lb-tab.active {
+    background: var(--accent-gold-dim);
+    border-color: var(--accent-gold);
+    color: var(--text-primary);
+}
+
 .leaderboard {
     max-height: 200px;
     overflow-y: auto;

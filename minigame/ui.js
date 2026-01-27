@@ -15,6 +15,7 @@ class GameUI {
 
         this.initElements();
         this.initEventListeners();
+        this.initLeaderboardTabs();
         this.loadHighScores();
     }
 
@@ -463,7 +464,7 @@ class GameUI {
     }
 
     // High score management - uses shared leaderboard API
-    async loadHighScores() {
+    async loadHighScores(difficultyFilter = 'all') {
         this.highScoreList.innerHTML = '<p style="color: #b0a890; text-align: center;">Loading leaderboard...</p>';
 
         try {
@@ -474,10 +475,23 @@ class GameUI {
                 throw new Error(data.error || 'Failed to load');
             }
 
-            const topScores = (data.scores || []).slice(0, 10);
+            let scores = data.scores || [];
+
+            // Filter by difficulty if specified
+            if (difficultyFilter !== 'all') {
+                scores = scores.filter(entry => {
+                    // Get difficulty from map (static or random)
+                    const mapDifficulty = MAPS[entry.map]?.difficulty ||
+                        (entry.map?.startsWith('random_') ? entry.map.split('_')[1] : null);
+                    return mapDifficulty === difficultyFilter;
+                });
+            }
+
+            const topScores = scores.slice(0, 10);
 
             if (topScores.length === 0) {
-                this.highScoreList.innerHTML = '<p style="color: #b0a890; text-align: center;">No scores yet! Be the first to defend the tavern.</p>';
+                const filterText = difficultyFilter === 'all' ? '' : ` on ${difficultyFilter}`;
+                this.highScoreList.innerHTML = `<p style="color: #b0a890; text-align: center;">No scores yet${filterText}!</p>`;
                 return;
             }
 
@@ -486,7 +500,8 @@ class GameUI {
                 const div = document.createElement('div');
                 div.className = 'score-entry';
                 // Use safe map lookup only, don't use untrusted entry.map directly
-                const mapName = MAPS[entry.map]?.name || 'Unknown Map';
+                const mapData = MAPS[entry.map];
+                const mapName = mapData?.name || (entry.map?.startsWith('random_') ? 'Random' : 'Unknown');
                 const playerName = entry.name || 'Anonymous';
                 // Use textContent for safety against XSS
                 const rank = document.createElement('span');
@@ -511,6 +526,20 @@ class GameUI {
             console.error('Failed to load leaderboard:', error);
             this.highScoreList.innerHTML = '<p style="color: #b0a890; text-align: center;">Could not load leaderboard</p>';
         }
+    }
+
+    initLeaderboardTabs() {
+        const tabs = document.querySelectorAll('.lb-tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Update active state
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                // Load filtered scores
+                const filter = tab.dataset.filter;
+                this.loadHighScores(filter);
+            });
+        });
     }
 
     isHighScore(mapId, score) {
