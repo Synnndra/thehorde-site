@@ -1799,8 +1799,9 @@ function getAssociatedTokenProgramId() {
 // Derive offer PDA
 async function getOfferPDA(offerId) {
     const programId = getProgramId();
+    const encoder = new TextEncoder();
     const [pda, bump] = await solanaWeb3.PublicKey.findProgramAddress(
-        [Buffer.from('offer'), Buffer.from(offerId)],
+        [encoder.encode('offer'), encoder.encode(offerId)],
         programId
     );
     return { pda, bump };
@@ -1813,9 +1814,9 @@ async function getATA(mint, owner) {
 
     const [ata] = await solanaWeb3.PublicKey.findProgramAddress(
         [
-            owner.toBuffer(),
-            tokenProgramId.toBuffer(),
-            mint.toBuffer(),
+            owner.toBytes(),
+            tokenProgramId.toBytes(),
+            mint.toBytes(),
         ],
         associatedTokenProgramId
     );
@@ -1828,7 +1829,7 @@ function createATAInstruction(mint, owner, payer) {
     const associatedTokenProgramId = getAssociatedTokenProgramId();
 
     const ata = solanaWeb3.PublicKey.findProgramAddressSync(
-        [owner.toBuffer(), tokenProgramId.toBuffer(), mint.toBuffer()],
+        [owner.toBytes(), tokenProgramId.toBytes(), mint.toBytes()],
         associatedTokenProgramId
     )[0];
 
@@ -1844,7 +1845,7 @@ function createATAInstruction(mint, owner, payer) {
     return new solanaWeb3.TransactionInstruction({
         keys,
         programId: associatedTokenProgramId,
-        data: Buffer.alloc(0),
+        data: new Uint8Array(0),
     });
 }
 
@@ -1858,10 +1859,14 @@ function createTokenTransferInstruction(source, destination, owner, amount) {
         { pubkey: owner, isSigner: true, isWritable: false },
     ];
 
-    // Transfer instruction = 3, followed by u64 amount
-    const data = Buffer.alloc(9);
-    data.writeUInt8(3, 0); // Transfer instruction
-    data.writeBigUInt64LE(BigInt(amount), 1);
+    // Transfer instruction = 3, followed by u64 amount (little-endian)
+    const data = new Uint8Array(9);
+    data[0] = 3; // Transfer instruction
+    // Write amount as u64 little-endian
+    const amountBigInt = BigInt(amount);
+    for (let i = 0; i < 8; i++) {
+        data[1 + i] = Number((amountBigInt >> BigInt(8 * i)) & BigInt(0xff));
+    }
 
     return new solanaWeb3.TransactionInstruction({
         keys,
