@@ -1827,6 +1827,7 @@ async function getATA(mint, owner) {
 function createATAInstruction(mint, owner, payer) {
     const tokenProgramId = getTokenProgramId();
     const associatedTokenProgramId = getAssociatedTokenProgramId();
+    const SYSVAR_RENT_PUBKEY = new solanaWeb3.PublicKey('SysvarRent111111111111111111111111111111111');
 
     const ata = solanaWeb3.PublicKey.findProgramAddressSync(
         [owner.toBytes(), tokenProgramId.toBytes(), mint.toBytes()],
@@ -1840,7 +1841,14 @@ function createATAInstruction(mint, owner, payer) {
         { pubkey: mint, isSigner: false, isWritable: false },
         { pubkey: solanaWeb3.SystemProgram.programId, isSigner: false, isWritable: false },
         { pubkey: tokenProgramId, isSigner: false, isWritable: false },
+        { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
     ];
+
+    console.log('Creating ATA instruction:');
+    console.log('  ATA:', ata.toBase58());
+    console.log('  Owner:', owner.toBase58());
+    console.log('  Mint:', mint.toBase58());
+    console.log('  Payer:', payer.toBase58());
 
     return new solanaWeb3.TransactionInstruction({
         keys,
@@ -1867,6 +1875,12 @@ function createTokenTransferInstruction(source, destination, owner, amount) {
     for (let i = 0; i < 8; i++) {
         data[1 + i] = Number((amountBigInt >> BigInt(8 * i)) & BigInt(0xff));
     }
+
+    console.log('Creating token transfer instruction:');
+    console.log('  Source ATA:', source.toBase58());
+    console.log('  Dest ATA:', destination.toBase58());
+    console.log('  Owner:', owner.toBase58());
+    console.log('  Amount:', amount);
 
     return new solanaWeb3.TransactionInstruction({
         keys,
