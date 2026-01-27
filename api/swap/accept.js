@@ -93,10 +93,49 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Invalid message format' });
         }
 
+        // Validate timestamp to prevent replay attacks (message format: "Midswap accept offer {id} at {timestamp}")
+        const timestampMatch = message.match(/at (\d+)$/);
+        if (!timestampMatch) {
+            return res.status(400).json({ error: 'Invalid message format - missing timestamp' });
+        }
+        const messageTimestamp = parseInt(timestampMatch[1], 10);
+        const now = Date.now();
+        const MAX_MESSAGE_AGE = 5 * 60 * 1000; // 5 minutes
+        if (now - messageTimestamp > MAX_MESSAGE_AGE) {
+            return res.status(400).json({ error: 'Message expired - please try again' });
+        }
+        if (messageTimestamp > now + 60000) { // Allow 1 minute clock drift
+            return res.status(400).json({ error: 'Invalid message timestamp' });
+        }
+
         if (!verifySignature(message, signature, wallet)) {
             return res.status(403).json({ error: 'Invalid signature - wallet ownership not verified' });
         }
 
+        // Acquire lock to prevent race conditions
+        const lockKey = `lock:offer:${offerId}`;
+        const lockRes = await fetch(`${KV_REST_API_URL}/setnx/${lockKey}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ locked: true, at: now })
+        });
+        const lockData = await lockRes.json();
+
+        // setnx returns 1 if key was set (lock acquired), 0 if key already exists (locked by another request)
+        if (lockData.result === 0) {
+            return res.status(409).json({ error: 'Offer is being processed by another request. Please try again.' });
+        }
+
+        // Set lock expiry (30 seconds) to prevent deadlocks
+        await fetch(`${KV_REST_API_URL}/expire/${lockKey}/30`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+        });
+
+        try {
         // Fetch the offer
         const offerRes = await fetch(`${KV_REST_API_URL}/get/offer:${offerId}`, {
             headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
@@ -135,10 +174,27 @@ export default async function handler(req, res) {
             return res.status(403).json({ error: 'Only the receiver can accept this offer' });
         }
 
-        // Record receiver's transaction
-        if (txSignature) {
+        // Verify receiver's transaction on-chain before releasing escrow
+        if (txSignature && HELIUS_API_KEY) {
+            const txVerified = await verifyTransactionConfirmed(txSignature, HELIUS_API_KEY);
+            if (!txVerified) {
+                // Release lock before returning error
+                await fetch(`${KV_REST_API_URL}/del/${lockKey}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+                });
+                return res.status(400).json({ error: 'Receiver transaction not confirmed on-chain. Please wait and try again.' });
+            }
             offer.receiverTxSignature = txSignature;
             offer.receiverTransferComplete = true;
+        } else if (!txSignature && (offer.receiver.nfts?.length > 0 || offer.receiver.sol > 0)) {
+            // Receiver has assets to send but didn't provide tx signature
+            // Release lock before returning error
+            await fetch(`${KV_REST_API_URL}/del/${lockKey}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+            });
+            return res.status(400).json({ error: 'Transaction signature required - you must transfer your assets first' });
         }
 
         // Release escrowed assets to receiver
@@ -178,6 +234,12 @@ export default async function handler(req, res) {
             body: JSON.stringify(offer)
         });
 
+        // Release lock after successful completion
+        await fetch(`${KV_REST_API_URL}/del/${lockKey}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+        });
+
         return res.status(200).json({
             success: true,
             message: escrowReleaseTx
@@ -187,9 +249,45 @@ export default async function handler(req, res) {
             escrowReleaseTx
         });
 
+        } catch (lockError) {
+            // Release lock on any error within the locked section
+            await fetch(`${KV_REST_API_URL}/del/${lockKey}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+            });
+            throw lockError;
+        }
+
     } catch (error) {
         console.error('Accept offer error:', error);
         return res.status(500).json({ error: 'Failed to accept offer: ' + error.message });
+    }
+}
+
+// Verify a transaction is confirmed on-chain
+async function verifyTransactionConfirmed(signature, heliusApiKey) {
+    try {
+        const RPC_URL = `https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`;
+        const response = await fetch(RPC_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'getTransaction',
+                params: [signature, { encoding: 'json', commitment: 'confirmed' }]
+            })
+        });
+        const data = await response.json();
+
+        // Transaction exists and was successful (no error)
+        if (data.result && data.result.meta && data.result.meta.err === null) {
+            return true;
+        }
+        return false;
+    } catch (err) {
+        console.error('Transaction verification error:', err);
+        return false;
     }
 }
 

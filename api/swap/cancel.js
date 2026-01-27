@@ -97,10 +97,48 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Invalid message format' });
         }
 
+        // Validate timestamp to prevent replay attacks
+        const timestampMatch = message.match(/at (\d+)$/);
+        if (!timestampMatch) {
+            return res.status(400).json({ error: 'Invalid message format - missing timestamp' });
+        }
+        const messageTimestamp = parseInt(timestampMatch[1], 10);
+        const now = Date.now();
+        const MAX_MESSAGE_AGE = 5 * 60 * 1000; // 5 minutes
+        if (now - messageTimestamp > MAX_MESSAGE_AGE) {
+            return res.status(400).json({ error: 'Message expired - please try again' });
+        }
+        if (messageTimestamp > now + 60000) { // Allow 1 minute clock drift
+            return res.status(400).json({ error: 'Invalid message timestamp' });
+        }
+
         if (!verifySignature(message, signature, wallet)) {
             return res.status(403).json({ error: 'Invalid signature - wallet ownership not verified' });
         }
 
+        // Acquire lock to prevent race conditions
+        const lockKey = `lock:offer:${offerId}`;
+        const lockRes = await fetch(`${KV_REST_API_URL}/setnx/${lockKey}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ locked: true, at: now })
+        });
+        const lockData = await lockRes.json();
+
+        if (lockData.result === 0) {
+            return res.status(409).json({ error: 'Offer is being processed by another request. Please try again.' });
+        }
+
+        // Set lock expiry (30 seconds) to prevent deadlocks
+        await fetch(`${KV_REST_API_URL}/expire/${lockKey}/30`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+        });
+
+        try {
         // Fetch the offer
         const offerRes = await fetch(`${KV_REST_API_URL}/get/offer:${offerId}`, {
             headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
@@ -164,6 +202,12 @@ export default async function handler(req, res) {
             body: JSON.stringify(offer)
         });
 
+        // Release lock after successful completion
+        await fetch(`${KV_REST_API_URL}/del/${lockKey}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+        });
+
         return res.status(200).json({
             success: true,
             message: action === 'cancel'
@@ -172,6 +216,15 @@ export default async function handler(req, res) {
             offer,
             escrowReturnTx
         });
+
+        } catch (lockError) {
+            // Release lock on any error within the locked section
+            await fetch(`${KV_REST_API_URL}/del/${lockKey}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+            });
+            throw lockError;
+        }
 
     } catch (error) {
         console.error('Cancel offer error:', error);

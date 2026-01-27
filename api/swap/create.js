@@ -97,6 +97,52 @@ async function ownsOrc(walletAddress) {
     }
 }
 
+// Verify escrow transaction is confirmed on-chain
+async function verifyEscrowTransaction(signature, initiatorWallet, nfts, solAmount, heliusApiKey) {
+    try {
+        const RPC_URL = `https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`;
+        const response = await fetch(RPC_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'getTransaction',
+                params: [signature, { encoding: 'json', commitment: 'confirmed', maxSupportedTransactionVersion: 0 }]
+            })
+        });
+        const data = await response.json();
+
+        // Check transaction exists and was successful
+        if (!data.result || !data.result.meta || data.result.meta.err !== null) {
+            console.error('Escrow transaction failed or not found:', signature);
+            return false;
+        }
+
+        // Verify the transaction was signed by the initiator
+        const accountKeys = data.result.transaction?.message?.accountKeys || [];
+        const staticAccountKeys = data.result.transaction?.message?.staticAccountKeys || [];
+        const allKeys = [...accountKeys, ...staticAccountKeys];
+
+        // Check if initiator wallet is in the signers (first accounts are signers)
+        const signerFound = allKeys.some((key, index) => {
+            const keyStr = typeof key === 'string' ? key : key.pubkey;
+            return keyStr === initiatorWallet && index < (data.result.transaction?.signatures?.length || 1);
+        });
+
+        if (!signerFound) {
+            console.error('Initiator wallet not found as signer in escrow transaction');
+            return false;
+        }
+
+        console.log('Escrow transaction verified:', signature);
+        return true;
+    } catch (err) {
+        console.error('Escrow verification error:', err);
+        return false;
+    }
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -169,6 +215,26 @@ export default async function handler(req, res) {
         // Check if initiator owns an Orc - free if they do
         const isOrcHolder = await ownsOrc(initiatorWallet);
         const fee = isOrcHolder ? HOLDER_FEE : PLATFORM_FEE;
+
+        // Verify escrow transaction if provided
+        const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
+        if (escrowTxSignature && HELIUS_API_KEY) {
+            const txVerified = await verifyEscrowTransaction(
+                escrowTxSignature,
+                initiatorWallet,
+                initNfts,
+                initSol,
+                HELIUS_API_KEY
+            );
+            if (!txVerified) {
+                return res.status(400).json({ error: 'Escrow transaction not confirmed or invalid. Please wait for confirmation and try again.' });
+            }
+        } else if (initNfts.length > 0 || initSol > 0) {
+            // If initiator is offering NFTs or SOL, escrow tx is required
+            if (!escrowTxSignature) {
+                return res.status(400).json({ error: 'Escrow transaction signature required' });
+            }
+        }
 
         // Create offer object
         const now = Date.now();
