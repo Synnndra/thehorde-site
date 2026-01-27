@@ -169,12 +169,18 @@ class Enemy {
         // Scale stats based on wave number
         const waveScale = 1 + (waveNumber - 1) * 0.08; // 8% increase per wave
 
+        // Late-game speed boost (waves 16-20 get up to 20% faster)
+        const lateGameSpeedBoost = waveNumber >= 16 ? 1 + (waveNumber - 15) * 0.04 : 1.0;
+
+        // Armor scaling (+1 per wave after wave 10)
+        const bonusArmor = waveNumber > 10 ? waveNumber - 10 : 0;
+
         // Stats
         this.maxHp = Math.round(typeData.hp * waveScale);
         this.hp = this.maxHp;
-        this.baseSpeed = typeData.speed;
-        this.speed = typeData.speed;
-        this.armor = typeData.armor;
+        this.baseSpeed = typeData.speed * lateGameSpeedBoost;
+        this.speed = this.baseSpeed;
+        this.armor = typeData.armor + bonusArmor;
         this.goldReward = Math.round(typeData.goldReward * (1 + (waveNumber - 1) * 0.07));
         this.damage = typeData.damage;
         this.size = typeData.size;
@@ -762,8 +768,8 @@ function generateWave(waveNumber, mapDifficulty) {
     // Late-game surge (waves 16-20) - punish optimized builds
     if (waveNumber >= 16) {
         const lateGameBonus = waveNumber - 15; // 1-5 bonus
-        mageCount += lateGameBonus * 2;        // +2/4/6/8/10 extra mages
-        cavalryCount += lateGameBonus;         // +1/2/3/4/5 extra cavalry
+        mageCount += lateGameBonus * 3;        // +3/6/9/12/15 extra mages (50% more)
+        cavalryCount += lateGameBonus * 2;     // +2/4/6/8/10 extra cavalry (doubled)
         knightCount += lateGameBonus * 2;      // +2/4/6/8/10 extra knights
     }
 
