@@ -15,7 +15,12 @@ const ALLOWED_METHODS = [
     'getAssetsByGroup',
     'getAssetsByOwner',
     'getAsset',
-    'getBalance'
+    'getBalance',
+    'getLatestBlockhash',
+    'sendTransaction',
+    'getSignatureStatuses',
+    'confirmTransaction',
+    'getAccountInfo'
 ];
 
 function isRateLimited(ip) {
