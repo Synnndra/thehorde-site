@@ -2410,24 +2410,14 @@ async function signAndSubmitTransaction(transaction, retryCount = 0) {
 
         console.log('Requesting signature from Phantom...');
 
-        // Sign with Phantom
-        const signed = await provider.signTransaction(transaction);
-        console.log('Transaction signed');
-
-        // Submit to network via our proxy
-        console.log('Submitting to network...');
-        let signature;
-        try {
-            signature = await sendTransaction(signed.serialize());
-        } catch (sendErr) {
-            // If blockhash error, retry with fresh blockhash
-            if (sendErr.message?.includes('Blockhash not found') && retryCount < maxRetries) {
-                console.log('Blockhash expired, retrying with fresh blockhash...');
-                return signAndSubmitTransaction(transaction, retryCount + 1);
-            }
-            throw sendErr;
-        }
-        console.log('Transaction submitted:', signature);
+        // Use signAndSendTransaction so Blowfish can properly analyze the transaction
+        // This avoids the "Request blocked" warning for unverified dApps
+        const { signature } = await provider.signAndSendTransaction(transaction, {
+            skipPreflight: true,
+            preflightCommitment: 'confirmed',
+            maxRetries: 3
+        });
+        console.log('Transaction signed and submitted:', signature);
 
         // Wait for confirmation
         console.log('Waiting for confirmation...');
