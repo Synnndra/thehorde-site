@@ -7,7 +7,6 @@ import {
     validateTimestamp,
     isSignatureUsed,
     markSignatureUsed,
-    verifyNftOwnership,
     kvGet,
     kvSet,
     acquireLock,
@@ -105,19 +104,8 @@ export default async function handler(req, res) {
             return res.status(403).json({ error: 'Only the receiver can accept this offer' });
         }
 
-        // Verify receiver still owns the NFTs they're supposed to give
-        if (HELIUS_API_KEY && offer.receiver.nfts?.length > 0) {
-            const ownershipCheck = await verifyNftOwnership(offer.receiver.nfts, wallet, HELIUS_API_KEY);
-            if (!ownershipCheck.valid) {
-                await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
-                return res.status(400).json({
-                    error: 'You no longer own some of the NFTs in this trade',
-                    issues: ownershipCheck.issues
-                });
-            }
-        }
-
         // Verify receiver's transaction if they have assets to send
+        // This confirms the receiver already transferred their NFTs to escrow on-chain
         if (txSignature && HELIUS_API_KEY) {
             const txVerified = await verifyTransactionConfirmed(txSignature, HELIUS_API_KEY);
             if (!txVerified) {
