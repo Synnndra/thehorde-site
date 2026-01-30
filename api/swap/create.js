@@ -12,9 +12,10 @@ import {
     kvGet,
     kvSet,
     getAsset,
-    verifyTransactionConfirmed,
+    verifyEscrowTransactionContent,
     ALLOWED_COLLECTIONS,
     MAX_NFTS_PER_SIDE,
+    MAX_SOL_PER_SIDE,
     MAX_ACTIVE_OFFERS_PER_WALLET,
     OFFER_EXPIRY_HOURS,
     PLATFORM_FEE,
@@ -66,17 +67,15 @@ async function ownsOrc(walletAddress, heliusApiKey) {
     }
 }
 
-// Verify NFTs belong to allowed collections
+// Verify NFTs belong to allowed collections and return asset data for reuse
 async function verifyNftCollections(nftIds, heliusApiKey) {
-    if (!nftIds?.length) return { valid: true, invalidNfts: [] };
+    if (!nftIds?.length) return { valid: true, invalidNfts: [], assets: new Map() };
 
-    const invalidNfts = [];
-    for (const nftId of nftIds) {
+    const results = await Promise.all(nftIds.map(async (nftId) => {
         try {
             const asset = await getAsset(nftId, heliusApiKey);
             if (!asset) {
-                invalidNfts.push({ id: nftId, reason: 'NFT not found' });
-                continue;
+                return { nftId, invalid: { id: nftId, reason: 'NFT not found' }, asset: null };
             }
 
             const collections = (asset.grouping || [])
@@ -84,49 +83,17 @@ async function verifyNftCollections(nftIds, heliusApiKey) {
                 .map(g => g.group_value);
 
             if (!collections.some(c => ALLOWED_COLLECTIONS.includes(c))) {
-                invalidNfts.push({ id: nftId, reason: 'Not from allowed collection' });
+                return { nftId, invalid: { id: nftId, reason: 'Not from allowed collection' }, asset };
             }
+            return { nftId, invalid: null, asset };
         } catch (err) {
-            invalidNfts.push({ id: nftId, reason: 'Verification failed' });
+            return { nftId, invalid: { id: nftId, reason: 'Verification failed' }, asset: null };
         }
-    }
+    }));
 
-    return { valid: invalidNfts.length === 0, invalidNfts };
-}
-
-// Verify escrow transaction
-async function verifyEscrowTransaction(signature, initiatorWallet, heliusApiKey) {
-    try {
-        const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                jsonrpc: '2.0',
-                id: 1,
-                method: 'getTransaction',
-                params: [signature, { encoding: 'json', commitment: 'confirmed', maxSupportedTransactionVersion: 0 }]
-            })
-        });
-        const data = await response.json();
-
-        if (!data.result?.meta || data.result.meta.err !== null) {
-            return false;
-        }
-
-        // Verify initiator signed the transaction
-        const allKeys = [
-            ...(data.result.transaction?.message?.accountKeys || []),
-            ...(data.result.transaction?.message?.staticAccountKeys || [])
-        ];
-
-        return allKeys.some((key, i) => {
-            const keyStr = typeof key === 'string' ? key : key.pubkey;
-            return keyStr === initiatorWallet && i < (data.result.transaction?.signatures?.length || 1);
-        });
-    } catch (err) {
-        console.error('Escrow verification error:', err);
-        return false;
-    }
+    const invalidNfts = results.filter(r => r.invalid).map(r => r.invalid);
+    const assets = new Map(results.filter(r => r.asset).map(r => [r.nftId, r.asset]));
+    return { valid: invalidNfts.length === 0, invalidNfts, assets };
 }
 
 export default async function handler(req, res) {
@@ -172,7 +139,8 @@ export default async function handler(req, res) {
         if (!signature || !message) {
             return res.status(400).json({ error: 'Signature required' });
         }
-        if (!message.includes(initiatorWallet) || !message.includes(receiverWallet)) {
+        const expectedMessagePrefix = `Midswap create offer from ${initiatorWallet} to ${receiverWallet} at `;
+        if (!message.startsWith(expectedMessagePrefix)) {
             return res.status(400).json({ error: 'Invalid message format' });
         }
 
@@ -204,7 +172,16 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: `Maximum ${MAX_NFTS_PER_SIDE} NFTs per side` });
         }
 
+        // Validate all NFT IDs are valid Solana addresses
+        for (const nftId of [...initNfts, ...recvNfts]) {
+            if (!validateSolanaAddress(nftId)) {
+                return res.status(400).json({ error: 'Invalid NFT ID format' });
+            }
+        }
+
         // Verify collections (FAIL CLOSED - if Helius unavailable, reject)
+        // Also captures asset data to avoid re-fetching for NFT details
+        let verifiedAssets = new Map();
         if (initNfts.length > 0 || recvNfts.length > 0) {
             if (!HELIUS_API_KEY) {
                 return res.status(500).json({ error: 'NFT verification service unavailable' });
@@ -216,11 +193,16 @@ export default async function handler(req, res) {
                     invalidNfts: collectionCheck.invalidNfts
                 });
             }
+            verifiedAssets = collectionCheck.assets;
         }
 
         // Validate SOL amounts
         const initSol = typeof initiatorSol === 'number' && initiatorSol >= 0 ? initiatorSol : 0;
         const recvSol = typeof receiverSol === 'number' && receiverSol >= 0 ? receiverSol : 0;
+
+        if (initSol > MAX_SOL_PER_SIDE || recvSol > MAX_SOL_PER_SIDE) {
+            return res.status(400).json({ error: `Maximum ${MAX_SOL_PER_SIDE} SOL per side` });
+        }
 
         if (initNfts.length === 0 && initSol === 0) {
             return res.status(400).json({ error: 'Must offer at least one NFT or SOL' });
@@ -233,17 +215,37 @@ export default async function handler(req, res) {
         const isOrcHolder = await ownsOrc(initiatorWallet, HELIUS_API_KEY);
         const fee = isOrcHolder ? HOLDER_FEE : PLATFORM_FEE;
 
-        // Verify escrow transaction
+        // Verify escrow transaction content
         if (escrowTxSignature && HELIUS_API_KEY) {
-            const txVerified = await verifyEscrowTransaction(escrowTxSignature, initiatorWallet, HELIUS_API_KEY);
-            if (!txVerified) {
-                return res.status(400).json({ error: 'Escrow transaction not confirmed' });
+            const txCheck = await verifyEscrowTransactionContent(
+                escrowTxSignature, initiatorWallet, initNfts, initSol, HELIUS_API_KEY, fee
+            );
+            if (!txCheck.valid) {
+                return res.status(400).json({ error: txCheck.error || 'Escrow transaction verification failed' });
             }
         } else if (initNfts.length > 0 || initSol > 0) {
             if (!escrowTxSignature) {
                 return res.status(400).json({ error: 'Escrow transaction signature required' });
             }
         }
+
+        // Build NFT details from already-fetched assets (avoids second Helius call per NFT)
+        function detailsFromAssets(nftIds) {
+            return nftIds.map(nftId => {
+                const asset = verifiedAssets.get(nftId);
+                if (asset) {
+                    return {
+                        id: nftId,
+                        name: asset.content?.metadata?.name || 'Unknown',
+                        imageUrl: asset.content?.links?.image || asset.content?.files?.[0]?.uri || ''
+                    };
+                }
+                return { id: nftId, name: 'Unknown', imageUrl: '' };
+            });
+        }
+
+        let serverInitNftDetails = initNfts.length > 0 ? detailsFromAssets(initNfts) : (initiatorNftDetails || []);
+        let serverRecvNftDetails = recvNfts.length > 0 ? detailsFromAssets(recvNfts) : (receiverNftDetails || []);
 
         // Create offer
         const now = Date.now();
@@ -256,13 +258,13 @@ export default async function handler(req, res) {
             initiator: {
                 wallet: initiatorWallet,
                 nfts: initNfts,
-                nftDetails: initiatorNftDetails || [],
+                nftDetails: serverInitNftDetails,
                 sol: initSol
             },
             receiver: {
                 wallet: receiverWallet,
                 nfts: recvNfts,
-                nftDetails: receiverNftDetails || [],
+                nftDetails: serverRecvNftDetails,
                 sol: recvSol
             },
             fee,
@@ -273,13 +275,13 @@ export default async function handler(req, res) {
         // Save offer
         await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
 
-        // Update wallet offer lists
-        for (const wallet of [initiatorWallet, receiverWallet]) {
+        // Update wallet offer lists in parallel
+        await Promise.all([initiatorWallet, receiverWallet].map(async (wallet) => {
             const key = `wallet:${wallet}:offers`;
             const list = await kvGet(key, KV_REST_API_URL, KV_REST_API_TOKEN) || [];
             list.push(offerId);
             await kvSet(key, list, KV_REST_API_URL, KV_REST_API_TOKEN);
-        }
+        }));
 
         // Mark signature as used to prevent replay
         await markSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN);
@@ -288,6 +290,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Create offer error:', error);
-        return res.status(500).json({ error: 'Failed to create offer' });
+        return res.status(500).json({ error: 'Failed to create offer. Please try again.' });
     }
 }

@@ -15,6 +15,13 @@ const SOLANA_RPC = '/api/rpc'; // Use our proxy
 const TOKEN_PROGRAM_ID = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 const ASSOCIATED_TOKEN_PROGRAM_ID = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
 
+// Fee reserve for SOL balance validation (platform fee + rent/tx fees buffer)
+const FEE_RESERVE_SOL = 0.05;
+
+// Instruction discriminators
+const MPL_CORE_TRANSFER_DISCRIMINATOR = [14, 0];
+const BUBBLEGUM_TRANSFER_DISCRIMINATOR = [163, 52, 200, 231, 140, 3, 69, 186];
+
 // Enable blockchain escrow
 const USE_BLOCKCHAIN = true;
 
@@ -395,6 +402,10 @@ function onWalletConnected() {
     if (path.includes('offers.html')) {
         loadOffers();
     } else if (path.includes('offer.html')) {
+        // Fetch SOL balance for accept validation
+        fetchSolBalance(connectedWallet).then(balance => {
+            solBalance = balance;
+        });
         // Refresh offer details with wallet context
         const urlParams = new URLSearchParams(window.location.search);
         const offerId = urlParams.get('id');
@@ -480,8 +491,8 @@ async function fetchSolBalance(walletAddress) {
 
 function updateSolInputLimits() {
     if (elements.yourSolAmount) {
-        // Reserve a small amount for transaction fees (0.01 SOL)
-        const maxSol = Math.max(0, solBalance - 0.01);
+        // Reserve for platform fee + transaction fees
+        const maxSol = Math.max(0, solBalance - PLATFORM_FEE);
         const roundedMax = Math.floor(maxSol * 100) / 100; // Round down to 2 decimals
 
         elements.yourSolAmount.max = roundedMax;
@@ -502,7 +513,7 @@ function validateSolInput(e) {
 
     if (value > max) {
         input.value = max;
-        showError(`Maximum SOL you can offer is ${max} (keeping 0.01 for fees)`);
+        showError(`Maximum SOL you can offer is ${max} (keeping 0.02 for fees)`);
     }
     if (value < 0) {
         input.value = 0;
@@ -511,24 +522,27 @@ function validateSolInput(e) {
     updateTradeSummary();
 }
 
+function applyFeeNotice(el, isFree, feeAmount) {
+    if (isFree) {
+        el.innerHTML = `
+            <span class="fee-icon">&#10003;</span>
+            <span><strong>Free swap!</strong> Orc holders pay no platform fee</span>
+        `;
+        el.style.background = '#1e5f3a';
+        el.style.color = '#6bf6a0';
+    } else {
+        el.innerHTML = `
+            <span class="fee-icon">&#9432;</span>
+            <span>Platform fee: <strong>${feeAmount || PLATFORM_FEE} SOL</strong> (paid when creating offer) - <em>Free for Orc holders!</em></span>
+        `;
+        el.style.background = '#1e3a5f';
+        el.style.color = '#64b5f6';
+    }
+}
+
 function updateFeeNotice() {
-    const feeNotices = document.querySelectorAll('.fee-notice');
-    feeNotices.forEach(notice => {
-        if (isOrcHolder) {
-            notice.innerHTML = `
-                <span class="fee-icon">&#10003;</span>
-                <span><strong>Free swap!</strong> Orc holders pay no platform fee</span>
-            `;
-            notice.style.background = '#1e5f3a';
-            notice.style.color = '#6bf6a0';
-        } else {
-            notice.innerHTML = `
-                <span class="fee-icon">&#9432;</span>
-                <span>Platform fee: <strong>0.01 SOL</strong> (paid when creating offer) - <em>Free for Orc holders!</em></span>
-            `;
-            notice.style.background = '#1e3a5f';
-            notice.style.color = '#64b5f6';
-        }
+    document.querySelectorAll('.fee-notice').forEach(notice => {
+        applyFeeNotice(notice, isOrcHolder, PLATFORM_FEE);
     });
 }
 
@@ -685,7 +699,7 @@ function createNFTCard(nft, side, index) {
     }
 
     card.innerHTML = `
-        <img class="nft-image" src="${imageUrl}" alt="${escapeHtml(name)}"
+        <img class="nft-image" src="${sanitizeImageUrl(imageUrl)}" alt="${escapeHtml(name)}"
              onerror="this.src='${PLACEHOLDER_IMAGE}'" loading="lazy">
         <div class="nft-name">${escapeHtml(name)}</div>
         <div class="selection-indicator"></div>
@@ -820,7 +834,7 @@ function createSummaryItem(nft) {
     const div = document.createElement('div');
     div.className = 'summary-item';
     div.innerHTML = `
-        <img src="${nft.imageUrl}" alt="${escapeHtml(nft.name)}"
+        <img src="${sanitizeImageUrl(nft.imageUrl)}" alt="${escapeHtml(nft.name)}"
              onerror="this.src='${PLACEHOLDER_IMAGE}'">
         <span>${escapeHtml(nft.name)}</span>
     `;
@@ -868,12 +882,34 @@ async function createOffer() {
     const yourSol = parseFloat(elements.yourSolAmount?.value) || 0;
     const theirSol = parseFloat(elements.theirSolAmount?.value) || 0;
 
-    showLoading('Creating offer...');
+    // Check wallet has enough SOL before starting
+    const fee = isOrcHolder ? 0 : PLATFORM_FEE;
+    const requiredSol = yourSol + fee + 0.005; // SOL to send + fee + tx fees buffer
+    if (solBalance < requiredSol) {
+        showError(`Insufficient SOL balance. You need at least ${requiredSol.toFixed(4)} SOL (${yourSol > 0 ? yourSol + ' SOL to send + ' : ''}${fee > 0 ? fee + ' SOL fee + ' : ''}~0.005 tx fees). Your balance: ${solBalance.toFixed(4)} SOL`);
+        return;
+    }
+
+    const createSteps = [
+        'Approve escrow transaction in Phantom',
+        'Sending assets to escrow',
+        'Sign message to verify wallet',
+        'Saving offer'
+    ];
+    showSteppedLoading(createSteps, 0);
     elements.createOfferBtn.disabled = true;
 
     try {
-        // Step 1: Sign message to verify wallet ownership
-        showLoading('Please sign the message to verify wallet ownership...');
+        // Step 1: Build and sign escrow transaction (NFTs + fee to escrow wallet)
+        showSteppedLoading(createSteps, 0);
+        const escrowResult = await escrowInitiatorAssets(selectedYourNFTs, yourSol);
+
+        if (!escrowResult.success) {
+            throw new Error(escrowResult.error || 'Failed to escrow assets');
+        }
+
+        // Step 2: Sign message to verify wallet ownership (after on-chain tx to avoid timeout)
+        showSteppedLoading(createSteps, 2);
         const timestamp = Date.now();
         const message = `Midswap create offer from ${connectedWallet} to ${partnerWallet} at ${timestamp}`;
         let signature;
@@ -883,15 +919,7 @@ async function createOffer() {
             throw new Error('Message signing cancelled or failed: ' + signErr.message);
         }
 
-        // Step 2: Build and sign escrow transaction (NFTs + fee to escrow wallet)
-        showLoading('Building escrow transaction...');
-        const escrowResult = await escrowInitiatorAssets(selectedYourNFTs, yourSol);
-
-        if (!escrowResult.success) {
-            throw new Error(escrowResult.error || 'Failed to escrow assets');
-        }
-
-        showLoading('Saving offer to database...');
+        showSteppedLoading(createSteps, 3);
 
         // Step 3: Create database record with escrow tx signature
         const response = await fetch('/api/swap/create', {
@@ -975,12 +1003,14 @@ async function escrowInitiatorAssets(nfts, solAmount) {
             );
         }
 
-        // 3. Transfer NFTs to escrow
+        // 3. Transfer NFTs to escrow (prefetch all assets in parallel)
+        const assetResults = await Promise.all(nfts.map(nft => getAssetWithProof(nft.id)));
+        const assetMap = new Map(nfts.map((nft, i) => [nft.id, assetResults[i]]));
+
         for (const nft of nfts) {
             console.log('Processing NFT for escrow:', nft.id, nft.name);
 
-            // Check asset type
-            const asset = await getAssetWithProof(nft.id);
+            const asset = assetMap.get(nft.id);
             console.log('Asset interface:', asset?.interface);
             console.log('Asset compression:', asset?.compression);
 
@@ -1024,6 +1054,11 @@ async function escrowInitiatorAssets(nfts, solAmount) {
         showLoading('Please approve the escrow transaction in Phantom...');
 
         const result = await signAndSubmitTransaction(transaction);
+
+        if (result.success) {
+            showLoading('Transaction submitted, confirming on-chain...');
+        }
+
         return result;
 
     } catch (err) {
@@ -1091,9 +1126,9 @@ async function loadOffers() {
             o.initiator.wallet === connectedWallet && o.status === 'pending'
         );
 
-        // History includes all completed, cancelled, and expired offers
+        // History includes all non-pending offers
         const history = data.offers.filter(o =>
-            ['accepted', 'cancelled', 'expired'].includes(o.status)
+            ['accepted', 'completed', 'escrowed', 'failed', 'cancelled', 'expired'].includes(o.status)
         );
 
         allOffers = {
@@ -1199,13 +1234,13 @@ function createOfferCard(offer, type) {
 
     // Build preview images HTML
     const givingImagesHtml = (givingNfts || []).slice(0, 3).map(nft =>
-        `<img src="${nft.imageUrl || PLACEHOLDER_IMAGE}" alt="${escapeHtml(nft.name)}"
-              onerror="this.src='${PLACEHOLDER_IMAGE}'">`
+        `<img src="${sanitizeImageUrl(nft.imageUrl)}" alt="${escapeHtml(nft.name)}"
+              loading="lazy" onerror="this.src='${PLACEHOLDER_IMAGE}'">`
     ).join('');
 
     const gettingImagesHtml = (gettingNfts || []).slice(0, 3).map(nft =>
-        `<img src="${nft.imageUrl || PLACEHOLDER_IMAGE}" alt="${escapeHtml(nft.name)}"
-              onerror="this.src='${PLACEHOLDER_IMAGE}'">`
+        `<img src="${sanitizeImageUrl(nft.imageUrl)}" alt="${escapeHtml(nft.name)}"
+              loading="lazy" onerror="this.src='${PLACEHOLDER_IMAGE}'">`
     ).join('');
 
     // Build text summaries
@@ -1273,8 +1308,14 @@ function createHistoryCard(offer, type) {
 
     // Get the date when the offer was finalized
     let finalizedDate = '';
-    if (offer.status === 'accepted' && offer.acceptedAt) {
+    if (offer.status === 'completed' && offer.completedAt) {
+        finalizedDate = new Date(offer.completedAt).toLocaleDateString();
+    } else if (offer.status === 'accepted' && offer.acceptedAt) {
         finalizedDate = new Date(offer.acceptedAt).toLocaleDateString();
+    } else if (offer.status === 'escrowed' && offer.escrowedAt) {
+        finalizedDate = new Date(offer.escrowedAt).toLocaleDateString();
+    } else if (offer.status === 'failed' && offer.failedAt) {
+        finalizedDate = new Date(offer.failedAt).toLocaleDateString();
     } else if (offer.status === 'cancelled' && offer.cancelledAt) {
         finalizedDate = new Date(offer.cancelledAt).toLocaleDateString();
     } else {
@@ -1304,13 +1345,13 @@ function createHistoryCard(offer, type) {
 
     // Build preview images
     const yourImagesHtml = yourNfts.slice(0, 3).map(nft =>
-        `<img src="${nft.imageUrl || PLACEHOLDER_IMAGE}" alt="${escapeHtml(nft.name)}"
-              onerror="this.src='${PLACEHOLDER_IMAGE}'">`
+        `<img src="${sanitizeImageUrl(nft.imageUrl)}" alt="${escapeHtml(nft.name)}"
+              loading="lazy" onerror="this.src='${PLACEHOLDER_IMAGE}'">`
     ).join('');
 
     const theirImagesHtml = theirNfts.slice(0, 3).map(nft =>
-        `<img src="${nft.imageUrl || PLACEHOLDER_IMAGE}" alt="${escapeHtml(nft.name)}"
-              onerror="this.src='${PLACEHOLDER_IMAGE}'">`
+        `<img src="${sanitizeImageUrl(nft.imageUrl)}" alt="${escapeHtml(nft.name)}"
+              loading="lazy" onerror="this.src='${PLACEHOLDER_IMAGE}'">`
     ).join('');
 
     // Build text summaries
@@ -1318,10 +1359,15 @@ function createHistoryCard(offer, type) {
     const theirText = buildOfferText(theirNfts.length, theirSol);
 
     // Status text
-    let statusText = offer.status.charAt(0).toUpperCase() + offer.status.slice(1);
-    if (offer.status === 'accepted') {
-        statusText = 'Completed';
-    }
+    const statusLabels = {
+        completed: 'Completed',
+        accepted: 'Completed',
+        escrowed: 'Processing',
+        failed: 'Failed',
+        cancelled: 'Cancelled',
+        expired: 'Expired'
+    };
+    const statusText = statusLabels[offer.status] || offer.status.charAt(0).toUpperCase() + offer.status.slice(1);
 
     card.innerHTML = `
         <div class="offer-card-header">
@@ -1334,12 +1380,12 @@ function createHistoryCard(offer, type) {
         <div class="offer-card-body">
             <div class="offer-preview-side">
                 <div class="offer-preview-images">${yourImagesHtml || '<span>-</span>'}</div>
-                <div class="offer-preview-text"><strong>You ${offer.status === 'accepted' ? 'gave' : 'offered'}:</strong> ${yourText}</div>
+                <div class="offer-preview-text"><strong>You ${['accepted', 'completed'].includes(offer.status) ? 'gave' : 'offered'}:</strong> ${yourText}</div>
             </div>
             <span class="offer-preview-arrow">&#10132;</span>
             <div class="offer-preview-side">
                 <div class="offer-preview-images">${theirImagesHtml || '<span>-</span>'}</div>
-                <div class="offer-preview-text"><strong>You ${offer.status === 'accepted' ? 'got' : 'wanted'}:</strong> ${theirText}</div>
+                <div class="offer-preview-text"><strong>You ${['accepted', 'completed'].includes(offer.status) ? 'got' : 'wanted'}:</strong> ${theirText}</div>
             </div>
         </div>
         <div class="offer-card-footer">
@@ -1446,19 +1492,7 @@ function displayOfferDetails() {
     // Update fee notice based on offer
     const feeNotice = document.getElementById('feeNotice');
     if (feeNotice) {
-        if (currentOffer.fee === 0 || currentOffer.isOrcHolder) {
-            feeNotice.innerHTML = `
-                <span class="fee-icon">&#10003;</span>
-                <span><strong>Free swap!</strong> Initiator is an Orc holder</span>
-            `;
-            feeNotice.style.background = '#1e5f3a';
-            feeNotice.style.color = '#6bf6a0';
-        } else {
-            feeNotice.innerHTML = `
-                <span class="fee-icon">&#9432;</span>
-                <span>Platform fee: <strong>${currentOffer.fee} SOL</strong> (paid by initiator at creation)</span>
-            `;
-        }
+        applyFeeNotice(feeNotice, currentOffer.fee === 0 || currentOffer.isOrcHolder, currentOffer.fee);
     }
 
     // Action buttons based on role and status
@@ -1479,7 +1513,7 @@ function displayOfferItems(container, nftDetails, solAmount) {
         const item = document.createElement('div');
         item.className = 'offer-item';
         item.innerHTML = `
-            <img src="${nft.imageUrl || PLACEHOLDER_IMAGE}" alt="${escapeHtml(nft.name)}"
+            <img src="${sanitizeImageUrl(nft.imageUrl)}" alt="${escapeHtml(nft.name)}"
                  onerror="this.src='${PLACEHOLDER_IMAGE}'">
             <span class="item-name">${escapeHtml(nft.name)}</span>
         `;
@@ -1564,148 +1598,6 @@ function displayOfferActions() {
     }
 }
 
-// Complete initiator's transfer after receiver has accepted
-async function completeInitiatorTransfer() {
-    if (!currentOffer || !USE_BLOCKCHAIN) {
-        showError('Cannot complete transfer');
-        return;
-    }
-
-    try {
-        showLoading('Preparing your transfer...');
-
-        console.log('Current offer:', currentOffer);
-        console.log('Initiator SOL:', currentOffer.initiator?.sol);
-        console.log('Initiator NFTs:', currentOffer.initiator?.nftDetails);
-
-        const connection = getSolanaConnection();
-        const provider = getPhantomProvider();
-        const signer = provider.publicKey;
-
-        console.log('Signer:', signer.toBase58());
-        console.log('RPC:', SOLANA_RPC);
-
-        const initiatorPubkey = new solanaWeb3.PublicKey(currentOffer.initiator.wallet);
-        const receiverPubkey = new solanaWeb3.PublicKey(currentOffer.receiver.wallet);
-
-        // Verify signer is the initiator
-        if (signer.toBase58() !== currentOffer.initiator.wallet) {
-            throw new Error('Only the initiator can complete this transfer');
-        }
-
-        const transaction = new solanaWeb3.Transaction();
-
-        // Pay platform fee (initiator pays)
-        if (currentOffer.fee > 0) {
-            const feeLamports = Math.floor(currentOffer.fee * solanaWeb3.LAMPORTS_PER_SOL);
-            console.log('Adding fee payment:', currentOffer.fee, 'SOL =', feeLamports, 'lamports');
-            transaction.add(
-                solanaWeb3.SystemProgram.transfer({
-                    fromPubkey: signer,
-                    toPubkey: getFeeWallet(),
-                    lamports: feeLamports,
-                })
-            );
-        } else {
-            console.log('No fee (Orc holder)');
-        }
-
-        // Transfer initiator's NFTs to receiver
-        const initiatorNfts = currentOffer.initiator.nftDetails || [];
-        for (const nft of initiatorNfts) {
-            console.log('Processing NFT:', nft.id, nft.name);
-
-            // Check if this is a compressed NFT
-            const asset = await getAssetWithProof(nft.id);
-            console.log('Asset data for', nft.id, ':', JSON.stringify(asset, null, 2));
-            console.log('Compression field:', asset?.compression);
-
-            if (asset?.compression?.compressed || asset?.compression) {
-                // Compressed NFT - use Bubblegum transfer
-                console.log('NFT is compressed, using Bubblegum transfer');
-                await transferCompressedNFT(nft.id, initiatorPubkey, receiverPubkey, transaction);
-            } else {
-                // Standard SPL token transfer
-                console.log('NFT is standard SPL token (no compression data)');
-                const mint = new solanaWeb3.PublicKey(nft.id);
-                const sourceAta = await getATA(mint, initiatorPubkey);
-                const destAta = await getATA(mint, receiverPubkey);
-
-                // Create destination ATA if needed
-                if (!(await ataExists(destAta))) {
-                    transaction.add(createATAInstruction(mint, receiverPubkey, signer));
-                }
-
-                // Transfer NFT
-                transaction.add(createTokenTransferInstruction(sourceAta, destAta, signer, 1));
-            }
-        }
-
-        // Transfer initiator's SOL to receiver (if any)
-        if (currentOffer.initiator.sol > 0) {
-            const lamports = Math.floor(currentOffer.initiator.sol * solanaWeb3.LAMPORTS_PER_SOL);
-            console.log('Adding SOL transfer:', currentOffer.initiator.sol, 'SOL =', lamports, 'lamports');
-            console.log('From:', signer.toBase58(), 'To:', receiverPubkey.toBase58());
-            transaction.add(
-                solanaWeb3.SystemProgram.transfer({
-                    fromPubkey: signer,
-                    toPubkey: receiverPubkey,
-                    lamports: lamports,
-                })
-            );
-        } else {
-            console.log('No SOL to transfer, initiator.sol =', currentOffer.initiator.sol);
-        }
-
-        console.log('Total instructions:', transaction.instructions.length);
-
-        if (transaction.instructions.length === 0) {
-            showError('Nothing to transfer - check console for details');
-            return;
-        }
-
-        // Set fee payer (blockhash fetched fresh in signAndSubmitTransaction)
-        transaction.feePayer = signer;
-
-        showLoading('Please approve the transaction in Phantom...');
-        const result = await signAndSubmitTransaction(transaction);
-
-        if (!result.success) {
-            throw new Error(result.error);
-        }
-
-        // Update database to mark initiator transfer complete
-        showLoading('Updating offer status...');
-        const response = await fetch('/api/swap/complete-transfer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                offerId: currentOffer.id,
-                wallet: connectedWallet,
-                txSignature: result.signature
-            })
-        });
-
-        const data = await response.json();
-        if (data.error) {
-            console.warn('Failed to update database:', data.error);
-        }
-
-        hideLoading();
-
-        elements.resultModalTitle.textContent = 'Transfer Complete!';
-        elements.resultModalMessage.textContent = `Your NFTs have been sent to the receiver.\n\nTx: ${result.signature.slice(0, 20)}...`;
-        elements.resultModal.style.display = 'flex';
-
-        // Refresh offer details
-        loadOfferDetails(currentOffer.id);
-
-    } catch (err) {
-        console.error('Transfer failed:', err);
-        showError('Failed to complete transfer: ' + err.message);
-    }
-}
-
 function showConfirmModal(action) {
     const titles = {
         accept: 'Accept Trade',
@@ -1731,17 +1623,58 @@ function showConfirmModal(action) {
 
 async function executeOfferAction(action) {
     elements.confirmModal.style.display = 'none';
-    showLoading(`Processing ${action}...`);
+
+    const isAccept = action === 'accept' && USE_BLOCKCHAIN;
+    const acceptSteps = [
+        'Approve transaction in Phantom',
+        'Sending assets to escrow',
+        'Sign message to verify wallet',
+        'Releasing escrowed assets',
+        'Completing swap'
+    ];
+
+    if (isAccept) {
+        showSteppedLoading(acceptSteps, 0);
+    } else {
+        showLoading(`Processing ${action}...`);
+    }
 
     try {
         let endpoint, body;
         let blockchainResult = null;
 
-        // Sign a message to verify wallet ownership
+        if (action === 'accept') {
+            // Fetch fresh SOL balance before checking
+            solBalance = await fetchSolBalance(connectedWallet);
+
+            // Check wallet has enough SOL before starting
+            const receiverSol = parseFloat(currentOffer.receiver?.sol) || 0;
+            const requiredSol = receiverSol + 0.005; // SOL to send + tx fees buffer
+            if (solBalance < requiredSol) {
+                showError(`Insufficient SOL balance. You need at least ${requiredSol.toFixed(4)} SOL (${receiverSol > 0 ? receiverSol + ' SOL to send + ' : ''}~0.005 tx fees). Your balance: ${solBalance.toFixed(4)} SOL`);
+                return;
+            }
+
+            // Step 1: Execute blockchain tx first (before auth message to avoid timeout)
+            if (USE_BLOCKCHAIN) {
+                showSteppedLoading(acceptSteps, 0);
+                blockchainResult = await acceptOfferOnChain(currentOffer);
+
+                if (!blockchainResult.success) {
+                    throw new Error(blockchainResult.error || 'Blockchain transaction failed');
+                }
+                showSteppedLoading(acceptSteps, 1);
+            }
+        }
+
+        // Step 2: Sign auth message (after on-chain tx so the 5-min clock starts fresh)
+        if (isAccept) {
+            showSteppedLoading(acceptSteps, 2);
+        } else {
+            showLoading('Please sign the message to verify wallet ownership...');
+        }
         const timestamp = Date.now();
         const message = `Midswap ${action} offer ${currentOffer.id} at ${timestamp}`;
-
-        showLoading('Please sign the message to verify wallet ownership...');
         let signature;
         try {
             signature = await signMessageForAuth(message);
@@ -1750,16 +1683,6 @@ async function executeOfferAction(action) {
         }
 
         if (action === 'accept') {
-            // Execute blockchain swap first
-            if (USE_BLOCKCHAIN) {
-                showLoading('Preparing blockchain transaction...');
-                blockchainResult = await acceptOfferOnChain(currentOffer);
-
-                if (!blockchainResult.success) {
-                    throw new Error(blockchainResult.error || 'Blockchain transaction failed');
-                }
-            }
-
             endpoint = '/api/swap/accept';
             body = {
                 offerId: currentOffer.id,
@@ -1779,7 +1702,11 @@ async function executeOfferAction(action) {
             };
         }
 
-        showLoading('Updating offer status...');
+        if (isAccept) {
+            showSteppedLoading(acceptSteps, 3);
+        } else {
+            showLoading('Updating offer status...');
+        }
 
         const response = await fetch(endpoint, {
             method: 'POST',
@@ -1791,6 +1718,11 @@ async function executeOfferAction(action) {
 
         if (data.error) {
             throw new Error(data.error);
+        }
+
+        if (isAccept) {
+            showSteppedLoading(acceptSteps, 4);
+            await new Promise(r => setTimeout(r, 500));
         }
 
         hideLoading();
@@ -1824,12 +1756,68 @@ async function executeOfferAction(action) {
     }
 }
 
+// Promise-based styled confirm dialog (avoids native confirm())
+function showStyledConfirm(title, message) {
+    return new Promise((resolve) => {
+        // Reuse existing confirm modal if available, otherwise create one
+        let modal = document.getElementById('confirmModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.id = 'inlineConfirmModal';
+            modal.setAttribute('role', 'dialog');
+            modal.setAttribute('aria-modal', 'true');
+            modal.innerHTML = `
+                <div class="modal-content confirm-modal">
+                    <div class="modal-header">
+                        <h2 class="confirm-title"></h2>
+                        <button class="close-modal-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="confirm-message"></p>
+                        <div class="modal-actions">
+                            <button class="confirm-btn">Confirm</button>
+                            <button class="cancel-btn">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        const titleEl = modal.querySelector('.confirm-title, #confirmModalTitle');
+        const msgEl = modal.querySelector('.confirm-message, #confirmModalMessage');
+        const confirmBtn = modal.querySelector('.confirm-btn, #confirmActionBtn');
+        const cancelBtn = modal.querySelector('.cancel-btn, #cancelActionBtn');
+        const closeBtn = modal.querySelector('.close-modal-btn');
+
+        if (titleEl) titleEl.textContent = title;
+        if (msgEl) msgEl.textContent = message;
+        modal.style.display = 'flex';
+
+        function cleanup(result) {
+            modal.style.display = 'none';
+            confirmBtn.removeEventListener('click', onConfirm);
+            cancelBtn.removeEventListener('click', onCancel);
+            if (closeBtn) closeBtn.removeEventListener('click', onCancel);
+            resolve(result);
+        }
+        function onConfirm() { cleanup(true); }
+        function onCancel() { cleanup(false); }
+
+        confirmBtn.addEventListener('click', onConfirm);
+        cancelBtn.addEventListener('click', onCancel);
+        if (closeBtn) closeBtn.addEventListener('click', onCancel);
+    });
+}
+
 // Cancel offer from offers list
 window.cancelOffer = async function(offerId, event) {
     event.preventDefault();
     event.stopPropagation();
 
-    if (!confirm('Are you sure you want to cancel this offer?')) {
+    const confirmed = await showStyledConfirm('Cancel Offer', 'Are you sure you want to cancel this offer?');
+    if (!confirmed) {
         return;
     }
 
@@ -1881,9 +1869,26 @@ window.cancelOffer = async function(offerId, event) {
 
 function showLoading(message) {
     if (elements.loading) {
-        elements.loading.textContent = message || 'Loading...';
-        elements.loading.style.display = 'block';
+        elements.loading.innerHTML = `<div class="spinner"></div><div class="loading-text">${escapeHtml(message || 'Loading...')}</div>`;
+        elements.loading.style.display = 'flex';
+        elements.loading.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+    if (elements.error) {
+        elements.error.style.display = 'none';
+    }
+}
+
+function showSteppedLoading(steps, activeIndex) {
+    if (!elements.loading) return;
+    const stepsHtml = steps.map((step, i) => {
+        let cls = 'pending';
+        if (i < activeIndex) cls = 'done';
+        else if (i === activeIndex) cls = 'active';
+        return `<div class="loading-step ${cls}">${escapeHtml(step)}</div>`;
+    }).join('');
+    elements.loading.innerHTML = `<div class="spinner"></div><div class="loading-text">${escapeHtml(steps[activeIndex] || 'Processing...')}<div class="loading-steps">${stepsHtml}</div></div>`;
+    elements.loading.style.display = 'flex';
+    elements.loading.scrollIntoView({ behavior: 'smooth', block: 'center' });
     if (elements.error) {
         elements.error.style.display = 'none';
     }
@@ -1908,6 +1913,17 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = String(text);
     return div.innerHTML;
+}
+
+function sanitizeImageUrl(url) {
+    if (!url) return PLACEHOLDER_IMAGE;
+    try {
+        const parsed = new URL(url);
+        if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+            return escapeHtml(url);
+        }
+    } catch {}
+    return PLACEHOLDER_IMAGE;
 }
 
 // Format time remaining as countdown
@@ -2272,9 +2288,9 @@ function createBubblegumTransferInstruction(
         keys.push({ pubkey: new solanaWeb3.PublicKey(proofNode), isSigner: false, isWritable: false });
     }
 
-    // Bubblegum transfer instruction discriminator: [163, 52, 200, 231, 140, 3, 69, 186]
+    // Bubblegum transfer instruction discriminator
     // Followed by: root (32 bytes), dataHash (32 bytes), creatorHash (32 bytes), nonce (8 bytes), index (4 bytes)
-    const discriminator = new Uint8Array([163, 52, 200, 231, 140, 3, 69, 186]);
+    const discriminator = new Uint8Array(BUBBLEGUM_TRANSFER_DISCRIMINATOR);
 
     // Convert hex strings to bytes
     const rootBytes = hexToBytes(rootHash);
@@ -2330,7 +2346,7 @@ function createMplCoreTransferInstruction(assetId, fromPubkey, toPubkey, collect
     const logWrapper = new solanaWeb3.PublicKey(SPL_NOOP_PROGRAM_ID);
 
     // MPL Core TransferV1 uses discriminator 14, followed by Option<CompressionProof> = None (0)
-    const data = new Uint8Array([14, 0]); // 14 = TransferV1, 0 = None for compression proof
+    const data = new Uint8Array(MPL_CORE_TRANSFER_DISCRIMINATOR);
 
     // All accounts in order per MPL Core TransferV1
     const keys = [
@@ -2480,91 +2496,6 @@ async function signAndSubmitTransaction(transaction, retryCount = 0) {
     }
 }
 
-// Build escrow transaction for creating offer
-// This transfers initiator's NFTs to the receiver and collects fee
-// For a trustless swap, we use direct P2P transfer with fee collection
-async function buildSwapTransaction(offer, isAccepting = false) {
-    const connection = getSolanaConnection();
-    const provider = getPhantomProvider();
-    const signer = provider.publicKey;
-    const feeWallet = getFeeWallet();
-
-    const transaction = new solanaWeb3.Transaction();
-
-    if (isAccepting) {
-        // Receiver is accepting - this is the atomic swap
-        const initiatorPubkey = new solanaWeb3.PublicKey(offer.initiator.wallet);
-        const receiverPubkey = new solanaWeb3.PublicKey(offer.receiver.wallet);
-
-        // 1. Pay platform fee (if not free)
-        if (offer.fee > 0) {
-            const feeLamports = Math.floor(offer.fee * solanaWeb3.LAMPORTS_PER_SOL);
-            transaction.add(
-                solanaWeb3.SystemProgram.transfer({
-                    fromPubkey: signer,
-                    toPubkey: feeWallet,
-                    lamports: feeLamports,
-                })
-            );
-        }
-
-        // 2. Transfer receiver's NFTs to initiator
-        for (const nft of (offer.receiver.nftDetails || [])) {
-            const mint = new solanaWeb3.PublicKey(nft.id);
-            const sourceAta = await getATA(mint, receiverPubkey);
-            const destAta = await getATA(mint, initiatorPubkey);
-
-            // Create destination ATA if needed
-            if (!(await ataExists(destAta))) {
-                transaction.add(createATAInstruction(mint, initiatorPubkey, signer));
-            }
-
-            // Transfer NFT
-            transaction.add(createTokenTransferInstruction(sourceAta, destAta, signer, 1));
-        }
-
-        // 3. Transfer receiver's SOL to initiator (if any)
-        if (offer.receiver.sol > 0) {
-            const lamports = Math.floor(offer.receiver.sol * solanaWeb3.LAMPORTS_PER_SOL);
-            transaction.add(
-                solanaWeb3.SystemProgram.transfer({
-                    fromPubkey: signer,
-                    toPubkey: initiatorPubkey,
-                    lamports: lamports,
-                })
-            );
-        }
-
-        // 4. Transfer initiator's NFTs to receiver (initiator pre-signed this part)
-        // Note: For full trustless, initiator would need to sign too, or we use escrow
-        // For now, we rely on the API to verify and handle the initiator's side
-
-    } else {
-        // Initiator is creating - just transfer SOL if any (NFTs handled separately)
-        if (offer.initiator?.sol > 0) {
-            const receiverPubkey = new solanaWeb3.PublicKey(offer.receiver.wallet);
-            const lamports = Math.floor(offer.initiator.sol * solanaWeb3.LAMPORTS_PER_SOL);
-
-            // For direct P2P, transfer goes to receiver when they accept
-            // For now, just prepare the offer in database
-        }
-    }
-
-    const { blockhash } = await getLatestBlockhash();
-    transaction.recentBlockhash = blockhash;
-    transaction.feePayer = signer;
-
-    return transaction;
-}
-
-// Create offer with blockchain - for P2P swap, the actual transfer happens on accept
-async function createOfferOnChain(offerId, receiverWallet, initiatorSol, receiverSol, nftMints) {
-    // For P2P swaps, we don't escrow on create - we do atomic swap on accept
-    // Just return success to continue with database record
-    console.log('Offer created - atomic swap will execute on accept');
-    return { success: true, mode: 'p2p-swap' };
-}
-
 // Execute atomic P2P swap when receiver accepts
 async function executeAtomicSwap(offer) {
     const connection = getSolanaConnection();
@@ -2596,11 +2527,15 @@ async function executeAtomicSwap(offer) {
         // Transfer receiver's NFTs to escrow (not directly to initiator)
         const receiverNfts = offer.receiver.nftDetails || [];
         console.log('Receiver NFTs to escrow:', receiverNfts.length);
+
+        // Prefetch all asset data in parallel
+        const swapAssetResults = await Promise.all(receiverNfts.map(nft => getAssetWithProof(nft.id)));
+        const swapAssetMap = new Map(receiverNfts.map((nft, i) => [nft.id, swapAssetResults[i]]));
+
         for (const nft of receiverNfts) {
             console.log('Processing NFT:', nft.id, nft.name);
 
-            // Check asset type
-            const asset = await getAssetWithProof(nft.id);
+            const asset = swapAssetMap.get(nft.id);
             console.log('Asset interface:', asset?.interface);
             console.log('Asset compression:', asset?.compression);
 
@@ -2701,6 +2636,10 @@ async function executeAtomicSwap(offer) {
         showLoading('Please approve the transaction in Phantom...');
         const result = await signAndSubmitTransaction(transaction);
 
+        if (result.success) {
+            showLoading('Transaction submitted, confirming on-chain...');
+        }
+
         return result;
 
     } catch (err) {
@@ -2740,12 +2679,13 @@ async function retryRelease(offerId) {
     }
 
     try {
-        showLoading('Signing retry request...');
+        const retrySteps = ['Sign message to verify wallet', 'Retrying escrow release'];
+        showSteppedLoading(retrySteps, 0);
         const timestamp = Date.now();
         const message = `Midswap retry-release offer ${offerId} at ${timestamp}`;
         const signature = await signMessageForAuth(message);
 
-        showLoading('Retrying escrow release...');
+        showSteppedLoading(retrySteps, 1);
         const response = await fetch('/api/swap/retry-release', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2782,10 +2722,3 @@ async function retryRelease(offerId) {
 // Make retryRelease available from inline onclick
 window.retryRelease = retryRelease;
 
-// Cancel offer - no blockchain action needed for P2P model
-async function cancelOfferOnChain(offerId) {
-    // For P2P swaps, cancel is just a database update
-    // No assets are escrowed, so nothing to return
-    console.log('Offer cancelled:', offerId);
-    return { success: true };
-}

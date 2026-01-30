@@ -1,4 +1,5 @@
 // Vercel Serverless Function - Get Offers for a Wallet
+import { isRateLimitedKV, getClientIp } from './utils.js';
 
 function validateSolanaAddress(address) {
     if (!address || typeof address !== 'string') return false;
@@ -16,6 +17,11 @@ export default async function handler(req, res) {
 
     if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
         return res.status(500).json({ error: 'KV not configured' });
+    }
+
+    const clientIp = getClientIp(req);
+    if (await isRateLimitedKV(clientIp, 'offers', 30, 60000, KV_REST_API_URL, KV_REST_API_TOKEN)) {
+        return res.status(429).json({ error: 'Too many requests. Try again later.' });
     }
 
     try {
@@ -38,37 +44,36 @@ export default async function handler(req, res) {
             return res.status(200).json({ offers: [] });
         }
 
-        // Fetch all offers
-        const offers = [];
+        // Fetch all offers in parallel
         const now = Date.now();
+        const validOfferIds = offerIds.filter(id => /^offer_[a-f0-9]{32}$/.test(id));
 
-        for (const offerId of offerIds) {
-            const offerRes = await fetch(`${KV_REST_API_URL}/get/offer:${offerId}`, {
-                headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-            });
-            const offerData = await offerRes.json();
+        const offerResults = await Promise.all(validOfferIds.map(async (offerId) => {
+            try {
+                const offerRes = await fetch(`${KV_REST_API_URL}/get/offer:${offerId}`, {
+                    headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+                });
+                const offerData = await offerRes.json();
 
-            if (offerData.result) {
-                const offer = typeof offerData.result === 'string' ?
-                    JSON.parse(offerData.result) : offerData.result;
+                if (offerData.result) {
+                    const offer = typeof offerData.result === 'string' ?
+                        JSON.parse(offerData.result) : offerData.result;
 
-                // Check if offer has expired
-                if (offer.status === 'pending' && offer.expiresAt && offer.expiresAt < now) {
-                    offer.status = 'expired';
-                    // Update the expired status in KV
-                    await fetch(`${KV_REST_API_URL}/set/offer:${offerId}`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(offer)
-                    });
+                    // Show expired status to frontend without mutating KV.
+                    // Actual expiry handling (escrow return) is done by cleanup-expired.js.
+                    if (offer.status === 'pending' && offer.expiresAt && offer.expiresAt < now) {
+                        offer.status = 'expired';
+                    }
+
+                    return offer;
                 }
-
-                offers.push(offer);
+                return null;
+            } catch {
+                return null;
             }
-        }
+        }));
+
+        const offers = offerResults.filter(Boolean);
 
         // Sort by createdAt descending (newest first)
         offers.sort((a, b) => b.createdAt - a.createdAt);

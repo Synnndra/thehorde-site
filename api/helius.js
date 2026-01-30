@@ -4,6 +4,14 @@
 const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
 const RATE_LIMIT_MAX = 30; // Max 30 requests per minute per IP
+let lastRateLimitCleanup = Date.now();
+const RATE_LIMIT_CLEANUP_INTERVAL = 5 * 60 * 1000; // Clean up every 5 minutes
+
+// Response cache for read-only RPC methods (short-lived)
+const responseCache = new Map();
+const CACHE_TTL = 30000; // 30 seconds
+const CACHEABLE_METHODS = ['getAsset', 'getAssetsByOwner', 'getAssetsByGroup', 'getAssetProof'];
+let lastCacheCleanup = Date.now();
 
 // Allowed collection addresses (whitelist)
 const ALLOWED_COLLECTIONS = [
@@ -24,6 +32,30 @@ const ALLOWED_METHODS = [
     'getAccountInfo',
     'getTokenAccountsByOwner'
 ];
+
+function cleanupStaleEntries() {
+    const now = Date.now();
+
+    // Clean rate limit map
+    if (now - lastRateLimitCleanup > RATE_LIMIT_CLEANUP_INTERVAL) {
+        for (const [ip, record] of rateLimitMap) {
+            if (now - record.timestamp > RATE_LIMIT_WINDOW) {
+                rateLimitMap.delete(ip);
+            }
+        }
+        lastRateLimitCleanup = now;
+    }
+
+    // Clean response cache
+    if (now - lastCacheCleanup > CACHE_TTL) {
+        for (const [key, entry] of responseCache) {
+            if (now - entry.timestamp > CACHE_TTL) {
+                responseCache.delete(key);
+            }
+        }
+        lastCacheCleanup = now;
+    }
+}
 
 function isRateLimited(ip) {
     const now = Date.now();
@@ -59,12 +91,25 @@ export default async function handler(req, res) {
         return res.status(429).json({ error: 'Too many requests. Try again later.' });
     }
 
+    // Periodically clean up stale entries
+    cleanupStaleEntries();
+
     try {
         // Check if this is a JSON-RPC request (from collage-maker)
         if (req.body.jsonrpc && req.body.method) {
             // Validate method is allowed
             if (!ALLOWED_METHODS.includes(req.body.method)) {
                 return res.status(400).json({ error: 'Method not allowed' });
+            }
+
+            // Check response cache for cacheable methods
+            const isCacheable = CACHEABLE_METHODS.includes(req.body.method);
+            if (isCacheable) {
+                const cacheKey = JSON.stringify({ method: req.body.method, params: req.body.params });
+                const cached = responseCache.get(cacheKey);
+                if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+                    return res.status(200).json(cached.data);
+                }
             }
 
             const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`, {
@@ -74,6 +119,13 @@ export default async function handler(req, res) {
             });
 
             const data = await response.json();
+
+            // Cache the response for cacheable methods
+            if (isCacheable && data.result) {
+                const cacheKey = JSON.stringify({ method: req.body.method, params: req.body.params });
+                responseCache.set(cacheKey, { data, timestamp: Date.now() });
+            }
+
             return res.status(200).json(data);
         }
 
