@@ -518,3 +518,59 @@ export async function releaseEscrowToReceiver(offer, escrowPrivateKeyBase58, hel
 
     return executeEscrowTransaction(transaction, escrowKeypair, heliusApiKey);
 }
+
+export async function releaseEscrowToInitiator(offer, escrowPrivateKeyBase58, heliusApiKey) {
+    const escrowKeypair = Keypair.fromSecretKey(bs58.decode(escrowPrivateKeyBase58));
+    const initiatorPubkey = new PublicKey(offer.initiator.wallet);
+    const nfts = offer.receiver.nftDetails || [];
+    const solAmount = offer.receiver.sol || 0;
+
+    if (nfts.length === 0 && solAmount === 0) {
+        return null;
+    }
+
+    const transaction = new Transaction();
+
+    // Transfer receiver's escrowed SOL to initiator
+    if (solAmount > 0) {
+        transaction.add(SystemProgram.transfer({
+            fromPubkey: escrowKeypair.publicKey,
+            toPubkey: initiatorPubkey,
+            lamports: Math.floor(solAmount * LAMPORTS_PER_SOL),
+        }));
+    }
+
+    // Transfer receiver's escrowed NFTs to initiator
+    const nftTx = await transferNftsFromEscrow(nfts, escrowKeypair, initiatorPubkey, heliusApiKey);
+    nftTx.instructions.forEach(ix => transaction.add(ix));
+
+    return executeEscrowTransaction(transaction, escrowKeypair, heliusApiKey);
+}
+
+export async function returnReceiverEscrowAssets(offer, escrowPrivateKeyBase58, heliusApiKey) {
+    const escrowKeypair = Keypair.fromSecretKey(bs58.decode(escrowPrivateKeyBase58));
+    const receiverPubkey = new PublicKey(offer.receiver.wallet);
+    const nfts = offer.receiver.nftDetails || [];
+    const solAmount = offer.receiver.sol || 0;
+
+    if (nfts.length === 0 && solAmount === 0) {
+        return null;
+    }
+
+    const transaction = new Transaction();
+
+    // Return receiver's SOL back to receiver
+    if (solAmount > 0) {
+        transaction.add(SystemProgram.transfer({
+            fromPubkey: escrowKeypair.publicKey,
+            toPubkey: receiverPubkey,
+            lamports: Math.floor(solAmount * LAMPORTS_PER_SOL),
+        }));
+    }
+
+    // Return receiver's NFTs back to receiver
+    const nftTx = await transferNftsFromEscrow(nfts, escrowKeypair, receiverPubkey, heliusApiKey);
+    nftTx.instructions.forEach(ix => transaction.add(ix));
+
+    return executeEscrowTransaction(transaction, escrowKeypair, heliusApiKey);
+}

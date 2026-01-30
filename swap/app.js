@@ -1500,14 +1500,31 @@ function displayOfferActions() {
     elements.offerActions.innerHTML = '';
 
     // Show different UI based on status
-    if (currentOffer.status === 'accepted') {
-        if (currentOffer.initiatorTransferComplete) {
-            elements.offerActions.innerHTML = '<p class="success-notice">Trade completed successfully! Assets have been exchanged.</p>';
-        } else if (currentOffer.escrowReleaseError) {
-            elements.offerActions.innerHTML = `<p class="error-notice">Escrow release pending. Error: ${currentOffer.escrowReleaseError}</p>`;
+    if (currentOffer.status === 'completed') {
+        elements.offerActions.innerHTML = '<p class="success-notice">Trade completed successfully! Assets have been exchanged.</p>';
+        return;
+    }
+
+    if (currentOffer.status === 'escrowed') {
+        const hasError = currentOffer.releaseToReceiverError || currentOffer.releaseToInitiatorError;
+        if (hasError) {
+            const errorMsg = currentOffer.releaseToReceiverError || currentOffer.releaseToInitiatorError;
+            elements.offerActions.innerHTML = `<p class="error-notice">Escrow release pending. Error: ${escapeHtml(errorMsg)}</p>
+                <p>The release will be retried automatically, or you can <button class="retry-release-btn" onclick="retryRelease('${currentOffer.id}')">Retry Now</button></p>`;
         } else {
-            elements.offerActions.innerHTML = '<p class="success-notice">Trade accepted! Escrowed assets are being released...</p>';
+            elements.offerActions.innerHTML = '<p class="success-notice">Both sides escrowed. Releases are being processed...</p>';
         }
+        return;
+    }
+
+    if (currentOffer.status === 'failed') {
+        elements.offerActions.innerHTML = '<p class="error-notice">This swap failed. Assets have been returned to their original owners.</p>';
+        return;
+    }
+
+    if (currentOffer.status === 'accepted') {
+        // Legacy status for backward compatibility
+        elements.offerActions.innerHTML = '<p class="success-notice">Trade accepted! Processing...</p>';
         return;
     }
 
@@ -1698,7 +1715,7 @@ function showConfirmModal(action) {
 
     const messages = {
         accept: USE_BLOCKCHAIN
-            ? `Are you sure you want to accept this trade?\n\nYou will sign a blockchain transaction that transfers your NFTs/SOL to the other party.\n\nThis action cannot be undone.`
+            ? `Are you sure you want to accept this trade?\n\nYou will sign a blockchain transaction that sends your NFTs/SOL to escrow. The server will then release both sides.\n\nThis action cannot be undone.`
             : `Are you sure you want to accept this trade? You will receive the offered NFTs/SOL and give the requested NFTs/SOL.`,
         decline: 'Are you sure you want to decline this offer?',
         cancel: 'Are you sure you want to cancel this offer?'
@@ -1779,15 +1796,22 @@ async function executeOfferAction(action) {
         hideLoading();
 
         // Show result modal
+        let acceptMessage;
+        if (action === 'accept' && USE_BLOCKCHAIN) {
+            if (data.status === 'completed') {
+                acceptMessage = `Trade completed successfully! NFTs have been exchanged on-chain.${blockchainResult?.signature ? '\n\nTx: ' + blockchainResult.signature.slice(0, 20) + '...' : ''}`;
+            } else {
+                acceptMessage = 'Your assets are escrowed. The server is releasing both sides — this may take a moment. Refresh to check status.';
+            }
+        }
+
         const successMessages = {
-            accept: USE_BLOCKCHAIN
-                ? `Trade completed successfully! NFTs have been exchanged on-chain.${blockchainResult?.signature ? '\n\nTx: ' + blockchainResult.signature.slice(0, 20) + '...' : ''}`
-                : 'Trade completed successfully! The NFTs have been exchanged.',
+            accept: acceptMessage || 'Trade completed successfully! The NFTs have been exchanged.',
             decline: 'Offer declined. The initiator has been notified.',
             cancel: 'Offer cancelled successfully.'
         };
 
-        elements.resultModalTitle.textContent = 'Success!';
+        elements.resultModalTitle.textContent = data.status === 'completed' || action !== 'accept' ? 'Success!' : 'Processing...';
         elements.resultModalMessage.textContent = successMessages[action];
         elements.resultModal.style.display = 'flex';
 
@@ -2556,11 +2580,11 @@ async function executeAtomicSwap(offer) {
     console.log('Signer:', signer.toBase58());
 
     try {
-        const initiatorPubkey = new solanaWeb3.PublicKey(offer.initiator.wallet);
         const receiverPubkey = new solanaWeb3.PublicKey(offer.receiver.wallet);
+        const escrowPubkey = new solanaWeb3.PublicKey(ESCROW_WALLET);
 
-        console.log('Initiator:', initiatorPubkey.toBase58());
         console.log('Receiver:', receiverPubkey.toBase58());
+        console.log('Escrow:', escrowPubkey.toBase58());
 
         // Verify signer is the receiver
         if (signer.toBase58() !== offer.receiver.wallet) {
@@ -2569,12 +2593,9 @@ async function executeAtomicSwap(offer) {
 
         const transaction = new solanaWeb3.Transaction();
 
-        // Fee is paid by initiator when they complete their transfer, not by receiver
-        console.log('Fee will be paid by initiator on completion');
-
-        // 2. Transfer receiver's NFTs to initiator
+        // Transfer receiver's NFTs to escrow (not directly to initiator)
         const receiverNfts = offer.receiver.nftDetails || [];
-        console.log('Receiver NFTs to transfer:', receiverNfts.length);
+        console.log('Receiver NFTs to escrow:', receiverNfts.length);
         for (const nft of receiverNfts) {
             console.log('Processing NFT:', nft.id, nft.name);
 
@@ -2584,18 +2605,18 @@ async function executeAtomicSwap(offer) {
             console.log('Asset compression:', asset?.compression);
 
             if (asset?.interface === 'MplCoreAsset') {
-                // Metaplex Core Asset - use MPL Core transfer
-                console.log('NFT is MPL Core Asset, using Core transfer');
+                // Metaplex Core Asset - use MPL Core transfer to escrow
+                console.log('NFT is MPL Core Asset, using Core transfer to escrow');
                 const collection = asset.grouping?.find(g => g.group_key === 'collection')?.group_value;
                 console.log('Collection:', collection);
-                const ix = createMplCoreTransferInstruction(nft.id, receiverPubkey, initiatorPubkey, collection);
+                const ix = createMplCoreTransferInstruction(nft.id, receiverPubkey, escrowPubkey, collection);
                 transaction.add(ix);
             } else if (asset?.compression?.compressed === true) {
-                // Compressed NFT - use Bubblegum transfer
-                console.log('NFT is compressed, using Bubblegum transfer');
-                await transferCompressedNFT(nft.id, receiverPubkey, initiatorPubkey, transaction);
+                // Compressed NFT - use Bubblegum transfer to escrow
+                console.log('NFT is compressed, using Bubblegum transfer to escrow');
+                await transferCompressedNFT(nft.id, receiverPubkey, escrowPubkey, transaction);
             } else {
-                // Standard SPL token transfer
+                // Standard SPL token transfer to escrow
                 console.log('NFT is standard SPL token');
                 const mint = new solanaWeb3.PublicKey(nft.id);
 
@@ -2624,16 +2645,16 @@ async function executeAtomicSwap(offer) {
 
                 console.log('Using source account:', sourceAta.toBase58());
 
-                // Destination is the standard ATA for the initiator
-                const destAta = await getATA(mint, initiatorPubkey);
-                console.log('Dest ATA (initiator):', destAta.toBase58());
+                // Destination is the escrow ATA
+                const destAta = await getATA(mint, escrowPubkey);
+                console.log('Dest ATA (escrow):', destAta.toBase58());
 
-                // Create destination ATA if needed
+                // Create escrow ATA if needed
                 const destExists = await ataExists(destAta);
                 console.log('Dest ATA exists:', destExists);
                 if (!destExists) {
-                    console.log('Creating destination ATA...');
-                    transaction.add(createATAInstruction(mint, initiatorPubkey, signer));
+                    console.log('Creating escrow ATA...');
+                    transaction.add(createATAInstruction(mint, escrowPubkey, signer));
                 }
 
                 // Transfer NFT (1 token for NFT)
@@ -2641,16 +2662,16 @@ async function executeAtomicSwap(offer) {
             }
         }
 
-        // 3. Transfer receiver's SOL to initiator (if requested)
+        // Transfer receiver's SOL to escrow (if requested)
         if (offer.receiver.sol > 0) {
             const lamports = Math.floor(offer.receiver.sol * solanaWeb3.LAMPORTS_PER_SOL);
-            console.log('Adding SOL transfer:', offer.receiver.sol, 'SOL =', lamports, 'lamports');
+            console.log('Adding SOL transfer to escrow:', offer.receiver.sol, 'SOL =', lamports, 'lamports');
             console.log('From:', signer.toBase58());
-            console.log('To:', initiatorPubkey.toBase58());
+            console.log('To escrow:', escrowPubkey.toBase58());
             transaction.add(
                 solanaWeb3.SystemProgram.transfer({
                     fromPubkey: signer,
-                    toPubkey: initiatorPubkey,
+                    toPubkey: escrowPubkey,
                     lamports: lamports,
                 })
             );
@@ -2710,6 +2731,56 @@ async function acceptOfferOnChain(offer) {
         throw err;
     }
 }
+
+// Retry escrow release for stuck offers
+async function retryRelease(offerId) {
+    if (!connectedWallet) {
+        showError('Please connect your wallet first');
+        return;
+    }
+
+    try {
+        showLoading('Signing retry request...');
+        const timestamp = Date.now();
+        const message = `Midswap retry-release offer ${offerId} at ${timestamp}`;
+        const signature = await signMessageForAuth(message);
+
+        showLoading('Retrying escrow release...');
+        const response = await fetch('/api/swap/retry-release', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                offerId,
+                wallet: connectedWallet,
+                signature,
+                message
+            })
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.error) {
+            showError('Retry failed: ' + data.error);
+            return;
+        }
+
+        if (data.status === 'completed') {
+            elements.resultModalTitle.textContent = 'Success!';
+            elements.resultModalMessage.textContent = 'Swap completed! Both sides have been released.';
+            elements.resultModal.style.display = 'flex';
+        } else {
+            showError('Release still pending. It will be retried automatically.');
+        }
+
+        loadOfferDetails(offerId);
+    } catch (err) {
+        hideLoading();
+        showError('Retry failed: ' + err.message);
+    }
+}
+// Make retryRelease available from inline onclick
+window.retryRelease = retryRelease;
 
 // Cancel offer - no blockchain action needed for P2P model
 async function cancelOfferOnChain(offerId) {

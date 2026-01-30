@@ -1,4 +1,4 @@
-// Vercel Serverless Function - Accept Swap Offer with Escrow Release
+// Vercel Serverless Function - Accept Swap Offer with Two-Phase Escrow Release
 import {
     isRateLimitedKV,
     getClientIp,
@@ -12,7 +12,8 @@ import {
     acquireLock,
     releaseLock,
     verifyTransactionConfirmed,
-    releaseEscrowToReceiver
+    releaseEscrowToReceiver,
+    releaseEscrowToInitiator
 } from './utils.js';
 
 export default async function handler(req, res) {
@@ -104,8 +105,7 @@ export default async function handler(req, res) {
             return res.status(403).json({ error: 'Only the receiver can accept this offer' });
         }
 
-        // Verify receiver's transaction if they have assets to send
-        // This confirms the receiver already transferred their NFTs to escrow on-chain
+        // Verify receiver's transaction (receiver sent their NFTs to escrow)
         if (txSignature && HELIUS_API_KEY) {
             const txVerified = await verifyTransactionConfirmed(txSignature, HELIUS_API_KEY);
             if (!txVerified) {
@@ -119,38 +119,80 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Transaction signature required' });
         }
 
-        // Release escrow to receiver
-        let escrowReleaseTx = null;
-        if (ESCROW_PRIVATE_KEY && HELIUS_API_KEY) {
-            try {
-                escrowReleaseTx = await releaseEscrowToReceiver(offer, ESCROW_PRIVATE_KEY, HELIUS_API_KEY);
-                if (escrowReleaseTx) {
-                    offer.escrowReleaseTxSignature = escrowReleaseTx;
-                    offer.initiatorTransferComplete = true;
-                }
-            } catch (escrowErr) {
-                console.error('Escrow release failed:', escrowErr);
-                offer.escrowReleaseError = escrowErr.message;
-                offer.initiatorTransferComplete = false;
-            }
-        }
-
-        // Update offer
-        offer.status = 'accepted';
-        offer.acceptedAt = now;
+        // === CRASH-SAFE CHECKPOINT: Set status to 'escrowed' ===
+        // Both sides' assets are now in escrow. If the server crashes after this point,
+        // retry-release or cleanup can complete the swap.
+        offer.status = 'escrowed';
+        offer.escrowedAt = now;
         await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         // Mark signature as used
         await markSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN);
+
+        // === TWO-PHASE RELEASE ===
+        let releaseToReceiverTx = null;
+        let releaseToInitiatorTx = null;
+        let releaseErrors = [];
+
+        if (ESCROW_PRIVATE_KEY && HELIUS_API_KEY) {
+            // Phase 1: Release initiator's escrowed assets to receiver
+            try {
+                releaseToReceiverTx = await releaseEscrowToReceiver(offer, ESCROW_PRIVATE_KEY, HELIUS_API_KEY);
+                if (releaseToReceiverTx) {
+                    offer.escrowReleaseTxSignature = releaseToReceiverTx;
+                    offer.releaseToReceiverComplete = true;
+                } else {
+                    // No assets to release (initiator had nothing escrowed)
+                    offer.releaseToReceiverComplete = true;
+                }
+            } catch (err) {
+                console.error('Release to receiver failed:', err);
+                releaseErrors.push({ phase: 'releaseToReceiver', error: err.message });
+                offer.releaseToReceiverComplete = false;
+                offer.releaseToReceiverError = err.message;
+            }
+
+            // Phase 2: Release receiver's escrowed assets to initiator
+            try {
+                releaseToInitiatorTx = await releaseEscrowToInitiator(offer, ESCROW_PRIVATE_KEY, HELIUS_API_KEY);
+                if (releaseToInitiatorTx) {
+                    offer.escrowReleaseToInitiatorTxSignature = releaseToInitiatorTx;
+                    offer.releaseToInitiatorComplete = true;
+                } else {
+                    // No assets to release (receiver had nothing escrowed)
+                    offer.releaseToInitiatorComplete = true;
+                }
+            } catch (err) {
+                console.error('Release to initiator failed:', err);
+                releaseErrors.push({ phase: 'releaseToInitiator', error: err.message });
+                offer.releaseToInitiatorComplete = false;
+                offer.releaseToInitiatorError = err.message;
+            }
+
+            // Set final status based on release results
+            if (offer.releaseToReceiverComplete && offer.releaseToInitiatorComplete) {
+                offer.status = 'completed';
+                offer.completedAt = Date.now();
+            }
+            // If either failed, status stays 'escrowed' for retry
+        }
+
+        // Save final state
+        await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         // Release lock
         await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         return res.status(200).json({
             success: true,
-            message: escrowReleaseTx ? 'Swap completed!' : 'Offer accepted.',
+            status: offer.status,
+            message: offer.status === 'completed'
+                ? 'Swap completed! Both sides have been released.'
+                : 'Assets escrowed. Release is pending — check back shortly.',
             offer,
-            escrowReleaseTx
+            releaseToReceiverTx,
+            releaseToInitiatorTx,
+            releaseErrors: releaseErrors.length > 0 ? releaseErrors : undefined
         });
 
     } catch (error) {
