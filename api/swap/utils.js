@@ -399,25 +399,37 @@ export async function getAssetProof(assetId, apiKey) {
     return data.result;
 }
 
-export async function verifyTransactionConfirmed(signature, apiKey) {
+export async function verifyTransactionConfirmed(signature, apiKey, maxAttempts = 12, intervalMs = 5000) {
     apiKey = cleanApiKey(apiKey);
-    try {
-        const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                jsonrpc: '2.0',
-                id: 1,
-                method: 'getTransaction',
-                params: [signature, { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 0 }]
-            })
-        });
-        const data = await response.json();
-        return data.result?.meta?.err === null;
-    } catch (err) {
-        console.error('Transaction verification error:', err);
-        return false;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 1,
+                    method: 'getTransaction',
+                    params: [signature, { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 0 }]
+                })
+            });
+            const data = await response.json();
+            if (data.result?.meta?.err === null) {
+                return true;
+            }
+            if (data.result?.meta?.err) {
+                // Transaction failed on-chain — no point retrying
+                return false;
+            }
+        } catch (err) {
+            console.error(`Transaction verification attempt ${attempt} error:`, err);
+        }
+        // Transaction not found yet (not finalized) — wait and retry
+        if (attempt < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, intervalMs));
+        }
     }
+    return false;
 }
 
 // ========== Transaction Content Verification ==========

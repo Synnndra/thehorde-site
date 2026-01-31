@@ -91,6 +91,7 @@ async function createOffer() {
         'Approve escrow transaction in Phantom',
         'Sending assets to escrow',
         'Sign message to verify wallet',
+        'Confirming transaction on-chain',
         'Saving offer'
     ];
     showSteppedLoading(createSteps, 0);
