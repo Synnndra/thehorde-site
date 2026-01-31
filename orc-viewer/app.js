@@ -186,28 +186,14 @@ function calculateRarity() {
     // Trait weights for rarity calculation
     const traitWeights = { head: 2, skin: 2, clothing: 1.5, background: 1.5 };
 
-    // Collect trait values from legendary-boosted orcs
-    const LEGENDARY_ORCS = [328, 265, 233, 212];
-    const boostedTraits = new Set();
-    allNFTs.forEach(nft => {
-        if (LEGENDARY_ORCS.includes(nft.number)) {
-            Object.entries(nft.traits).forEach(([type, value]) => {
-                boostedTraits.add(`${type.toLowerCase()}:${value}`);
-            });
-        }
-    });
-
     // Calculate rarity score for each NFT
-    // Traits carried by legendary orcs get a boosted multiplier collection-wide
-    const LEGENDARY_TRAIT_MULTIPLIER = 10;
     allNFTs.forEach(nft => {
         let score = 0;
         Object.entries(nft.traits).forEach(([type, value]) => {
             const count = traitCounts[type]?.[value] || 0;
             if (count > 0) {
                 const weight = traitWeights[type.toLowerCase()] || 1;
-                const legendaryBoost = boostedTraits.has(`${type.toLowerCase()}:${value}`) ? LEGENDARY_TRAIT_MULTIPLIER : 1;
-                score += weight * legendaryBoost * (1 / (count / total));
+                score += weight * (1 / (count / total));
             }
         });
         nft.rarityScore = score;
@@ -220,8 +206,9 @@ function calculateRarity() {
     });
 
     // Assign tier based on rank
+    const LEGENDARY_OVERRIDES = [328, 265, 233, 212];
     allNFTs.forEach(nft => {
-        if (nft.rarityRank <= 10) {
+        if (LEGENDARY_OVERRIDES.includes(nft.number) || nft.rarityRank <= 10) {
             nft.rarityTier = 'legendary';
         } else if (nft.rarityRank <= 40) {
             nft.rarityTier = 'epic';
