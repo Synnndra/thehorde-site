@@ -84,11 +84,7 @@
     <!-- Solana Web3.js for blockchain transactions -->
     <script defer src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <!-- Extract Buffer from web3.js bundle for wallets that expect it globally (e.g. Solflare) -->
-    <script defer>
-    if (typeof Buffer === 'undefined') {
-        try { window.Buffer = new solanaWeb3.PublicKey('11111111111111111111111111111111').toBuffer().constructor; } catch(e) {}
-    }
-    </script>
+    <script defer src="/swap/buffer-polyfill.js"></script>
     <script defer src="/swap/constants.js"></script>
     <script defer src="/swap/ui-utils.js"></script>
     <script defer src="/swap/blockchain.js"></script>
