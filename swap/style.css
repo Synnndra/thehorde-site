@@ -1713,6 +1713,14 @@ body {
     color: #ef5350;
     margin-top: 10px;
 }
+.solscan-link {
+    color: #64b5f6;
+    text-decoration: none;
+    font-size: 14px;
+}
+.solscan-link:hover {
+    text-decoration: underline;
+}
 
 /* Action notices */
 .action-notice {

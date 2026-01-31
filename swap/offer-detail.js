@@ -338,7 +338,10 @@ async function executeOfferAction(action) {
         let acceptMessage;
         if (action === 'accept' && USE_BLOCKCHAIN) {
             if (data.status === 'completed') {
-                acceptMessage = `Trade completed successfully! NFTs have been exchanged on-chain.${blockchainResult?.signature ? '\n\nTx: ' + blockchainResult.signature.slice(0, 20) + '...' : ''}`;
+                acceptMessage = 'Trade completed successfully! NFTs have been exchanged on-chain.';
+                if (blockchainResult?.signature) {
+                    acceptMessage += `<br><br><a href="https://solscan.io/tx/${blockchainResult.signature}" target="_blank" rel="noopener" class="solscan-link">View transaction on Solscan</a>`;
+                }
             } else {
                 acceptMessage = 'Your assets are escrowed. The server is releasing both sides — this usually takes 1–2 minutes. This page will refresh automatically.';
             }
@@ -351,7 +354,7 @@ async function executeOfferAction(action) {
         };
 
         elements.resultModalTitle.textContent = data.status === 'completed' || action !== 'accept' ? 'Success!' : 'Processing...';
-        elements.resultModalMessage.textContent = successMessages[action];
+        elements.resultModalMessage.innerHTML = successMessages[action];
         elements.resultModal.style.display = 'flex';
 
         if (data.status !== 'completed') {
