@@ -7,6 +7,9 @@ export class MockHelius {
         this.assetProofs = new Map();
         this.assetsByOwner = new Map();
         this.transactions = new Map();
+        this._notFinalizedSigs = new Set();
+        this._failedOnChainSigs = new Set();
+        this._failures = [];
     }
 
     reset() {
@@ -14,7 +17,68 @@ export class MockHelius {
         this.assetProofs.clear();
         this.assetsByOwner.clear();
         this.transactions.clear();
+        this._notFinalizedSigs.clear();
+        this._failedOnChainSigs.clear();
+        this._failures = [];
     }
+
+    // ========== TX Confirmation Behavior Control ==========
+
+    /**
+     * Make getTransaction return { result: null } for this signature (not finalized).
+     */
+    setTxNotFinalized(signature) {
+        this._notFinalizedSigs.add(signature);
+    }
+
+    /**
+     * Make getTransaction return { result: { meta: { err: 'InstructionError' } } } for this signature.
+     */
+    setTxFailedOnChain(signature) {
+        this._failedOnChainSigs.add(signature);
+    }
+
+    // ========== Failure Injection ==========
+
+    /**
+     * Fail the next matching RPC call.
+     * @param {string} method - RPC method name (e.g. 'getAsset', 'getTransaction')
+     * @param {Error|string} [error] - error to throw/return
+     */
+    failOnce(method, error) {
+        this._failures.push({
+            method,
+            countdown: 1,
+            error: error || new Error('Injected Helius failure'),
+        });
+    }
+
+    /**
+     * Fail on the Nth matching RPC call.
+     */
+    failOn(method, { countdown = 1, error } = {}) {
+        this._failures.push({
+            method,
+            countdown,
+            error: error || new Error('Injected Helius failure'),
+        });
+    }
+
+    _shouldFail(method) {
+        for (let i = 0; i < this._failures.length; i++) {
+            const f = this._failures[i];
+            if (f.method === method) {
+                f.countdown--;
+                if (f.countdown <= 0) {
+                    this._failures.splice(i, 1);
+                    return f.error;
+                }
+            }
+        }
+        return null;
+    }
+
+    // ========== Data Registration ==========
 
     // Register a mock asset
     addAsset(id, asset) {
@@ -42,6 +106,12 @@ export class MockHelius {
             const body = JSON.parse(options.body);
             const { method, params, id } = body;
 
+            // Check failure injection
+            const failError = this._shouldFail(method);
+            if (failError) {
+                return this._rpcResponse(id, null, { code: -32000, message: String(failError) });
+            }
+
             switch (method) {
                 case 'getAsset': {
                     const assetId = params?.id;
@@ -60,6 +130,17 @@ export class MockHelius {
                 }
                 case 'getTransaction': {
                     const sig = params?.[0];
+
+                    // Check not-finalized override
+                    if (this._notFinalizedSigs.has(sig)) {
+                        return this._rpcResponse(id, null);
+                    }
+
+                    // Check failed-on-chain override
+                    if (this._failedOnChainSigs.has(sig)) {
+                        return this._rpcResponse(id, { meta: { err: 'InstructionError' } });
+                    }
+
                     const tx = this.transactions.get(sig);
                     if (tx) {
                         return this._rpcResponse(id, { meta: { err: null }, ...tx });
@@ -88,6 +169,12 @@ export class MockHelius {
     // Handle Enhanced Transactions API (api.helius.xyz)
     handleEnhancedTxRequest(url, options) {
         try {
+            // Check failure injection for enhanced tx API
+            const failError = this._shouldFail('enhancedTransactions');
+            if (failError) {
+                return this._jsonResponse({ error: String(failError) }, 500);
+            }
+
             const body = JSON.parse(options.body);
             const signatures = body.transactions || [];
             const results = signatures.map(sig => this.transactions.get(sig) || null).filter(Boolean);
@@ -97,14 +184,19 @@ export class MockHelius {
         }
     }
 
-    _rpcResponse(id, result) {
-        return this._jsonResponse({ jsonrpc: '2.0', id, result });
+    _rpcResponse(id, result, error = undefined) {
+        const data = { jsonrpc: '2.0', id, result };
+        if (error) {
+            data.error = error;
+            data.result = undefined;
+        }
+        return this._jsonResponse(data);
     }
 
-    _jsonResponse(data) {
+    _jsonResponse(data, status = 200) {
         return Promise.resolve({
-            ok: true,
-            status: 200,
+            ok: status >= 200 && status < 300,
+            status,
             json: () => Promise.resolve(data),
             text: () => Promise.resolve(JSON.stringify(data)),
         });

@@ -35,6 +35,7 @@ const elements = {
     closeDetails: document.getElementById('closeDetails'),
     detailsTitle: document.getElementById('detailsTitle'),
     detailsImage: document.getElementById('detailsImage'),
+    detailsRarity: document.getElementById('detailsRarity'),
     detailsTraits: document.getElementById('detailsTraits'),
     detailsMint: document.getElementById('detailsMint')
 };
@@ -137,6 +138,7 @@ async function fetchCollection() {
 
         elements.totalCount.textContent = `${allNFTs.length} Orcs`;
         setupFilters();
+        calculateRarity();
         applySort();
     } catch (err) {
         showError('Failed to summon The Horde: ' + err.message);
@@ -173,6 +175,52 @@ function extractTraits(attributes) {
         }
     });
     return traits;
+}
+
+// ============================================
+// RARITY CALCULATION
+// ============================================
+function calculateRarity() {
+    const total = allNFTs.length;
+
+    // Traits with higher weight in rarity calculation
+    const weightedTraits = ['head', 'clothing', 'background', 'skin'];
+
+    // Calculate rarity score for each NFT
+    allNFTs.forEach(nft => {
+        let score = 0;
+        Object.entries(nft.traits).forEach(([type, value]) => {
+            const count = traitCounts[type]?.[value] || 0;
+            if (count > 0) {
+                const weight = weightedTraits.includes(type.toLowerCase()) ? 1.5 : 1;
+                score += weight * (1 / (count / total));
+            }
+        });
+        nft.rarityScore = score;
+    });
+
+    // Sort by score descending and assign ranks
+    const sorted = [...allNFTs].sort((a, b) => b.rarityScore - a.rarityScore);
+    sorted.forEach((nft, index) => {
+        nft.rarityRank = index + 1;
+    });
+
+    // Assign tier based on rank
+    allNFTs.forEach(nft => {
+        if (nft.rarityRank <= 10) {
+            nft.rarityTier = 'legendary';
+        } else if (nft.rarityRank <= 40) {
+            nft.rarityTier = 'epic';
+        } else if (nft.rarityRank <= 115) {
+            nft.rarityTier = 'rare';
+        } else {
+            nft.rarityTier = 'common';
+        }
+    });
+}
+
+function getTierLabel(tier) {
+    return tier.charAt(0).toUpperCase() + tier.slice(1);
 }
 
 // ============================================
@@ -358,6 +406,8 @@ function applySort() {
             const j = Math.floor(Math.random() * (i + 1));
             [nfts[i], nfts[j]] = [nfts[j], nfts[i]];
         }
+    } else if (sortBy === 'rarity') {
+        nfts.sort((a, b) => a.rarityRank - b.rarityRank);
     } else if (sortBy === 'number') {
         nfts.sort((a, b) => a.number - b.number);
     } else {
@@ -399,7 +449,8 @@ function renderNFTs() {
 
         const info = document.createElement('div');
         info.className = 'nft-info';
-        info.innerHTML = `<div class="nft-name">${escapeHtml(nft.name)}</div>`;
+        info.innerHTML = `<div class="nft-name">${escapeHtml(nft.name)}</div>` +
+            (nft.rarityRank ? `<div class="nft-rarity"><span class="rarity-rank">#${nft.rarityRank}</span><span class="rarity-tier tier-${nft.rarityTier}">${getTierLabel(nft.rarityTier)}</span></div>` : '');
 
         card.appendChild(img);
         card.appendChild(info);
@@ -416,13 +467,30 @@ function renderNFTs() {
 function showDetails(nft) {
     elements.detailsTitle.textContent = nft.name;
     elements.detailsImage.src = nft.imageUrl;
+
+    if (nft.rarityRank) {
+        elements.detailsRarity.innerHTML = `
+            <span class="rarity-rank">#${nft.rarityRank}</span>
+            <span class="rarity-tier tier-${nft.rarityTier}">${getTierLabel(nft.rarityTier)}</span>
+            <span class="rarity-score">Score: ${nft.rarityScore.toFixed(1)}</span>
+        `;
+    } else {
+        elements.detailsRarity.innerHTML = '';
+    }
+
+    const total = allNFTs.length;
     elements.detailsTraits.innerHTML = Object.entries(nft.traits)
-        .map(([type, value]) => `
+        .map(([type, value]) => {
+            const count = traitCounts[type]?.[value] || 0;
+            const pct = ((count / total) * 100).toFixed(1);
+            return `
             <div class="trait-item">
                 <div class="trait-type">${escapeHtml(type)}</div>
                 <div class="trait-value">${escapeHtml(value)}</div>
+                <div class="trait-rarity">${pct}% have this</div>
             </div>
-        `).join('');
+            `;
+        }).join('');
     elements.detailsMint.textContent = nft.mint;
     elements.detailsModal.style.display = 'flex';
 }

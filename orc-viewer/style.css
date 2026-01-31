@@ -530,6 +530,53 @@ body {
     color: var(--color-accent);
 }
 
+.nft-rarity {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.rarity-rank {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.rarity-tier {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.tier-legendary {
+    background: rgba(255, 215, 0, 0.2);
+    color: #ffd700;
+    border: 1px solid rgba(255, 215, 0, 0.4);
+}
+
+.tier-epic {
+    background: rgba(199, 125, 255, 0.2);
+    color: #c77dff;
+    border: 1px solid rgba(199, 125, 255, 0.4);
+}
+
+.tier-rare {
+    background: rgba(93, 173, 226, 0.2);
+    color: #5dade2;
+    border: 1px solid rgba(93, 173, 226, 0.4);
+}
+
+.tier-common {
+    background: rgba(153, 153, 153, 0.2);
+    color: #999;
+    border: 1px solid rgba(153, 153, 153, 0.4);
+}
+
 /* Modals */
 .modal {
     position: fixed;
@@ -600,9 +647,31 @@ body {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--color-accent);
-    margin-bottom: 16px;
+    margin-bottom: 8px;
     text-align: center;
     letter-spacing: 0.05em;
+}
+
+.details-rarity {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.details-rarity .rarity-rank {
+    font-size: 1rem;
+}
+
+.details-rarity .rarity-tier {
+    font-size: 0.8rem;
+}
+
+.rarity-score {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    color: var(--text-dim);
 }
 
 .details-traits {
@@ -632,6 +701,13 @@ body {
     font-family: var(--font-body);
     font-size: 0.9rem;
     color: var(--color-accent);
+}
+
+.trait-rarity {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 4px;
 }
 
 .details-mint {
