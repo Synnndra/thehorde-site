@@ -157,7 +157,7 @@ async function createOffer() {
 }
 
 async function escrowInitiatorAssets(nfts, solAmount) {
-    const provider = getPhantomProvider();
+    const provider = getWalletProvider();
     const signer = provider.publicKey;
     const escrowPubkey = new solanaWeb3.PublicKey(ESCROW_WALLET);
     const feePubkey = new solanaWeb3.PublicKey(FEE_WALLET);
@@ -218,7 +218,7 @@ async function escrowInitiatorAssets(nfts, solAmount) {
 
         transaction.feePayer = signer;
 
-        showLoading('Please approve the escrow transaction in Phantom...');
+        showLoading('Please approve the escrow transaction in your wallet...');
 
         const result = await signAndSubmitTransaction(transaction);
 

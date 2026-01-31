@@ -1,20 +1,23 @@
 // MidEvils NFT Swap - Wallet Connection
 
-function getPhantomProvider() {
-    if ('phantom' in window) {
-        const provider = window.phantom?.solana;
-        if (provider?.isPhantom) {
-            return provider;
-        }
+function getWalletProvider() {
+    // Phantom
+    if (window.phantom?.solana?.isPhantom) {
+        return window.phantom.solana;
     }
-    if ('solana' in window && window.solana?.isPhantom) {
+    // Solflare
+    if (window.solflare?.isSolflare) {
+        return window.solflare;
+    }
+    // Generic fallback (Wallet Standard via window.solana)
+    if (window.solana) {
         return window.solana;
     }
     return null;
 }
 
 async function signMessageForAuth(message) {
-    const provider = getPhantomProvider();
+    const provider = getWalletProvider();
     if (!provider) {
         throw new Error('Wallet not connected');
     }
@@ -53,7 +56,7 @@ async function signMessageForAuth(message) {
 }
 
 async function checkWalletConnection() {
-    const provider = getPhantomProvider();
+    const provider = getWalletProvider();
     if (provider) {
         try {
             const response = await provider.connect({ onlyIfTrusted: true });
@@ -67,11 +70,10 @@ async function checkWalletConnection() {
 }
 
 async function connectWallet() {
-    const provider = getPhantomProvider();
+    const provider = getWalletProvider();
 
     if (!provider) {
-        window.open('https://phantom.app/', '_blank');
-        showError('Phantom wallet not found. Please install it from phantom.app');
+        showError('No Solana wallet found. Please install Phantom or Solflare to continue.');
         return;
     }
 
@@ -104,7 +106,7 @@ function updateWalletUI(connected) {
     } else {
         statusText.textContent = 'Not Connected';
         elements.walletStatus.classList.remove('connected');
-        elements.connectWalletBtn.textContent = 'Connect Phantom';
+        elements.connectWalletBtn.textContent = 'Connect Wallet';
         elements.connectWalletBtn.classList.remove('connected');
         elements.connectWalletBtn.style.display = 'inline-block';
         if (elements.disconnectWalletBtn) {
@@ -114,7 +116,7 @@ function updateWalletUI(connected) {
 }
 
 async function disconnectWallet() {
-    const provider = getPhantomProvider();
+    const provider = getWalletProvider();
 
     if (provider) {
         try {

@@ -205,7 +205,7 @@ async function executeOfferAction(action) {
 
     const isAccept = action === 'accept' && USE_BLOCKCHAIN;
     const acceptSteps = [
-        'Approve transaction in Phantom',
+        'Approve transaction in wallet',
         'Sending assets to escrow',
         'Sign message to verify wallet',
         'Releasing escrowed assets',
@@ -331,7 +331,7 @@ async function executeOfferAction(action) {
 
 async function executeAtomicSwap(offer) {
     const connection = getSolanaConnection();
-    const provider = getPhantomProvider();
+    const provider = getWalletProvider();
     const signer = provider.publicKey;
 
     try {
@@ -412,7 +412,7 @@ async function executeAtomicSwap(offer) {
             }
         }
 
-        showLoading('Please approve the transaction in Phantom...');
+        showLoading('Please approve the transaction in your wallet...');
         const result = await signAndSubmitTransaction(transaction);
 
         if (result.success) {

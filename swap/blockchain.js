@@ -349,7 +349,7 @@ async function transferCompressedNFT(assetId, fromPubkey, toPubkey, transaction)
 
 async function signAndSubmitTransaction(transaction, retryCount) {
     retryCount = retryCount || 0;
-    const provider = getPhantomProvider();
+    const provider = getWalletProvider();
 
     try {
         const { blockhash } = await getLatestBlockhash();
