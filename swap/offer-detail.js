@@ -94,7 +94,9 @@ function displayOfferItems(container, nftDetails, solAmount) {
         const item = document.createElement('div');
         item.className = 'offer-item';
         item.innerHTML = `
-            <img src="${sanitizeImageUrl(nft.imageUrl)}" alt="${escapeHtml(nft.name)}">
+            <img class="skeleton" src="${sanitizeImageUrl(nft.imageUrl)}" alt="${escapeHtml(nft.name)}"
+                 onload="this.classList.remove('skeleton')"
+                 onerror="this.classList.remove('skeleton')">
             <span class="item-name">${escapeHtml(nft.name)}</span>
         `;
         container.appendChild(item);
@@ -185,15 +187,44 @@ function showConfirmModal(action) {
     };
 
     const messages = {
-        accept: USE_BLOCKCHAIN
-            ? `Are you sure you want to accept this trade?\n\nYou will sign a blockchain transaction that sends your NFTs/SOL to escrow. The server will then release both sides.\n\nThis action cannot be undone.`
-            : `Are you sure you want to accept this trade? You will receive the offered NFTs/SOL and give the requested NFTs/SOL.`,
         decline: 'Are you sure you want to decline this offer?',
         cancel: 'Are you sure you want to cancel this offer?'
     };
 
     elements.confirmModalTitle.textContent = titles[action];
-    elements.confirmModalMessage.textContent = messages[action];
+
+    if (action === 'accept') {
+        let summaryHtml = '<p>Are you sure you want to accept this trade?</p>';
+        summaryHtml += '<div class="confirm-trade-summary">';
+        summaryHtml += '<div class="confirm-side">';
+        summaryHtml += '<strong>You give:</strong>';
+        const receiverNfts = currentOffer.receiver.nftDetails || [];
+        const receiverSol = currentOffer.receiver.sol || 0;
+        if (receiverNfts.length === 0 && receiverSol === 0) {
+            summaryHtml += '<span>Nothing</span>';
+        } else {
+            receiverNfts.forEach(n => { summaryHtml += `<span>${escapeHtml(n.name)}</span>`; });
+            if (receiverSol > 0) summaryHtml += `<span>${receiverSol} SOL</span>`;
+        }
+        summaryHtml += '</div>';
+        summaryHtml += '<div class="confirm-side">';
+        summaryHtml += '<strong>You get:</strong>';
+        const initiatorNfts = currentOffer.initiator.nftDetails || [];
+        const initiatorSol = currentOffer.initiator.sol || 0;
+        if (initiatorNfts.length === 0 && initiatorSol === 0) {
+            summaryHtml += '<span>Nothing</span>';
+        } else {
+            initiatorNfts.forEach(n => { summaryHtml += `<span>${escapeHtml(n.name)}</span>`; });
+            if (initiatorSol > 0) summaryHtml += `<span>${initiatorSol} SOL</span>`;
+        }
+        summaryHtml += '</div></div>';
+        if (USE_BLOCKCHAIN) {
+            summaryHtml += '<p class="confirm-warning">You will sign a transaction to send your assets to escrow. This cannot be undone.</p>';
+        }
+        elements.confirmModalMessage.innerHTML = summaryHtml;
+    } else {
+        elements.confirmModalMessage.textContent = messages[action];
+    }
 
     elements.confirmActionBtn.onclick = () => executeOfferAction(action);
 
@@ -205,11 +236,11 @@ async function executeOfferAction(action) {
 
     const isAccept = action === 'accept' && USE_BLOCKCHAIN;
     const acceptSteps = [
-        'Approve transaction in wallet',
-        'Sending assets to escrow',
-        'Sign message to verify wallet',
+        'Check your wallet for an approval request',
+        'Confirming escrow on-chain',
+        'Check your wallet to sign a verification message',
         'Releasing escrowed assets',
-        'Completing swap'
+        'Completing swap',
     ];
 
     if (isAccept) {
@@ -240,6 +271,8 @@ async function executeOfferAction(action) {
                     throw new Error(blockchainResult.error || 'Blockchain transaction failed');
                 }
                 showSteppedLoading(acceptSteps, 1);
+                await new Promise(r => setTimeout(r, 400));
+                showSteppedLoading(acceptSteps, 2);
             }
         }
 
@@ -307,7 +340,7 @@ async function executeOfferAction(action) {
             if (data.status === 'completed') {
                 acceptMessage = `Trade completed successfully! NFTs have been exchanged on-chain.${blockchainResult?.signature ? '\n\nTx: ' + blockchainResult.signature.slice(0, 20) + '...' : ''}`;
             } else {
-                acceptMessage = 'Your assets are escrowed. The server is releasing both sides — this may take a moment. Refresh to check status.';
+                acceptMessage = 'Your assets are escrowed. The server is releasing both sides — this usually takes 1–2 minutes. This page will refresh automatically.';
             }
         }
 
@@ -320,6 +353,10 @@ async function executeOfferAction(action) {
         elements.resultModalTitle.textContent = data.status === 'completed' || action !== 'accept' ? 'Success!' : 'Processing...';
         elements.resultModalMessage.textContent = successMessages[action];
         elements.resultModal.style.display = 'flex';
+
+        if (data.status !== 'completed') {
+            setTimeout(() => loadOfferDetails(currentOffer.id), 10000);
+        }
 
         loadOfferDetails(currentOffer.id);
 
@@ -412,7 +449,7 @@ async function executeAtomicSwap(offer) {
             }
         }
 
-        showLoading('Please approve the transaction in your wallet...');
+        showLoading('Check your wallet for an approval request...');
         const result = await signAndSubmitTransaction(transaction);
 
         if (result.success) {

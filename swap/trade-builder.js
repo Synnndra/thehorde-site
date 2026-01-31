@@ -88,11 +88,10 @@ async function createOffer() {
     }
 
     const createSteps = [
-        'Approve escrow transaction in wallet',
-        'Sending assets to escrow',
-        'Sign message to verify wallet',
-        'Confirming transaction on-chain',
-        'Saving offer'
+        'Check your wallet for an approval request',
+        'Confirming escrow on-chain',
+        'Check your wallet to sign a verification message',
+        'Saving offer',
     ];
     showSteppedLoading(createSteps, 0);
     elements.createOfferBtn.disabled = true;
@@ -105,6 +104,8 @@ async function createOffer() {
             throw new Error(escrowResult.error || 'Failed to escrow assets');
         }
 
+        showSteppedLoading(createSteps, 1);
+        await new Promise(r => setTimeout(r, 400));
         showSteppedLoading(createSteps, 2);
         const timestamp = Date.now();
         const message = `Midswap create offer from ${connectedWallet} to ${partnerWallet} at ${timestamp}`;
@@ -116,7 +117,6 @@ async function createOffer() {
         }
 
         showSteppedLoading(createSteps, 3);
-
         const response = await fetch('/api/swap/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -218,7 +218,7 @@ async function escrowInitiatorAssets(nfts, solAmount) {
 
         transaction.feePayer = signer;
 
-        showLoading('Please approve the escrow transaction in your wallet...');
+        showLoading('Check your wallet for an approval request...');
 
         const result = await signAndSubmitTransaction(transaction);
 

@@ -53,8 +53,10 @@ function createNFTCard(nft, side, index) {
     }
 
     card.innerHTML = `
-        <img class="nft-image" src="${sanitizeImageUrl(imageUrl)}" alt="${escapeHtml(name)}"
-             loading="lazy">
+        <img class="nft-image skeleton" src="${sanitizeImageUrl(imageUrl)}" alt="${escapeHtml(name)}"
+             loading="lazy"
+             onload="this.classList.remove('skeleton')"
+             onerror="this.classList.remove('skeleton'); this.src='${PLACEHOLDER_IMAGE}'">
         <div class="nft-name">${escapeHtml(name)}</div>
         <div class="selection-indicator"></div>
         ${isStaked ? `<div class="lock-overlay"><span class="lock-icon">&#128274;</span><span class="lock-reason">${lockReason}</span></div>` : ''}
