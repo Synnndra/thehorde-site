@@ -8,7 +8,9 @@
     style.textContent = '#ambientToggle{position:fixed;bottom:16px;right:16px;z-index:9999;width:40px;height:40px;border-radius:50%;border:2px solid #c9a227;background:rgba(26,26,46,0.9);color:#c9a227;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;box-shadow:0 2px 10px rgba(0,0,0,0.5);padding:0;line-height:1}#ambientToggle:hover{background:rgba(201,162,39,0.2);transform:scale(1.1)}#ambientToggle.is-muted{opacity:0.5}';
     document.head.appendChild(style);
 
-    var STORAGE_KEY = 'horde_music_muted';
+    var STORAGE_KEY = 'horde_music_muted_v2';
+    // Clear old key from when default was muted
+    localStorage.removeItem('horde_music_muted');
 
     var audio = document.createElement('audio');
     audio.src = '/ambient.mp3';
