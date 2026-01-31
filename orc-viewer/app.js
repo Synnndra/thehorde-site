@@ -184,7 +184,7 @@ function calculateRarity() {
     const total = allNFTs.length;
 
     // Trait weights for rarity calculation
-    const traitWeights = { headwear: 2, background: 2, clothing: 1.5, skin: 1.5, eyewear: 0.75 };
+    const traitWeights = { headwear: 3, background: 2, clothing: 1.5, skin: 1.5, eyewear: 0.75 };
 
     // Calculate rarity score for each NFT
     allNFTs.forEach(nft => {
