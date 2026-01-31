@@ -183,17 +183,31 @@ function extractTraits(attributes) {
 function calculateRarity() {
     const total = allNFTs.length;
 
-    // Traits with higher weight in rarity calculation
-    const weightedTraits = ['head', 'clothing', 'background', 'skin'];
+    // Trait weights for rarity calculation
+    const traitWeights = { head: 2, skin: 2, clothing: 1.5, background: 1.5 };
+
+    // Collect trait values from legendary-boosted orcs
+    const LEGENDARY_ORCS = [328, 265, 233, 212];
+    const boostedTraits = new Set();
+    allNFTs.forEach(nft => {
+        if (LEGENDARY_ORCS.includes(nft.number)) {
+            Object.entries(nft.traits).forEach(([type, value]) => {
+                boostedTraits.add(`${type.toLowerCase()}:${value}`);
+            });
+        }
+    });
 
     // Calculate rarity score for each NFT
+    // Traits carried by legendary orcs get a 3x multiplier collection-wide
+    const LEGENDARY_TRAIT_MULTIPLIER = 3;
     allNFTs.forEach(nft => {
         let score = 0;
         Object.entries(nft.traits).forEach(([type, value]) => {
             const count = traitCounts[type]?.[value] || 0;
             if (count > 0) {
-                const weight = weightedTraits.includes(type.toLowerCase()) ? 1.5 : 1;
-                score += weight * (1 / (count / total));
+                const weight = traitWeights[type.toLowerCase()] || 1;
+                const legendaryBoost = boostedTraits.has(`${type.toLowerCase()}:${value}`) ? LEGENDARY_TRAIT_MULTIPLIER : 1;
+                score += weight * legendaryBoost * (1 / (count / total));
             }
         });
         nft.rarityScore = score;
