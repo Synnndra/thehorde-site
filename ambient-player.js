@@ -17,7 +17,7 @@
     audio.preload = 'auto';
 
     var savedPref = localStorage.getItem(STORAGE_KEY);
-    var isMuted = savedPref === null ? true : savedPref === 'true';
+    var isMuted = savedPref === null ? false : savedPref === 'true';
 
     var btn = document.createElement('button');
     btn.id = 'ambientToggle';
