@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/swap/cleanup-expired",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 0 * * *"
     }
   ],
   "rewrites": [
