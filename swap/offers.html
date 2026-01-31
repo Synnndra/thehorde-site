@@ -81,6 +81,9 @@
         </footer>
     </div>
 
+    <!-- Buffer polyfill (required by @solana/web3.js in browsers without Phantom) -->
+    <script src="https://unpkg.com/buffer@6.0.3/index.js"></script>
+    <script>window.Buffer = window.Buffer || window.buffer.Buffer;</script>
     <!-- Solana Web3.js for blockchain transactions -->
     <script defer src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <script defer src="/swap/constants.js"></script>
