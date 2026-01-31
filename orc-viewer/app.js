@@ -198,8 +198,8 @@ function calculateRarity() {
     });
 
     // Calculate rarity score for each NFT
-    // Traits carried by legendary orcs get a 3x multiplier collection-wide
-    const LEGENDARY_TRAIT_MULTIPLIER = 3;
+    // Traits carried by legendary orcs get a boosted multiplier collection-wide
+    const LEGENDARY_TRAIT_MULTIPLIER = 10;
     allNFTs.forEach(nft => {
         let score = 0;
         Object.entries(nft.traits).forEach(([type, value]) => {
