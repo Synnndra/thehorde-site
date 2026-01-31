@@ -10,7 +10,7 @@ MidSwap enables users to create and execute peer-to-peer NFT trades with on-chai
 - NFT + SOL to NFT swaps
 - Pure SOL to NFT trades
 - Up to 5 NFTs per side of trade
-- 0.01 SOL platform fee (collected on accept)
+- 0.02 SOL platform fee (collected on creation)
 
 ## Instructions
 

@@ -5,6 +5,8 @@ import {
     validateSolanaAddress,
     verifySignature,
     validateTimestamp,
+    isSignatureUsed,
+    markSignatureUsed,
     kvGet,
     kvSet,
     acquireLock,
@@ -42,7 +44,7 @@ export default async function handler(req, res) {
     try {
         const { offerId, wallet, signature, message, secret } = req.body;
 
-        if (!offerId || typeof offerId !== 'string') {
+        if (!offerId || typeof offerId !== 'string' || !/^offer_[a-f0-9]{32}$/.test(offerId)) {
             return res.status(400).json({ error: 'Invalid offer ID' });
         }
 
@@ -56,12 +58,19 @@ export default async function handler(req, res) {
             if (!validateSolanaAddress(wallet)) {
                 return res.status(400).json({ error: 'Invalid wallet address' });
             }
+            const expectedMessagePrefix = `Midswap retry-release offer ${offerId} at `;
+            if (!message.startsWith(expectedMessagePrefix)) {
+                return res.status(400).json({ error: 'Invalid message format' });
+            }
             const timestampResult = validateTimestamp(message);
             if (!timestampResult.valid) {
                 return res.status(400).json({ error: timestampResult.error });
             }
             if (!verifySignature(message, signature, wallet)) {
                 return res.status(403).json({ error: 'Invalid signature' });
+            }
+            if (await isSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN)) {
+                return res.status(400).json({ error: 'This signature has already been used. Please sign a new message.' });
             }
         }
 
@@ -136,6 +145,9 @@ export default async function handler(req, res) {
         offer.retryCount = (offer.retryCount || 0) + 1;
 
         await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
+        if (!isAdminAuth && signature) {
+            await markSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN);
+        }
         await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         return res.status(200).json({
@@ -152,6 +164,6 @@ export default async function handler(req, res) {
         if (lockKey) {
             await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN).catch(() => {});
         }
-        return res.status(500).json({ error: 'Failed to retry release: ' + error.message });
+        return res.status(500).json({ error: 'Failed to retry release. Please try again.' });
     }
 }

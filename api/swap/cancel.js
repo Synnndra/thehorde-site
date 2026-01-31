@@ -39,7 +39,7 @@ export default async function handler(req, res) {
         const { offerId, wallet, action, signature, message } = req.body;
 
         // Validate inputs
-        if (!offerId || typeof offerId !== 'string') {
+        if (!offerId || typeof offerId !== 'string' || !/^offer_[a-f0-9]{32}$/.test(offerId)) {
             return res.status(400).json({ error: 'Invalid offer ID' });
         }
         if (!validateSolanaAddress(wallet)) {
@@ -51,7 +51,8 @@ export default async function handler(req, res) {
         if (!signature || !message) {
             return res.status(400).json({ error: 'Signature required to verify wallet ownership' });
         }
-        if (!message.includes(offerId)) {
+        const expectedMessagePrefix = `Midswap ${action} offer ${offerId} at `;
+        if (!message.startsWith(expectedMessagePrefix)) {
             return res.status(400).json({ error: 'Invalid message format' });
         }
 
@@ -103,6 +104,7 @@ export default async function handler(req, res) {
 
         // Return escrowed assets to initiator
         let escrowReturnTx = null;
+        let escrowReturnFailed = false;
         if (ESCROW_PRIVATE_KEY && HELIUS_API_KEY && offer.escrowTxSignature) {
             try {
                 escrowReturnTx = await returnEscrowToInitiator(offer, ESCROW_PRIVATE_KEY, HELIUS_API_KEY);
@@ -112,10 +114,30 @@ export default async function handler(req, res) {
             } catch (escrowErr) {
                 console.error('Escrow return failed:', escrowErr);
                 offer.escrowReturnError = escrowErr.message;
+                escrowReturnFailed = true;
             }
         }
 
-        // Update offer
+        // Only mark cancelled if escrow return succeeded (or no escrow to return)
+        if (escrowReturnFailed) {
+            // Escrow return failed — keep status as pending so cleanup can handle it
+            offer.cancelRequested = true;
+            offer.cancelRequestedAt = Date.now();
+            offer.cancelRequestedBy = wallet;
+            offer.cancelRequestedAction = action;
+            await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
+
+            await markSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN);
+            await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
+
+            return res.status(200).json({
+                success: true,
+                message: 'Escrow return is processing. Your assets will be returned shortly.',
+                escrowReturnPending: true,
+                offer
+            });
+        }
+
         offer.status = 'cancelled';
         offer.cancelledAt = Date.now();
         offer.cancelledBy = wallet;
@@ -142,6 +164,6 @@ export default async function handler(req, res) {
         if (lockKey) {
             await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN).catch(() => {});
         }
-        return res.status(500).json({ error: 'Failed to cancel offer: ' + error.message });
+        return res.status(500).json({ error: 'Failed to cancel offer. Please try again.' });
     }
 }

@@ -6,8 +6,8 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 // MidEvils Collection Address
 pub const MIDEVIL_COLLECTION: &str = "w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW";
 
-// Platform fee: 0.01 SOL in lamports
-pub const PLATFORM_FEE: u64 = 10_000_000;
+// Platform fee: 0.02 SOL in lamports
+pub const PLATFORM_FEE: u64 = 20_000_000;
 
 // Maximum NFTs per side of trade
 pub const MAX_NFTS_PER_SIDE: usize = 5;

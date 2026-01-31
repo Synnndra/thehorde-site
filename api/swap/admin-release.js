@@ -1,23 +1,25 @@
 // Admin endpoint to manually release stuck NFTs from escrow
-import { Connection, Keypair, PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
-import bs58 from 'bs58';
+// Returns each side's assets to their original owner based on offer data
 import {
-    isRateLimited,
-    getClientIp,
-    createMplCoreTransferInstruction,
-    MPL_CORE_PROGRAM_ID
+    validateSolanaAddress,
+    kvGet,
+    kvSet,
+    acquireLock,
+    releaseLock,
+    returnEscrowToInitiator,
+    returnReceiverEscrowAssets,
+    cleanApiKey
 } from './utils.js';
+
+const ALLOWED_STATUSES = ['pending', 'escrowed', 'failed'];
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const clientIp = getClientIp(req);
-    if (isRateLimited(clientIp, 'admin', 3)) {
-        return res.status(429).json({ error: 'Too many requests. Try again later.' });
-    }
-
+    const KV_REST_API_URL = process.env.KV_REST_API_URL;
+    const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN;
     const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
     const ESCROW_PRIVATE_KEY = process.env.ESCROW_PRIVATE_KEY;
     const ADMIN_SECRET = process.env.ADMIN_SECRET;
@@ -25,91 +27,101 @@ export default async function handler(req, res) {
     if (!ADMIN_SECRET) {
         return res.status(500).json({ error: 'Admin not configured' });
     }
-    if (!ESCROW_PRIVATE_KEY || !HELIUS_API_KEY) {
+    if (!ESCROW_PRIVATE_KEY || !HELIUS_API_KEY || !KV_REST_API_URL || !KV_REST_API_TOKEN) {
         return res.status(500).json({ error: 'Server configuration error' });
     }
 
+    let lockKey = null;
+
     try {
-        const { secret, destinationWallet } = req.body;
+        const { secret, offerId } = req.body;
 
         if (secret !== ADMIN_SECRET) {
             return res.status(403).json({ error: 'Unauthorized' });
         }
-        if (!destinationWallet) {
-            return res.status(400).json({ error: 'destinationWallet required' });
+        if (!offerId || typeof offerId !== 'string' || !/^offer_[a-f0-9]{32}$/.test(offerId)) {
+            return res.status(400).json({ error: 'Valid offerId required' });
         }
 
-        const RPC_URL = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
-        const connection = new Connection(RPC_URL, 'confirmed');
+        // Acquire lock to prevent race with accept/cancel/retry-release
+        const lock = await acquireLock(offerId, KV_REST_API_URL, KV_REST_API_TOKEN);
+        if (!lock.acquired) {
+            return res.status(409).json({ error: 'Offer is being processed by another operation. Try again.' });
+        }
+        lockKey = lock.lockKey;
 
-        const escrowKeypair = Keypair.fromSecretKey(bs58.decode(ESCROW_PRIVATE_KEY));
-        const escrowPubkey = escrowKeypair.publicKey;
-        const destPubkey = new PublicKey(destinationWallet);
-
-        console.log('Escrow wallet:', escrowPubkey.toBase58());
-        console.log('Destination:', destPubkey.toBase58());
-
-        // Get all NFTs in escrow wallet
-        const assetsRes = await fetch(RPC_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                jsonrpc: '2.0',
-                id: 1,
-                method: 'getAssetsByOwner',
-                params: { ownerAddress: escrowPubkey.toBase58(), page: 1, limit: 100 }
-            })
-        });
-        const assetsData = await assetsRes.json();
-        const assets = assetsData.result?.items || [];
-
-        console.log('Found assets in escrow:', assets.length);
-
-        if (assets.length === 0) {
-            return res.status(200).json({ message: 'No assets in escrow wallet', released: [] });
+        // Fetch the offer to determine who gets what
+        const offer = await kvGet(`offer:${offerId}`, KV_REST_API_URL, KV_REST_API_TOKEN);
+        if (!offer) {
+            await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
+            return res.status(404).json({ error: 'Offer not found' });
         }
 
-        const released = [];
-        const errors = [];
+        // Block admin release on completed/cancelled/expired offers
+        if (!ALLOWED_STATUSES.includes(offer.status)) {
+            await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
+            return res.status(400).json({ error: `Cannot admin-release offer with status '${offer.status}'. Only pending, escrowed, or failed offers can be released.` });
+        }
 
-        for (const asset of assets) {
+        const results = { initiatorReturn: null, receiverReturn: null, errors: [] };
+
+        // Return initiator's escrowed assets back to initiator
+        // Skip if: already returned, OR already released to receiver (escrowed offer where phase 1 completed)
+        const hasInitiatorAssets = (offer.initiator?.nfts?.length > 0 || offer.initiator?.sol > 0);
+        const initiatorAlreadyHandled = offer.escrowReturnTxSignature || offer.releaseToReceiverComplete;
+        if (hasInitiatorAssets && !initiatorAlreadyHandled) {
             try {
-                console.log('Releasing:', asset.id, asset.content?.metadata?.name);
-
-                const collection = asset.grouping?.find(g => g.group_key === 'collection')?.group_value;
-                const ix = createMplCoreTransferInstruction(asset.id, escrowPubkey, destPubkey, collection);
-
-                const transaction = new Transaction().add(ix);
-                const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
-                transaction.recentBlockhash = blockhash;
-                transaction.feePayer = escrowPubkey;
-                transaction.sign(escrowKeypair);
-
-                const signature = await connection.sendRawTransaction(transaction.serialize(), {
-                    skipPreflight: false,
-                    preflightCommitment: 'confirmed'
-                });
-
-                await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
-
-                released.push({ id: asset.id, name: asset.content?.metadata?.name, signature });
-                console.log('Released:', asset.id, 'tx:', signature);
-
+                const tx = await returnEscrowToInitiator(offer, ESCROW_PRIVATE_KEY, HELIUS_API_KEY);
+                if (tx) {
+                    offer.escrowReturnTxSignature = tx;
+                    results.initiatorReturn = tx;
+                }
             } catch (err) {
-                console.error('Failed to release', asset.id, err.message);
-                errors.push({ id: asset.id, name: asset.content?.metadata?.name, error: err.message });
+                results.errors.push({ side: 'initiator', error: err.message });
             }
         }
 
+        // Return receiver's escrowed assets back to receiver
+        // Skip if: already returned, OR already released to initiator (escrowed offer where phase 2 completed)
+        const hasReceiverAssets = (offer.receiver?.nfts?.length > 0 || offer.receiver?.sol > 0);
+        const receiverAlreadyHandled = offer.receiverEscrowReturnTxSignature || offer.releaseToInitiatorComplete;
+        if (hasReceiverAssets && !receiverAlreadyHandled) {
+            try {
+                const tx = await returnReceiverEscrowAssets(offer, ESCROW_PRIVATE_KEY, HELIUS_API_KEY);
+                if (tx) {
+                    offer.receiverEscrowReturnTxSignature = tx;
+                    results.receiverReturn = tx;
+                }
+            } catch (err) {
+                results.errors.push({ side: 'receiver', error: err.message });
+            }
+        }
+
+        // Mark offer as failed with admin action
+        if (results.errors.length === 0) {
+            offer.status = 'failed';
+            offer.failedAt = Date.now();
+            offer.failedReason = 'Admin manual release - assets returned to owners';
+        }
+        offer.adminReleasedAt = Date.now();
+        await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
+
+        await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
+
         return res.status(200).json({
             success: true,
-            released,
-            errors,
-            message: `Released ${released.length} assets, ${errors.length} errors`
+            offerId,
+            results,
+            message: results.errors.length === 0
+                ? 'Assets returned to original owners'
+                : `Partial release: ${results.errors.length} error(s)`
         });
 
     } catch (error) {
         console.error('Admin release error:', error);
-        return res.status(500).json({ error: error.message });
+        if (lockKey) {
+            await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN).catch(() => {});
+        }
+        return res.status(500).json({ error: 'Admin release failed' });
     }
 }

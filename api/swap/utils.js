@@ -25,7 +25,7 @@ export const HOLDER_FEE = 0;
 export const FEE_WALLET = '6zLek4SZSKNhvzDZP4AZWyUYYLzEYCYBaYeqvdZgXpZq';
 export const MAX_MESSAGE_AGE = 5 * 60 * 1000; // 5 minutes (auth message signed after on-chain tx)
 export const MAX_ACTIVE_OFFERS_PER_WALLET = 10;
-export const LOCK_TTL_SECONDS = 300; // 5 minutes - must cover two on-chain releases
+export const LOCK_TTL_SECONDS = 900; // 15 minutes - must cover two on-chain releases
 
 // ========== Rate Limiting (KV-based for cross-instance support) ==========
 
@@ -96,11 +96,6 @@ export async function isRateLimitedKV(ip, endpoint, maxRequests, windowMs, kvUrl
         console.error('KV rate limit error, falling back to memory:', err);
         return isRateLimitedMemory(ip, endpoint, maxRequests, windowMs);
     }
-}
-
-// Legacy wrapper for backward compatibility
-export function isRateLimited(ip, endpoint = 'default', maxRequests = 10, windowMs = 60000) {
-    return isRateLimitedMemory(ip, endpoint, maxRequests, windowMs);
 }
 
 export function getClientIp(req) {
@@ -184,6 +179,55 @@ export async function markSignatureUsed(signature, kvUrl, kvToken) {
         });
     } catch (err) {
         console.error('Mark signature error:', err);
+    }
+}
+
+// ========== Escrow Transaction Uniqueness ==========
+
+/**
+ * Atomically claim an escrow transaction signature for a specific offer.
+ * Uses SET NX (set-if-not-exists) so only one caller can claim a given tx.
+ * Returns { claimed: true } if this caller won, { claimed: false } if already taken.
+ * Fails closed on error (returns claimed: false).
+ */
+export async function claimEscrowTx(txSignature, offerId, kvUrl, kvToken) {
+    if (!txSignature) return { claimed: true }; // No tx to claim
+    if (!kvUrl || !kvToken) return { claimed: false }; // Fail closed
+
+    const key = `used_escrow_tx:${txSignature}`;
+    const TTL_SECONDS = 48 * 60 * 60; // 48 hours (2x offer expiry)
+    try {
+        // Atomic SET NX EX — only succeeds if key does not exist, auto-expires
+        const res = await fetch(kvUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${kvToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(['SET', key, JSON.stringify({ offerId, at: Date.now() }), 'EX', TTL_SECONDS, 'NX'])
+        });
+        const data = await res.json();
+        // SET NX returns "OK" if set, null if key already exists
+        return { claimed: !!data.result };
+    } catch (err) {
+        console.error('Claim escrow tx error:', err);
+        return { claimed: false }; // Fail closed
+    }
+}
+
+/**
+ * Release a previously claimed escrow tx (used when offer creation fails after claim).
+ */
+export async function releaseEscrowTxClaim(txSignature, kvUrl, kvToken) {
+    if (!txSignature || !kvUrl || !kvToken) return;
+    const key = `used_escrow_tx:${txSignature}`;
+    try {
+        await fetch(`${kvUrl}/del/${key}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${kvToken}` }
+        });
+    } catch (err) {
+        console.error('Release escrow tx claim error:', err);
     }
 }
 
@@ -365,7 +409,7 @@ export async function verifyTransactionConfirmed(signature, apiKey) {
                 jsonrpc: '2.0',
                 id: 1,
                 method: 'getTransaction',
-                params: [signature, { encoding: 'json', commitment: 'confirmed', maxSupportedTransactionVersion: 0 }]
+                params: [signature, { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 0 }]
             })
         });
         const data = await response.json();
@@ -656,8 +700,8 @@ export async function executeEscrowTransaction(transaction, escrowKeypair, heliu
         return null;
     }
 
-    const connection = new Connection(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, 'confirmed');
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+    const connection = new Connection(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, 'finalized');
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
 
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = escrowKeypair.publicKey;
@@ -665,10 +709,10 @@ export async function executeEscrowTransaction(transaction, escrowKeypair, heliu
 
     const signature = await connection.sendRawTransaction(transaction.serialize(), {
         skipPreflight: false,
-        preflightCommitment: 'confirmed'
+        preflightCommitment: 'finalized'
     });
 
-    await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
+    await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'finalized');
 
     return signature;
 }

@@ -7,11 +7,15 @@ import {
     validateTimestamp,
     isSignatureUsed,
     markSignatureUsed,
+    claimEscrowTx,
+    releaseEscrowTxClaim,
     kvGet,
     kvSet,
     acquireLock,
     releaseLock,
+    verifyEscrowTransactionContent,
     verifyTransactionConfirmed,
+    verifyNftOwnership,
     releaseEscrowToReceiver,
     releaseEscrowToInitiator
 } from './utils.js';
@@ -36,12 +40,13 @@ export default async function handler(req, res) {
     }
 
     let lockKey = null;
+    let claimedTxSignature = null;
 
     try {
         const { offerId, wallet, txSignature, signature, message } = req.body;
 
         // Validate inputs
-        if (!offerId || typeof offerId !== 'string') {
+        if (!offerId || typeof offerId !== 'string' || !/^offer_[a-f0-9]{32}$/.test(offerId)) {
             return res.status(400).json({ error: 'Invalid offer ID' });
         }
         if (!validateSolanaAddress(wallet)) {
@@ -50,7 +55,8 @@ export default async function handler(req, res) {
         if (!signature || !message) {
             return res.status(400).json({ error: 'Signature required to verify wallet ownership' });
         }
-        if (!message.includes(offerId)) {
+        const expectedMessagePrefix = `Midswap accept offer ${offerId} at `;
+        if (!message.startsWith(expectedMessagePrefix)) {
             return res.status(400).json({ error: 'Invalid message format' });
         }
 
@@ -105,16 +111,38 @@ export default async function handler(req, res) {
             return res.status(403).json({ error: 'Only the receiver can accept this offer' });
         }
 
-        // Verify receiver's transaction (receiver sent their NFTs to escrow)
+        const receiverNftIds = offer.receiver.nfts || [];
+
+        // Verify receiver's transaction content (receiver sent their NFTs to escrow)
+        // This replaces the ownership check — if tx is verified, assets are confirmed in escrow.
         if (txSignature && HELIUS_API_KEY) {
-            const txVerified = await verifyTransactionConfirmed(txSignature, HELIUS_API_KEY);
-            if (!txVerified) {
+            // Atomic claim — prevents same escrow tx across different offers
+            const claim = await claimEscrowTx(txSignature, offerId, KV_REST_API_URL, KV_REST_API_TOKEN);
+            if (!claim.claimed) {
                 await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
-                return res.status(400).json({ error: 'Transaction not confirmed. Please wait and try again.' });
+                return res.status(400).json({ error: 'This escrow transaction has already been used for another offer.' });
             }
+            claimedTxSignature = txSignature;
+            const txCheck = await verifyEscrowTransactionContent(
+                txSignature, wallet, receiverNftIds, offer.receiver.sol || 0, HELIUS_API_KEY
+            );
+            if (!txCheck.valid) {
+                await releaseEscrowTxClaim(txSignature, KV_REST_API_URL, KV_REST_API_TOKEN);
+                await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
+                return res.status(400).json({ error: txCheck.error || 'Transaction verification failed' });
+            }
+
+            // Verify the transaction is finalized on-chain
+            const isFinalized = await verifyTransactionConfirmed(txSignature, HELIUS_API_KEY);
+            if (!isFinalized) {
+                await releaseEscrowTxClaim(txSignature, KV_REST_API_URL, KV_REST_API_TOKEN);
+                await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
+                return res.status(400).json({ error: 'Transaction not yet finalized on-chain. Please wait a moment and try again.' });
+            }
+
             offer.receiverTxSignature = txSignature;
             offer.receiverTransferComplete = true;
-        } else if (!txSignature && (offer.receiver.nfts?.length > 0 || offer.receiver.sol > 0)) {
+        } else if (!txSignature && (receiverNftIds.length > 0 || offer.receiver.sol > 0)) {
             await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
             return res.status(400).json({ error: 'Transaction signature required' });
         }
@@ -142,7 +170,6 @@ export default async function handler(req, res) {
                     offer.escrowReleaseTxSignature = releaseToReceiverTx;
                     offer.releaseToReceiverComplete = true;
                 } else {
-                    // No assets to release (initiator had nothing escrowed)
                     offer.releaseToReceiverComplete = true;
                 }
             } catch (err) {
@@ -151,6 +178,8 @@ export default async function handler(req, res) {
                 offer.releaseToReceiverComplete = false;
                 offer.releaseToReceiverError = err.message;
             }
+            // Persist immediately so crash can't lose phase 1 result
+            await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
 
             // Phase 2: Release receiver's escrowed assets to initiator
             try {
@@ -159,7 +188,6 @@ export default async function handler(req, res) {
                     offer.escrowReleaseToInitiatorTxSignature = releaseToInitiatorTx;
                     offer.releaseToInitiatorComplete = true;
                 } else {
-                    // No assets to release (receiver had nothing escrowed)
                     offer.releaseToInitiatorComplete = true;
                 }
             } catch (err) {
@@ -174,10 +202,9 @@ export default async function handler(req, res) {
                 offer.status = 'completed';
                 offer.completedAt = Date.now();
             }
-            // If either failed, status stays 'escrowed' for retry
         }
 
-        // Save final state
+        // Save final state (includes phase 2 result and final status)
         await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         // Release lock
@@ -197,9 +224,12 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Accept offer error:', error);
+        if (claimedTxSignature) {
+            await releaseEscrowTxClaim(claimedTxSignature, KV_REST_API_URL, KV_REST_API_TOKEN).catch(() => {});
+        }
         if (lockKey) {
             await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN).catch(() => {});
         }
-        return res.status(500).json({ error: 'Failed to accept offer: ' + error.message });
+        return res.status(500).json({ error: 'Failed to accept offer. Please try again.' });
     }
 }

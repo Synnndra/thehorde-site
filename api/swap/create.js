@@ -8,11 +8,14 @@ import {
     validateTimestamp,
     isSignatureUsed,
     markSignatureUsed,
+    claimEscrowTx,
+    releaseEscrowTxClaim,
     countActiveOffers,
     kvGet,
     kvSet,
     getAsset,
     verifyEscrowTransactionContent,
+    verifyTransactionConfirmed,
     ALLOWED_COLLECTIONS,
     MAX_NFTS_PER_SIDE,
     MAX_SOL_PER_SIDE,
@@ -114,6 +117,8 @@ export default async function handler(req, res) {
         return res.status(429).json({ error: 'Too many requests. Try again later.' });
     }
 
+    let escrowTxClaimed = false;
+
     try {
         const {
             initiatorWallet, receiverWallet,
@@ -158,10 +163,16 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'This signature has already been used. Please sign a new message.' });
         }
 
-        // Check active offer limit
-        const activeOffers = await countActiveOffers(initiatorWallet, KV_REST_API_URL, KV_REST_API_TOKEN);
+        // Check active offer limit (both as initiator and receiver)
+        const [activeOffers, receiverActiveOffers] = await Promise.all([
+            countActiveOffers(initiatorWallet, KV_REST_API_URL, KV_REST_API_TOKEN),
+            countActiveOffers(receiverWallet, KV_REST_API_URL, KV_REST_API_TOKEN)
+        ]);
         if (activeOffers >= MAX_ACTIVE_OFFERS_PER_WALLET) {
             return res.status(400).json({ error: `Maximum ${MAX_ACTIVE_OFFERS_PER_WALLET} active offers per wallet. Cancel some offers first.` });
+        }
+        if (receiverActiveOffers >= MAX_ACTIVE_OFFERS_PER_WALLET) {
+            return res.status(400).json({ error: `Receiver already has ${MAX_ACTIVE_OFFERS_PER_WALLET} active offers. They need to clear some first.` });
         }
 
         // Validate NFT arrays
@@ -216,16 +227,33 @@ export default async function handler(req, res) {
         const fee = isOrcHolder ? HOLDER_FEE : PLATFORM_FEE;
 
         // Verify escrow transaction content
-        if (escrowTxSignature && HELIUS_API_KEY) {
+        if (initNfts.length > 0 || initSol > 0) {
+            if (!escrowTxSignature) {
+                return res.status(400).json({ error: 'Escrow transaction signature required' });
+            }
+            // Atomic claim — prevents concurrent creates from reusing the same escrow tx
+            const claim = await claimEscrowTx(escrowTxSignature, 'pending', KV_REST_API_URL, KV_REST_API_TOKEN);
+            if (!claim.claimed) {
+                return res.status(400).json({ error: 'This escrow transaction has already been used for another offer.' });
+            }
+            escrowTxClaimed = true;
+            if (!HELIUS_API_KEY) {
+                await releaseEscrowTxClaim(escrowTxSignature, KV_REST_API_URL, KV_REST_API_TOKEN);
+                return res.status(500).json({ error: 'NFT verification service unavailable' });
+            }
             const txCheck = await verifyEscrowTransactionContent(
                 escrowTxSignature, initiatorWallet, initNfts, initSol, HELIUS_API_KEY, fee
             );
             if (!txCheck.valid) {
+                await releaseEscrowTxClaim(escrowTxSignature, KV_REST_API_URL, KV_REST_API_TOKEN);
                 return res.status(400).json({ error: txCheck.error || 'Escrow transaction verification failed' });
             }
-        } else if (initNfts.length > 0 || initSol > 0) {
-            if (!escrowTxSignature) {
-                return res.status(400).json({ error: 'Escrow transaction signature required' });
+
+            // Verify the transaction is finalized on-chain
+            const isFinalized = await verifyTransactionConfirmed(escrowTxSignature, HELIUS_API_KEY);
+            if (!isFinalized) {
+                await releaseEscrowTxClaim(escrowTxSignature, KV_REST_API_URL, KV_REST_API_TOKEN);
+                return res.status(400).json({ error: 'Escrow transaction not yet finalized on-chain. Please wait a moment and try again.' });
             }
         }
 
@@ -290,6 +318,10 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Create offer error:', error);
+        // Release escrow tx claim if we claimed it but failed before saving the offer
+        if (escrowTxClaimed && req.body?.escrowTxSignature) {
+            await releaseEscrowTxClaim(req.body.escrowTxSignature, KV_REST_API_URL, KV_REST_API_TOKEN).catch(() => {});
+        }
         return res.status(500).json({ error: 'Failed to create offer. Please try again.' });
     }
 }

@@ -215,6 +215,63 @@ body {
 .loading {
     background: #1e3a5f;
     color: #64b5f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.loading .spinner {
+    width: 18px;
+    height: 18px;
+    border: 3px solid rgba(100, 181, 246, 0.3);
+    border-top-color: #64b5f6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading .loading-text {
+    text-align: left;
+}
+
+.loading .loading-steps {
+    margin-top: 6px;
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+.loading .loading-step {
+    padding: 2px 0;
+}
+
+.loading .loading-step.done {
+    opacity: 1;
+    color: #6bf6a0;
+}
+
+.loading .loading-step.done::before {
+    content: '\2713 ';
+}
+
+.loading .loading-step.active {
+    opacity: 1;
+}
+
+.loading .loading-step.active::before {
+    content: '\25CB ';
+}
+
+.loading .loading-step.pending {
+    opacity: 0.4;
+}
+
+.loading .loading-step.pending::before {
+    content: '\25CB ';
 }
 
 .error {
@@ -896,12 +953,28 @@ body {
     color: white;
 }
 
+.status-badge.completed {
+    background: #28a745;
+    color: white;
+}
+
+.status-badge.escrowed {
+    background: #1e3a5f;
+    color: #64b5f6;
+}
+
+.status-badge.failed {
+    background: #dc3545;
+    color: white;
+}
+
 /* History card styles */
 .history-card {
     border-color: #444;
 }
 
-.history-card .status-badge.accepted {
+.history-card .status-badge.accepted,
+.history-card .status-badge.completed {
     background: #28a745;
 }
 
@@ -1166,6 +1239,22 @@ body {
 .cancel-btn:hover {
     background: #dc3545;
     color: white;
+}
+
+.retry-release-btn {
+    background: #1e3a5f;
+    color: #64b5f6;
+    border: 1px solid #64b5f6;
+    padding: 6px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin-top: 8px;
+}
+
+.retry-release-btn:hover {
+    background: #64b5f6;
+    color: #0d1b2a;
 }
 
 .confirm-btn {

@@ -1,4 +1,5 @@
 // Vercel Serverless Function - Get Single Offer by ID
+import { isRateLimitedKV, getClientIp } from './utils.js';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -12,10 +13,16 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'KV not configured' });
     }
 
+    const clientIp = getClientIp(req);
+    if (await isRateLimitedKV(clientIp, 'offer-view', 30, 60000, KV_REST_API_URL, KV_REST_API_TOKEN)) {
+        return res.status(429).json({ error: 'Too many requests. Try again later.' });
+    }
+
     try {
         const { id } = req.query;
 
-        if (!id || typeof id !== 'string') {
+        // Validate offer ID format
+        if (!id || typeof id !== 'string' || !/^offer_[a-f0-9]{32}$/.test(id)) {
             return res.status(400).json({ error: 'Invalid offer ID' });
         }
 
@@ -32,19 +39,11 @@ export default async function handler(req, res) {
         const offer = typeof offerData.result === 'string' ?
             JSON.parse(offerData.result) : offerData.result;
 
-        // Check if offer has expired
+        // Show expired status to frontend without mutating KV.
+        // Actual expiry handling (escrow return) is done by cleanup-expired.js.
         const now = Date.now();
         if (offer.status === 'pending' && offer.expiresAt && offer.expiresAt < now) {
             offer.status = 'expired';
-            // Update the expired status in KV
-            await fetch(`${KV_REST_API_URL}/set/offer:${id}`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(offer)
-            });
         }
 
         return res.status(200).json({ offer });
