@@ -409,7 +409,8 @@ function applySort() {
             [nfts[i], nfts[j]] = [nfts[j], nfts[i]];
         }
     } else if (sortBy === 'rarity') {
-        nfts.sort((a, b) => a.rarityRank - b.rarityRank);
+        const tierOrder = { legendary: 0, epic: 1, rare: 2, common: 3 };
+        nfts.sort((a, b) => (tierOrder[a.rarityTier] ?? 4) - (tierOrder[b.rarityTier] ?? 4) || a.rarityRank - b.rarityRank);
     } else if (sortBy === 'number') {
         nfts.sort((a, b) => a.number - b.number);
     } else {
