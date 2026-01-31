@@ -55,6 +55,7 @@ function initializeElements() {
         historyOffersList: document.getElementById('historyOffersList'),
 
         // Offer detail page elements
+        refreshOfferBtn: document.getElementById('refreshOfferBtn'),
         offerDetails: document.getElementById('offerDetails'),
         offerStatusBanner: document.getElementById('offerStatusBanner'),
         expiresText: document.getElementById('expiresText'),
@@ -149,6 +150,15 @@ function initializeEventListeners() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', (e) => switchTab(e.target.dataset.tab));
     });
+
+    // Refresh offer button
+    if (elements.refreshOfferBtn) {
+        elements.refreshOfferBtn.addEventListener('click', () => {
+            if (currentOffer?.id) {
+                loadOfferDetails(currentOffer.id);
+            }
+        });
+    }
 
     // Offer detail modals
     if (elements.closeConfirmModal) {
