@@ -205,11 +205,18 @@ function calculateRarity() {
         nft.rarityRank = index + 1;
     });
 
-    // Assign tier based on rank
+    // Assign tier based on rank, capping legendary at exactly 10 total
     const LEGENDARY_OVERRIDES = new Set([328, 265, 233, 212]);
+    const isOverride = nft => LEGENDARY_OVERRIDES.has(parseInt(nft.name?.match(/#(\d+)/)?.[1]));
+
+    // Count how many overrides fall outside the natural top 10
+    const overridesOutsideTop10 = sorted.filter(nft => isOverride(nft) && nft.rarityRank > 10).length;
+    const naturalCutoff = 10 - overridesOutsideTop10;
+
     allNFTs.forEach(nft => {
-        const metaNum = parseInt(nft.name?.match(/#(\d+)/)?.[1]);
-        if (LEGENDARY_OVERRIDES.has(metaNum) || nft.rarityRank <= 10) {
+        if (isOverride(nft)) {
+            nft.rarityTier = 'legendary';
+        } else if (nft.rarityRank <= naturalCutoff) {
             nft.rarityTier = 'legendary';
         } else if (nft.rarityRank <= 40) {
             nft.rarityTier = 'epic';
