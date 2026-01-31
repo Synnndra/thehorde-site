@@ -1,0 +1,28 @@
+name: Swap Cleanup Cron
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger cleanup-expired
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            https://midhorde.com/api/swap/cleanup-expired \
+            -H "Content-Type: application/json" \
+            -d "{\"secret\": \"${{ secrets.ADMIN_SECRET }}\"}")
+
+          http_code=$(echo "$response" | tail -1)
+          body=$(echo "$response" | head -n -1)
+
+          echo "Status: $http_code"
+          echo "$body" | head -c 500
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "::error::Cleanup failed with status $http_code"
+            exit 1
+          fi
