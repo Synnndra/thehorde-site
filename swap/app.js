@@ -114,7 +114,11 @@ function initializeEventListeners() {
 
     if (elements.closeSuccessModal) {
         elements.closeSuccessModal.addEventListener('click', () => {
+            const offerUrl = elements.successModal.dataset.offerUrl;
             elements.successModal.style.display = 'none';
+            if (offerUrl) {
+                window.location.href = offerUrl;
+            }
         });
     }
 

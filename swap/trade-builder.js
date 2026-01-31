@@ -147,9 +147,7 @@ async function createOffer() {
         const offerUrl = `${window.location.origin}/swap/offer.html?id=${data.offerId}`;
         elements.offerLinkInput.value = offerUrl;
         elements.successModal.style.display = 'flex';
-
-        // Auto-redirect to offer page after 2 seconds
-        setTimeout(() => { window.location.href = offerUrl; }, 2000);
+        elements.successModal.dataset.offerUrl = offerUrl;
 
     } catch (err) {
         console.error('Error creating offer:', err);
