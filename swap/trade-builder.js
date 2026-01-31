@@ -147,6 +147,9 @@ async function createOffer() {
         elements.offerLinkInput.value = offerUrl;
         elements.successModal.style.display = 'flex';
 
+        // Auto-redirect to offer page after 2 seconds
+        setTimeout(() => { window.location.href = offerUrl; }, 2000);
+
     } catch (err) {
         console.error('Error creating offer:', err);
         showError('Failed to create offer: ' + err.message);
