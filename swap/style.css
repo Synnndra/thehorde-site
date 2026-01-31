@@ -870,6 +870,7 @@ body {
 
 /* Offer Card */
 .offer-card {
+    position: relative;
     background: #2a2a3e;
     border: 2px solid #333;
     border-radius: 8px;
@@ -1734,6 +1735,49 @@ body {
     background: #64b5f6;
     color: #0d1b2a;
     text-decoration: none;
+}
+
+/* Unseen offer indicators */
+.nav-link {
+    position: relative;
+}
+.nav-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #ef5350;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    line-height: 18px;
+    text-align: center;
+    border-radius: 9px;
+    padding: 0 4px;
+    font-family: 'Crimson Text', serif;
+}
+.tab-count.has-new {
+    background: #ef5350;
+    color: white;
+    font-weight: 700;
+}
+.offer-card.unseen-offer {
+    border-color: #c9a227;
+    box-shadow: 0 0 10px rgba(201, 162, 39, 0.3);
+}
+.offer-card.unseen-offer::before {
+    content: 'NEW';
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: #c9a227;
+    color: #1a1a2e;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
 }
 
 /* Mobile wallet prompt */

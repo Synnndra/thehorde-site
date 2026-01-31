@@ -203,4 +203,38 @@ function onWalletConnected() {
         }
         loadYourNFTs();
     }
+
+    checkUnseenOffers();
+}
+
+async function checkUnseenOffers() {
+    if (!connectedWallet) return;
+    // Skip on offers page — loadOffers() handles the badge there
+    if (window.location.pathname.includes('offers.html')) return;
+    try {
+        const response = await fetch(`/api/swap/offers?wallet=${connectedWallet}`);
+        const data = await response.json();
+        if (data.error || !data.offers) return;
+
+        const received = data.offers.filter(o =>
+            o.receiver.wallet === connectedWallet && o.status === 'pending'
+        );
+
+        const seen = new Set(getSeenOfferIds());
+        const unseenCount = received.filter(o => !seen.has(o.id)).length;
+
+        const navLink = document.querySelector('a.nav-link[href*="offers.html"]');
+        if (navLink && unseenCount > 0) {
+            let badge = navLink.querySelector('.nav-badge');
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'nav-badge';
+                navLink.appendChild(badge);
+            }
+            badge.textContent = unseenCount;
+            navLink.classList.add('has-unseen');
+        }
+    } catch (err) {
+        // Non-critical — silently ignore
+    }
 }

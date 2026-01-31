@@ -1,5 +1,22 @@
 // MidEvils NFT Swap - Offers List Page
 
+function getSeenOfferIds() {
+    try {
+        return JSON.parse(localStorage.getItem('seenOfferIds') || '[]');
+    } catch { return []; }
+}
+
+function markOffersSeen(offerIds) {
+    const seen = new Set(getSeenOfferIds());
+    offerIds.forEach(id => seen.add(id));
+    localStorage.setItem('seenOfferIds', JSON.stringify([...seen]));
+}
+
+function countUnseenOffers(receivedOffers) {
+    const seen = new Set(getSeenOfferIds());
+    return receivedOffers.filter(o => !seen.has(o.id)).length;
+}
+
 async function loadOffers() {
     if (!connectedWallet) {
         if (elements.offersSection) {
@@ -52,8 +69,16 @@ async function loadOffers() {
 function displayOffers() {
     clearCountdowns();
 
+    const unseenCount = countUnseenOffers(allOffers.received);
+
     if (elements.receivedCount) {
         elements.receivedCount.textContent = allOffers.received.length;
+        if (unseenCount > 0) {
+            elements.receivedCount.textContent = `${allOffers.received.length} (${unseenCount} new)`;
+            elements.receivedCount.classList.add('has-new');
+        } else {
+            elements.receivedCount.classList.remove('has-new');
+        }
     }
     if (elements.sentCount) {
         elements.sentCount.textContent = allOffers.sent.length;
@@ -63,12 +88,20 @@ function displayOffers() {
         if (allOffers.received.length === 0) {
             elements.receivedOffersList.innerHTML = '<div class="empty-state">No offers received yet</div>';
         } else {
+            const seen = new Set(getSeenOfferIds());
             elements.receivedOffersList.innerHTML = '';
             allOffers.received.forEach(offer => {
-                elements.receivedOffersList.appendChild(createOfferCard(offer, 'received'));
+                const card = createOfferCard(offer, 'received');
+                if (!seen.has(offer.id)) {
+                    card.classList.add('unseen-offer');
+                }
+                elements.receivedOffersList.appendChild(card);
             });
         }
     }
+
+    // Mark all received offers as seen now that user has viewed the list
+    markOffersSeen(allOffers.received.map(o => o.id));
 
     if (elements.sentOffersList) {
         if (allOffers.sent.length === 0) {
