@@ -88,7 +88,7 @@ async function createOffer() {
     }
 
     const createSteps = [
-        'Approve escrow transaction in Phantom',
+        'Approve escrow transaction in wallet',
         'Sending assets to escrow',
         'Sign message to verify wallet',
         'Confirming transaction on-chain',

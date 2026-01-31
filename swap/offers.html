@@ -81,16 +81,14 @@
         </footer>
     </div>
 
-    <!-- Buffer polyfill for wallets that expect a global Buffer (e.g. Solflare) -->
-    <script>
-    if (typeof Buffer === 'undefined') {
-        import('https://cdn.jsdelivr.net/npm/buffer@6.0.3/+esm').then(function(m) {
-            window.Buffer = m.Buffer;
-        });
-    }
-    </script>
     <!-- Solana Web3.js for blockchain transactions -->
     <script defer src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
+    <!-- Extract Buffer from web3.js bundle for wallets that expect it globally (e.g. Solflare) -->
+    <script defer>
+    if (typeof Buffer === 'undefined') {
+        try { window.Buffer = new solanaWeb3.PublicKey('11111111111111111111111111111111').toBuffer().constructor; } catch(e) {}
+    }
+    </script>
     <script defer src="/swap/constants.js"></script>
     <script defer src="/swap/ui-utils.js"></script>
     <script defer src="/swap/blockchain.js"></script>
