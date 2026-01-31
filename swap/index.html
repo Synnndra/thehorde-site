@@ -190,9 +190,14 @@
         </footer>
     </div>
 
-    <!-- Buffer polyfill (required by @solana/web3.js in browsers without Phantom) -->
-    <script src="https://unpkg.com/buffer@6.0.3/index.js"></script>
-    <script>window.Buffer = window.Buffer || window.buffer.Buffer;</script>
+    <!-- Buffer polyfill for wallets that expect a global Buffer (e.g. Solflare) -->
+    <script>
+    if (typeof Buffer === 'undefined') {
+        import('https://cdn.jsdelivr.net/npm/buffer@6.0.3/+esm').then(function(m) {
+            window.Buffer = m.Buffer;
+        });
+    }
+    </script>
     <!-- Solana Web3.js for blockchain transactions -->
     <script defer src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
     <script defer src="/swap/constants.js"></script>
