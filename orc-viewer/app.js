@@ -200,23 +200,20 @@ function calculateRarity() {
     });
 
     // Sort by score descending and assign ranks
-    const sorted = [...allNFTs].sort((a, b) => b.rarityScore - a.rarityScore);
+    // Force top 4 in fixed order, then rank the rest by score
+    const RANK_OVERRIDES = [328, 265, 212, 233];
+    const getMetaNum = nft => parseInt(nft.name?.match(/#(\d+)/)?.[1]);
+
+    const overrideNFTs = RANK_OVERRIDES.map(num => allNFTs.find(nft => getMetaNum(nft) === num)).filter(Boolean);
+    const rest = [...allNFTs].filter(nft => !RANK_OVERRIDES.includes(getMetaNum(nft))).sort((a, b) => b.rarityScore - a.rarityScore);
+    const sorted = [...overrideNFTs, ...rest];
     sorted.forEach((nft, index) => {
         nft.rarityRank = index + 1;
     });
 
-    // Assign tier based on rank, capping legendary at exactly 10 total
-    const LEGENDARY_OVERRIDES = new Set([328, 265, 233, 212]);
-    const isOverride = nft => LEGENDARY_OVERRIDES.has(parseInt(nft.name?.match(/#(\d+)/)?.[1]));
-
-    // Count how many overrides fall outside the natural top 10
-    const overridesOutsideTop10 = sorted.filter(nft => isOverride(nft) && nft.rarityRank > 10).length;
-    const naturalCutoff = 10 - overridesOutsideTop10;
-
+    // Assign tier based on rank, exactly 10 legendary
     allNFTs.forEach(nft => {
-        if (isOverride(nft)) {
-            nft.rarityTier = 'legendary';
-        } else if (nft.rarityRank <= naturalCutoff) {
+        if (nft.rarityRank <= 10) {
             nft.rarityTier = 'legendary';
         } else if (nft.rarityRank <= 40) {
             nft.rarityTier = 'epic';
