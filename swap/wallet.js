@@ -1,5 +1,9 @@
 // MidEvils NFT Swap - Wallet Connection
 
+function isMobileBrowser() {
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 function getWalletProvider() {
     // Phantom
     if (window.phantom?.solana?.isPhantom) {
@@ -73,7 +77,11 @@ async function connectWallet() {
     const provider = getWalletProvider();
 
     if (!provider) {
-        showError('No Solana wallet found. Please install Phantom or Solflare to continue.');
+        if (isMobileBrowser()) {
+            showMobileWalletPrompt();
+        } else {
+            showError('No Solana wallet found. Please install Phantom or Solflare to continue.');
+        }
         return;
     }
 
@@ -154,6 +162,26 @@ async function disconnectWallet() {
     }
     if (elements.theirNFTGrid) {
         elements.theirNFTGrid.innerHTML = '<div class="empty-state">Enter a wallet address above to see their NFTs</div>';
+    }
+}
+
+function showMobileWalletPrompt() {
+    const currentUrl = encodeURIComponent(window.location.href);
+    const phantomUrl = `https://phantom.app/ul/browse/${currentUrl}`;
+    const solflareUrl = `https://solflare.com/ul/v1/browse/${currentUrl}`;
+
+    hideLoading();
+    if (elements.error) {
+        elements.error.innerHTML = `
+            <div class="mobile-wallet-prompt">
+                <p>No wallet detected. Open this page in your wallet app to connect:</p>
+                <div class="mobile-wallet-buttons">
+                    <a href="${phantomUrl}" class="mobile-wallet-btn phantom-btn">Open in Phantom</a>
+                    <a href="${solflareUrl}" class="mobile-wallet-btn solflare-btn">Open in Solflare</a>
+                </div>
+            </div>
+        `;
+        elements.error.style.display = 'block';
     }
 }
 

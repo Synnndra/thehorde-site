@@ -1736,6 +1736,41 @@ body {
     text-decoration: none;
 }
 
+/* Mobile wallet prompt */
+.mobile-wallet-prompt p {
+    color: #e8e4d9;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+.mobile-wallet-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+.mobile-wallet-btn {
+    display: inline-block;
+    font-family: 'Cinzel', serif;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    color: white;
+    transition: all 0.3s;
+}
+.mobile-wallet-btn.phantom-btn {
+    background: linear-gradient(135deg, #ab9ff2 0%, #7c3aed 100%);
+}
+.mobile-wallet-btn.phantom-btn:hover {
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+}
+.mobile-wallet-btn.solflare-btn {
+    background: linear-gradient(135deg, #fc9c44 0%, #e67a15 100%);
+}
+.mobile-wallet-btn.solflare-btn:hover {
+    box-shadow: 0 4px 12px rgba(230, 122, 21, 0.4);
+}
+
 /* Action notices */
 .action-notice {
     background: #2a4a6a;
