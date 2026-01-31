@@ -712,8 +712,8 @@ export async function executeEscrowTransaction(transaction, escrowKeypair, heliu
         return null;
     }
 
-    const connection = new Connection(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, 'finalized');
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
+    const connection = new Connection(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, 'confirmed');
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
 
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = escrowKeypair.publicKey;
@@ -721,10 +721,10 @@ export async function executeEscrowTransaction(transaction, escrowKeypair, heliu
 
     const signature = await connection.sendRawTransaction(transaction.serialize(), {
         skipPreflight: false,
-        preflightCommitment: 'finalized'
+        preflightCommitment: 'confirmed'
     });
 
-    await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'finalized');
+    await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
 
     return signature;
 }
