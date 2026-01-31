@@ -282,6 +282,7 @@ function createHistoryCard(offer, type) {
         <div class="offer-card-footer">
             <span class="offer-meta">${offer.status === 'accepted' ? 'Completed' : 'Ended'}: ${finalizedDate}</span>
             <div class="offer-card-actions">
+                ${['completed', 'accepted'].includes(offer.status) && offer.escrowTxSignature ? `<a href="https://solscan.io/tx/${offer.escrowTxSignature}" target="_blank" rel="noopener" class="solscan-link">Solscan</a>` : ''}
                 <a href="/swap/offer.html?id=${offer.id}" class="view-offer-btn">Details</a>
             </div>
         </div>

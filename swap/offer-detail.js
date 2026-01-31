@@ -116,7 +116,12 @@ function displayOfferActions() {
     elements.offerActions.innerHTML = '';
 
     if (currentOffer.status === 'completed') {
-        elements.offerActions.innerHTML = '<p class="success-notice">Trade completed successfully! Assets have been exchanged.</p>';
+        let completedHtml = '<p class="success-notice">Trade completed successfully! Assets have been exchanged.';
+        if (currentOffer.escrowTxSignature) {
+            completedHtml += `<br><a href="https://solscan.io/tx/${currentOffer.escrowTxSignature}" target="_blank" rel="noopener" class="solscan-link">View transaction on Solscan</a>`;
+        }
+        completedHtml += '</p>';
+        elements.offerActions.innerHTML = completedHtml;
         return;
     }
 

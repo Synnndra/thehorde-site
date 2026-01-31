@@ -1721,6 +1721,20 @@ body {
 .solscan-link:hover {
     text-decoration: underline;
 }
+.offer-card-actions .solscan-link {
+    font-family: 'Cinzel', serif;
+    padding: 8px 16px;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 2px solid #64b5f6;
+    transition: all 0.3s;
+}
+.offer-card-actions .solscan-link:hover {
+    background: #64b5f6;
+    color: #0d1b2a;
+    text-decoration: none;
+}
 
 /* Action notices */
 .action-notice {
