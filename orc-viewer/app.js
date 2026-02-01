@@ -443,8 +443,6 @@ function renderNFTs() {
         img.className = 'nft-image loading';
         img.alt = nft.name;
         img.loading = 'lazy';
-        img.width = 300;
-        img.height = 300;
         img.onload = () => {
             img.classList.remove('loading');
             img.classList.add('loaded');
