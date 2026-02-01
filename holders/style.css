@@ -1,0 +1,492 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --color-bg: #0a0a0a;
+    --color-primary: #8b4513;
+    --color-primary-light: #a0522d;
+    --color-accent: #c9a227;
+    --color-text: #e8e4d9;
+    --color-text-dim: #9a9484;
+    --color-blood: #6b1c1c;
+    --color-gold: #ffd700;
+    --color-silver: #c0c0c0;
+    --color-bronze: #cd7f32;
+    --font-display: 'Cinzel', serif;
+    --font-body: 'Crimson Text', serif;
+}
+
+body {
+    font-family: var(--font-body);
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    min-height: 100vh;
+    line-height: 1.6;
+    background-image: url('/background.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        to bottom,
+        rgba(10, 10, 10, 0.88) 0%,
+        rgba(10, 10, 10, 0.8) 50%,
+        rgba(10, 10, 10, 0.92) 100%
+    );
+    z-index: 0;
+}
+
+.content {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    padding-top: 1rem;
+}
+
+/* Header */
+.page-header {
+    text-align: center;
+    padding: 2rem 0 1.5rem;
+    border-bottom: 2px solid var(--color-primary);
+    margin-bottom: 1.5rem;
+}
+
+.page-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 6vw, 3rem);
+    font-weight: 900;
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-shadow:
+        0 0 10px rgba(201, 162, 39, 0.4),
+        0 3px 6px rgba(0, 0, 0, 0.8);
+}
+
+.page-subtitle {
+    font-family: var(--font-display);
+    font-size: clamp(0.8rem, 2.5vw, 1rem);
+    color: var(--color-text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-top: 0.3rem;
+}
+
+/* Stats Bar */
+.stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba(139, 69, 19, 0.15) 0%, rgba(10, 10, 10, 0.6) 100%);
+    border: 1px solid var(--color-primary);
+    border-radius: 4px;
+}
+
+.stat {
+    text-align: center;
+}
+
+.stat-value {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-accent);
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* Actions Bar */
+.actions-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--color-primary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.wallet-btn {
+    background: linear-gradient(180deg, rgba(139, 69, 19, 0.4) 0%, rgba(107, 28, 28, 0.4) 100%);
+    color: var(--color-text);
+}
+
+.wallet-btn:hover {
+    border-color: var(--color-accent);
+    background: linear-gradient(180deg, rgba(160, 82, 45, 0.6) 0%, rgba(139, 69, 19, 0.6) 100%);
+}
+
+.wallet-btn.disconnect {
+    border-color: var(--color-blood);
+    color: var(--color-text-dim);
+}
+
+.wallet-btn.disconnect:hover {
+    border-color: #a03030;
+    color: var(--color-text);
+}
+
+.wallet-address {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: var(--color-accent);
+    cursor: pointer;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid rgba(201, 162, 39, 0.3);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.wallet-address:hover {
+    background: rgba(201, 162, 39, 0.1);
+}
+
+.wallet-address.copied {
+    border-color: #28a745;
+    color: #28a745;
+}
+
+.discord-link-btn {
+    background: transparent;
+    border-color: #5865F2;
+    color: #5865F2;
+}
+
+.discord-link-btn:hover {
+    background: rgba(88, 101, 242, 0.15);
+}
+
+.discord-link-btn.unlinked {
+    border-color: var(--color-text-dim);
+    color: var(--color-text-dim);
+}
+
+.discord-link-btn.unlinked:hover {
+    border-color: var(--color-blood);
+    color: #a03030;
+}
+
+/* Loading */
+.loading-state {
+    text-align: center;
+    padding: 3rem 0;
+    color: var(--color-text-dim);
+}
+
+.spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(201, 162, 39, 0.2);
+    border-top-color: var(--color-accent);
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Error */
+.error-state {
+    text-align: center;
+    padding: 2rem;
+    color: #dc3545;
+    background: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+}
+
+/* Leaderboard Table */
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(10, 10, 10, 0.6);
+    border: 1px solid var(--color-primary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.leaderboard-table thead {
+    background: linear-gradient(180deg, rgba(139, 69, 19, 0.3) 0%, rgba(107, 28, 28, 0.2) 100%);
+}
+
+.leaderboard-table th {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.75rem 0.5rem;
+    text-align: left;
+    border-bottom: 2px solid var(--color-primary);
+}
+
+.leaderboard-table td {
+    padding: 0.6rem 0.5rem;
+    border-bottom: 1px solid rgba(139, 69, 19, 0.2);
+    font-size: 0.95rem;
+    vertical-align: middle;
+}
+
+.leaderboard-table tbody tr {
+    transition: background 0.2s ease;
+}
+
+.leaderboard-table tbody tr:hover {
+    background: rgba(139, 69, 19, 0.1);
+}
+
+/* Column widths */
+.col-rank { width: 50px; text-align: center; }
+.col-wallet { }
+.col-discord { width: 140px; }
+.col-count { width: 60px; text-align: center; }
+.col-expand { width: 40px; text-align: center; }
+
+/* Rank styling */
+.rank-cell { text-align: center; font-weight: 700; }
+
+.rank-1 .rank-cell {
+    color: var(--color-gold);
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+.rank-2 .rank-cell {
+    color: var(--color-silver);
+    text-shadow: 0 0 6px rgba(192, 192, 192, 0.4);
+}
+
+.rank-3 .rank-cell {
+    color: var(--color-bronze);
+    text-shadow: 0 0 6px rgba(205, 127, 50, 0.4);
+}
+
+.rank-medal {
+    font-size: 1.1rem;
+}
+
+/* Wallet cell */
+.wallet-cell {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: var(--color-text-dim);
+    cursor: pointer;
+}
+
+.wallet-cell:hover {
+    color: var(--color-text);
+}
+
+/* Discord cell */
+.discord-cell {
+    font-size: 0.85rem;
+    color: #9B9FFF;
+}
+
+.discord-cell .no-discord {
+    color: rgba(154, 148, 132, 0.4);
+    font-style: italic;
+}
+
+/* Count cell */
+.count-cell {
+    text-align: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--color-accent);
+}
+
+/* Expand button */
+.expand-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-dim);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.25rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.expand-btn:hover {
+    color: var(--color-accent);
+}
+
+.expand-btn.expanded {
+    color: var(--color-accent);
+    transform: rotate(90deg);
+}
+
+/* Highlighted row (connected wallet) */
+.row-highlight {
+    background: rgba(201, 162, 39, 0.08) !important;
+    border-left: 3px solid var(--color-accent);
+}
+
+.row-highlight .wallet-cell {
+    color: var(--color-accent);
+}
+
+/* Expanded orc grid row */
+.orc-grid-row td {
+    padding: 0;
+    border-bottom: 1px solid rgba(139, 69, 19, 0.3);
+}
+
+.orc-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0.75rem 0.75rem 0.75rem 3rem;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.orc-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    border: 1px solid var(--color-primary);
+    object-fit: cover;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.orc-thumb:hover {
+    border-color: var(--color-accent);
+    transform: scale(1.15);
+    z-index: 5;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+.orc-thumb-wrapper {
+    position: relative;
+}
+
+.orc-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 10, 10, 0.95);
+    border: 1px solid var(--color-primary);
+    border-radius: 4px;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
+    font-family: var(--font-display);
+    color: var(--color-text);
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.orc-thumb-wrapper:hover .orc-tooltip {
+    display: block;
+}
+
+/* No nav-active underline */
+.nav-active {
+    color: var(--color-text) !important;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .content {
+        padding: 1rem;
+    }
+
+    .stats-bar {
+        gap: 1rem;
+        padding: 0.75rem;
+    }
+
+    .stat-value {
+        font-size: 1.2rem;
+    }
+
+    .actions-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .action-btn {
+        text-align: center;
+    }
+
+    .col-discord {
+        display: none;
+    }
+
+    .col-discord-header {
+        display: none;
+    }
+
+    .leaderboard-table th,
+    .leaderboard-table td {
+        padding: 0.5rem 0.3rem;
+    }
+
+    .orc-grid {
+        padding: 0.5rem;
+        gap: 4px;
+    }
+
+    .orc-thumb {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+@media (max-width: 400px) {
+    .page-header {
+        padding: 1.5rem 0 1rem;
+    }
+
+    .leaderboard-table td {
+        font-size: 0.85rem;
+    }
+
+    .wallet-cell {
+        font-size: 0.75rem;
+    }
+}

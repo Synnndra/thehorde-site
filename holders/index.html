@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holder Leaderboard | The Horde</title>
+    <meta name="description" content="Orc holder leaderboard — see who holds the most Orcs in The Horde.">
+    <meta property="og:title" content="Holder Leaderboard | The Horde">
+    <meta property="og:description" content="Orc holder leaderboard — ranked by Orc count.">
+    <meta property="og:image" content="https://midhorde.com/orclogo.jpg">
+    <meta property="og:url" content="https://midhorde.com/holders">
+    <link rel="icon" href="/orclogo.jpg" type="image/jpeg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/shared/nav.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <nav class="site-nav">
+        <a href="/">Home</a>
+        <span class="nav-sep">|</span>
+        <a href="/orc-viewer">Viewer</a>
+        <span class="nav-sep">|</span>
+        <a href="/swap">Midswap</a>
+        <span class="nav-sep">|</span>
+        <a href="/minigame">Minigame</a>
+        <span class="nav-sep">|</span>
+        <a href="/holders" class="nav-active">Holders</a>
+    </nav>
+
+    <div class="content" id="main-content">
+        <header class="page-header">
+            <h1 class="page-title">Holder Leaderboard</h1>
+            <p class="page-subtitle">Orc holders ranked by collection size</p>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stat">
+                <span class="stat-value" id="total-holders">—</span>
+                <span class="stat-label">Holders</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="total-orcs">—</span>
+                <span class="stat-label">Orcs</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="last-updated">—</span>
+                <span class="stat-label">Updated</span>
+            </div>
+        </div>
+
+        <div class="actions-bar">
+            <button id="connect-wallet-btn" class="action-btn wallet-btn">Connect Wallet</button>
+            <button id="disconnect-wallet-btn" class="action-btn wallet-btn disconnect" style="display:none">Disconnect</button>
+            <span id="wallet-address" class="wallet-address" style="display:none"></span>
+            <button id="link-discord-btn" class="action-btn discord-link-btn" style="display:none">Link Discord to Wallet</button>
+            <button id="unlink-discord-btn" class="action-btn discord-link-btn unlinked" style="display:none">Unlink Discord</button>
+        </div>
+
+        <div id="loading" class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading holder data...</p>
+        </div>
+
+        <div id="error" class="error-state" style="display:none"></div>
+
+        <div id="leaderboard-container" style="display:none">
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th class="col-rank">#</th>
+                        <th class="col-wallet">Wallet</th>
+                        <th class="col-discord">Discord</th>
+                        <th class="col-count">Orcs</th>
+                        <th class="col-expand"></th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
