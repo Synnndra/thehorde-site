@@ -8,7 +8,7 @@ export default async function handler(req, res) {
 
     const KV_REST_API_URL = process.env.KV_REST_API_URL;
     const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN;
-    const ADMIN_SECRET = process.env.ADMIN_SECRET;
+    const ADMIN_SECRET = process.env.ADMIN_SECRET?.trim()?.replace(/\\n/g, '');
 
     if (!ADMIN_SECRET) {
         return res.status(500).json({ error: 'Admin not configured' });

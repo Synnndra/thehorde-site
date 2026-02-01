@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN;
     const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
     const ESCROW_PRIVATE_KEY = process.env.ESCROW_PRIVATE_KEY;
-    const ADMIN_SECRET = process.env.ADMIN_SECRET || process.env.CLEANUP_SECRET;
+    const ADMIN_SECRET = (process.env.ADMIN_SECRET || process.env.CLEANUP_SECRET)?.trim()?.replace(/\\n/g, '');
 
     if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
         return res.status(500).json({ error: 'Server configuration error' });
