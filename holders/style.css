@@ -31,6 +31,10 @@ body {
     background-attachment: fixed;
 }
 
+.site-nav {
+    position: relative;
+}
+
 body::before {
     content: '';
     position: fixed;
