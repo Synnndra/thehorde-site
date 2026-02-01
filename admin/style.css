@@ -1,0 +1,317 @@
+:root {
+    --color-bg: #0a0a0a;
+    --color-bg-dark: #050505;
+    --color-primary: #8b4513;
+    --color-primary-light: #a0522d;
+    --color-accent: #c9a227;
+    --color-text: #e8e4d9;
+    --color-text-dim: #9a9484;
+    --color-blood: #6b1c1c;
+    --font-display: 'Cinzel', serif;
+    --font-body: 'Crimson Text', serif;
+    --card-bg: #111;
+    --border: #222;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    min-height: 100vh;
+}
+
+h1, h2, h3 { font-family: var(--font-display); }
+
+/* Login */
+#login-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.login-box {
+    text-align: center;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3rem 2.5rem;
+    width: 360px;
+    max-width: 90vw;
+}
+
+.login-box h1 {
+    color: var(--color-accent);
+    font-size: 1.8rem;
+    margin-bottom: 0.25rem;
+}
+
+.login-subtitle {
+    color: var(--color-text-dim);
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+}
+
+#login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+input[type="password"],
+input[type="text"] {
+    background: var(--color-bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    padding: 0.6rem 0.8rem;
+    outline: none;
+}
+
+input:focus {
+    border-color: var(--color-primary);
+}
+
+button {
+    background: var(--color-primary);
+    border: none;
+    border-radius: 4px;
+    color: var(--color-text);
+    cursor: pointer;
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    padding: 0.6rem 1.2rem;
+    transition: background 0.2s;
+}
+
+button:hover { background: var(--color-primary-light); }
+
+.error-text {
+    color: #e44;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+/* Dashboard */
+#dashboard {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+header h1 {
+    color: var(--color-accent);
+    font-size: 1.5rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+#logout-btn {
+    background: var(--color-blood);
+}
+
+#logout-btn:hover {
+    background: #8a2424;
+}
+
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.card h2 {
+    font-size: 1rem;
+    color: var(--color-accent);
+    margin-bottom: 0.75rem;
+}
+
+/* Health Stoplight */
+.stoplight-row {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.stoplight-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: inline-block;
+    background: #555;
+    flex-shrink: 0;
+}
+
+.indicator.green { background: #2ecc40; box-shadow: 0 0 6px #2ecc4088; }
+.indicator.yellow { background: #f1c40f; box-shadow: 0 0 6px #f1c40f88; }
+.indicator.red { background: #e74c3c; box-shadow: 0 0 6px #e74c3c88; }
+
+.indicator-label {
+    font-size: 0.9rem;
+    color: var(--color-text-dim);
+}
+
+/* Stats */
+.stats-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 70px;
+}
+
+.stat-value {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    color: var(--color-text);
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+}
+
+/* Search */
+#search-form {
+    display: flex;
+    gap: 0.5rem;
+}
+
+#search-input {
+    flex: 1;
+    max-width: 320px;
+}
+
+/* Table */
+.table-wrap {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+th {
+    text-align: left;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+td {
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    white-space: nowrap;
+}
+
+tr.offer-row { cursor: pointer; }
+tr.offer-row:hover { background: #1a1a1a; }
+
+/* Expand toggle */
+.expand-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-dim);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0;
+    line-height: 1;
+}
+
+/* Status badges */
+.badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    font-family: var(--font-display);
+    text-transform: capitalize;
+}
+
+.badge-pending    { background: #2a5a8a; color: #8cc4ff; }
+.badge-escrowed   { background: #5a4a1a; color: #f1c40f; }
+.badge-accepted   { background: #5a4a1a; color: #f1c40f; }
+.badge-completed  { background: #1a5a2a; color: #2ecc40; }
+.badge-failed     { background: #5a1a1a; color: #e74c3c; }
+.badge-cancelled  { background: #3a3a3a; color: #999; }
+.badge-expired    { background: #3a2a1a; color: #a0522d; }
+
+/* Txlog row */
+tr.txlog-row td {
+    padding: 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.txlog-container {
+    background: var(--color-bg-dark);
+    padding: 0.75rem 1rem;
+    font-size: 0.82rem;
+    color: var(--color-text-dim);
+}
+
+.txlog-container table {
+    font-size: 0.82rem;
+}
+
+.txlog-container th {
+    font-size: 0.75rem;
+}
+
+.txlog-container td {
+    padding: 0.3rem 0.5rem;
+    white-space: normal;
+    word-break: break-all;
+}
+
+.empty-text {
+    color: var(--color-text-dim);
+    font-style: italic;
+    text-align: center;
+    padding: 1rem 0;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .stats-row { gap: 0.5rem; }
+    .stat { min-width: 55px; }
+    .stat-value { font-size: 1.1rem; }
+    .stoplight-row { gap: 1rem; }
+    #search-form { flex-direction: column; }
+    #search-input { max-width: 100%; }
+}

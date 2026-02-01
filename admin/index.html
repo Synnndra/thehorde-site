@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — The Horde</title>
+    <link rel="stylesheet" href="/admin/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen">
+        <div class="login-box">
+            <h1>The Horde</h1>
+            <p class="login-subtitle">Admin Dashboard</p>
+            <form id="login-form">
+                <input type="password" id="password-input" placeholder="Enter admin secret" autocomplete="off" required>
+                <button type="submit">Enter</button>
+            </form>
+            <p id="login-error" class="error-text" hidden></p>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" hidden>
+        <header>
+            <h1>Admin Dashboard</h1>
+            <div class="header-actions">
+                <button id="refresh-btn" title="Refresh">&#x21bb; Refresh</button>
+                <button id="logout-btn">Logout</button>
+            </div>
+        </header>
+
+        <!-- Health Stoplight -->
+        <section class="card" id="health-section">
+            <h2>System Health</h2>
+            <div class="stoplight-row">
+                <div class="stoplight-item">
+                    <span class="indicator" id="health-kv"></span>
+                    <span class="indicator-label">KV Store</span>
+                </div>
+                <div class="stoplight-item">
+                    <span class="indicator" id="health-helius"></span>
+                    <span class="indicator-label">Helius RPC</span>
+                </div>
+                <div class="stoplight-item">
+                    <span class="indicator" id="health-escrow"></span>
+                    <span class="indicator-label">Escrow Balance: <span id="escrow-balance">—</span></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Bar -->
+        <section class="card" id="stats-section">
+            <h2>Stats</h2>
+            <div class="stats-row" id="stats-row">
+                <div class="stat"><span class="stat-value" id="stat-total">—</span><span class="stat-label">Total</span></div>
+                <div class="stat"><span class="stat-value" id="stat-pending">—</span><span class="stat-label">Pending</span></div>
+                <div class="stat"><span class="stat-value" id="stat-escrowed">—</span><span class="stat-label">Escrowed</span></div>
+                <div class="stat"><span class="stat-value" id="stat-completed">—</span><span class="stat-label">Completed</span></div>
+                <div class="stat"><span class="stat-value" id="stat-failed">—</span><span class="stat-label">Failed</span></div>
+                <div class="stat"><span class="stat-value" id="stat-cancelled">—</span><span class="stat-label">Cancelled</span></div>
+                <div class="stat"><span class="stat-value" id="stat-expired">—</span><span class="stat-label">Expired</span></div>
+                <div class="stat"><span class="stat-value" id="stat-24h">—</span><span class="stat-label">Last 24h</span></div>
+            </div>
+        </section>
+
+        <!-- Search -->
+        <section class="card" id="search-section">
+            <h2>Search Offer</h2>
+            <form id="search-form">
+                <input type="text" id="search-input" placeholder="offer_xxxxxxxx">
+                <button type="submit">Search</button>
+            </form>
+            <p id="search-error" class="error-text" hidden></p>
+        </section>
+
+        <!-- Offer Table -->
+        <section class="card" id="offers-section">
+            <h2>Recent Offers</h2>
+            <div class="table-wrap">
+                <table id="offers-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Offer ID</th>
+                            <th>Status</th>
+                            <th>Initiator</th>
+                            <th>Receiver</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody id="offers-body"></tbody>
+                </table>
+            </div>
+            <p id="offers-empty" class="empty-text" hidden>No offers found.</p>
+        </section>
+    </div>
+
+    <script src="/admin/app.js"></script>
+</body>
+</html>
