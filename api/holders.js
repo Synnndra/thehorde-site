@@ -79,10 +79,13 @@ export default async function handler(req, res) {
 
         const items = heliusData.result?.items || [];
 
-        // Filter to Orcs only (exclude MidEvils and other non-Orc NFTs)
+        // Filter to Orcs only — same logic as orc-viewer:
+        // name includes "orc" (case-insensitive), exclude burnt and graveyard NFTs
         const orcItems = items.filter(item => {
             const name = item.content?.metadata?.name || '';
-            return name.startsWith('Orc ');
+            if (item.burnt === true) return false;
+            if (name.toLowerCase().includes('graveyard')) return false;
+            return name.toLowerCase().includes('orc');
         });
 
         // Aggregate by wallet
