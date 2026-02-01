@@ -184,7 +184,7 @@ function calculateRarity() {
     const total = allNFTs.length;
 
     // Trait weights for rarity calculation
-    const traitWeights = { headwear: 4, background: 2, clothing: 1.5, skin: 1.5, eyewear: 0.75 };
+    const traitWeights = { headwear: 4, background: 2, clothing: 1, skin: 1.5, eyewear: 0.75 };
 
     // Step 1: Rank each trait category individually
     // For each trait type, rank orcs by how rare their value is (rarer = lower rank)
