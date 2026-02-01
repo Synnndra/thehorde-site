@@ -19,8 +19,8 @@ let mockReturnEscrowToInitiator = vi.fn().mockResolvedValue('returnTx');
 let mockReturnReceiverEscrowAssets = vi.fn().mockResolvedValue(null);
 let mockVerifyNftOwnership = vi.fn().mockResolvedValue({ valid: false, issues: [] });
 
-vi.mock('../../../api/swap/utils.js', async () => {
-    const actual = await vi.importActual('../../../api/swap/utils.js');
+vi.mock('../../../lib/swap-utils.js', async () => {
+    const actual = await vi.importActual('../../../lib/swap-utils.js');
     return {
         ...actual,
         releaseEscrowToReceiver: (...args) => mockReleaseToReceiver(...args),

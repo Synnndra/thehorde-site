@@ -15,8 +15,8 @@ setupFetchMock();
 let mockReleaseToReceiver = vi.fn().mockResolvedValue('mockReleaseTxReceiver');
 let mockReleaseToInitiator = vi.fn().mockResolvedValue('mockReleaseTxInitiator');
 
-vi.mock('../../../api/swap/utils.js', async () => {
-    const actual = await vi.importActual('../../../api/swap/utils.js');
+vi.mock('../../../lib/swap-utils.js', async () => {
+    const actual = await vi.importActual('../../../lib/swap-utils.js');
     return {
         ...actual,
         releaseEscrowToReceiver: (...args) => mockReleaseToReceiver(...args),

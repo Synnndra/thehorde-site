@@ -12,7 +12,7 @@ import {
     cleanApiKey,
     appendTxLog,
     ESCROW_WALLET
-} from './utils.js';
+} from '../../lib/swap-utils.js';
 
 const ESCROW_RETRY_THRESHOLD_MS = 5 * 60 * 1000;       // 5 minutes
 const ESCROW_RETURN_THRESHOLD_MS = 2 * 60 * 60 * 1000;  // 2 hours

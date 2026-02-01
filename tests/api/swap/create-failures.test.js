@@ -9,7 +9,7 @@ setupEnv();
 setupFetchMock();
 
 // We need to mock verifyTransactionConfirmed to avoid 60s polling
-const utils = await import('../../../api/swap/utils.js');
+const utils = await import('../../../lib/swap-utils.js');
 const { default: handler } = await import('../../../api/swap/create.js');
 
 describe('create-failures: failure simulation tests', () => {

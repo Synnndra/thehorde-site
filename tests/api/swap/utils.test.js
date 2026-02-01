@@ -27,7 +27,7 @@ const {
     MAX_MESSAGE_AGE,
     ALLOWED_COLLECTIONS,
     ESCROW_WALLET,
-} = await import('../../../api/swap/utils.js');
+} = await import('../../../lib/swap-utils.js');
 
 describe('utils.js', () => {
     beforeEach(() => {

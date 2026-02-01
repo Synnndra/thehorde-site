@@ -10,8 +10,8 @@ setupFetchMock();
 let mockReturnEscrowToInitiator = vi.fn().mockResolvedValue('mockReturnTx');
 let mockReturnReceiverEscrowAssets = vi.fn().mockResolvedValue('mockRecvReturnTx');
 
-vi.mock('../../../api/swap/utils.js', async () => {
-    const actual = await vi.importActual('../../../api/swap/utils.js');
+vi.mock('../../../lib/swap-utils.js', async () => {
+    const actual = await vi.importActual('../../../lib/swap-utils.js');
     return {
         ...actual,
         returnEscrowToInitiator: (...args) => mockReturnEscrowToInitiator(...args),

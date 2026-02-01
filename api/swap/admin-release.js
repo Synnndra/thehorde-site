@@ -10,7 +10,7 @@ import {
     returnReceiverEscrowAssets,
     cleanApiKey,
     appendTxLog
-} from './utils.js';
+} from '../../lib/swap-utils.js';
 
 const ALLOWED_STATUSES = ['pending', 'escrowed', 'failed'];
 

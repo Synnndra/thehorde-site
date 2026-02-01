@@ -24,7 +24,7 @@ import {
     PLATFORM_FEE,
     HOLDER_FEE,
     appendTxLog
-} from './utils.js';
+} from '../../lib/swap-utils.js';
 
 // Generate cryptographically secure offer ID
 function generateOfferId() {

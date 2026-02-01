@@ -1,5 +1,5 @@
 // Vercel Serverless Function - Get Single Offer by ID
-import { isRateLimitedKV, getClientIp, getTxLog } from './utils.js';
+import { isRateLimitedKV, getClientIp, getTxLog } from '../../lib/swap-utils.js';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
