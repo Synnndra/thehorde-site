@@ -37,13 +37,22 @@ body {
     overflow: hidden;
 }
 
-/* Screens */
-.screen {
+/* Site nav override for game page */
+.site-nav {
     position: fixed;
     top: 0;
     left: 0;
+    right: 0;
+    z-index: 300;
+}
+
+/* Screens */
+.screen {
+    position: fixed;
+    top: 33px;
+    left: 0;
     width: 100%;
-    height: 100%;
+    height: calc(100% - 33px);
     display: flex;
     justify-content: flex-start;
     align-items: flex-start;
@@ -769,10 +778,10 @@ h2, h3 {
 /* Pause Overlay */
 .overlay {
     position: fixed;
-    top: 0;
+    top: 33px;
     left: 0;
     width: 100%;
-    height: 100%;
+    height: calc(100% - 33px);
     background: rgba(0, 0, 0, 0.8);
     display: flex;
     justify-content: center;
