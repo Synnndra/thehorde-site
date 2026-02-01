@@ -50,34 +50,43 @@ export default async function handler(req, res) {
             return res.status(200).json(data);
         }
 
-        // Fetch all Orcs from Helius
-        const heliusResponse = await fetch(`https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                jsonrpc: '2.0',
-                id: 'holders-leaderboard',
-                method: 'getAssetsByGroup',
-                params: {
-                    groupKey: 'collection',
-                    groupValue: ORC_COLLECTION,
-                    page: 1,
-                    limit: 1000,
-                    displayOptions: {
-                        showCollectionMetadata: false
+        // Fetch all items from Helius (paginated, same as orc-viewer)
+        let items = [];
+        let page = 1;
+        let hasMore = true;
+
+        while (hasMore) {
+            const heliusResponse = await fetch(`https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 'holders-leaderboard',
+                    method: 'getAssetsByGroup',
+                    params: {
+                        groupKey: 'collection',
+                        groupValue: ORC_COLLECTION,
+                        page,
+                        limit: 1000,
+                        displayOptions: {
+                            showCollectionMetadata: false
+                        }
                     }
-                }
-            })
-        });
+                })
+            });
 
-        const heliusData = await heliusResponse.json();
+            const heliusData = await heliusResponse.json();
 
-        if (heliusData.error) {
-            console.error('Helius error:', heliusData.error);
-            return res.status(500).json({ error: 'Failed to fetch NFT data' });
+            if (heliusData.error) {
+                console.error('Helius error:', heliusData.error);
+                return res.status(500).json({ error: 'Failed to fetch NFT data' });
+            }
+
+            const pageItems = heliusData.result?.items || [];
+            items = items.concat(pageItems);
+            hasMore = pageItems.length === 1000;
+            page++;
         }
-
-        const items = heliusData.result?.items || [];
 
         // Filter to Orcs only — same logic as orc-viewer:
         // name includes "orc" (case-insensitive), exclude burnt and graveyard NFTs
