@@ -17,6 +17,8 @@
     { "source": "/api/swap/retry-release", "destination": "/api/swap/retry-release.js" },
     { "source": "/api/swap/cleanup-expired", "destination": "/api/swap/cleanup-expired.js" },
     { "source": "/api/rpc", "destination": "/api/rpc.js" },
+    { "source": "/api/discord/auth", "destination": "/api/discord/auth.js" },
+    { "source": "/api/discord/callback", "destination": "/api/discord/callback.js" },
     { "source": "/api/swap/admin-txlog", "destination": "/api/swap/admin-txlog.js" },
     { "source": "/admin", "destination": "/admin/index.html" },
     { "source": "/minigame", "destination": "/minigame/index.html" },

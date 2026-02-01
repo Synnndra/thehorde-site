@@ -100,6 +100,14 @@ body {
     box-shadow: 0 0 15px rgba(201, 162, 39, 0.4);
 }
 
+/* Discord Group */
+.discord-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
 /* Discord Button */
 .discord-btn {
     display: flex;
@@ -113,12 +121,54 @@ body {
     color: white;
     text-decoration: none;
     transition: all 0.3s ease;
-    margin-left: auto;
 }
 
 .discord-btn:hover {
     transform: scale(1.1);
     box-shadow: 0 0 15px rgba(88, 101, 242, 0.5);
+}
+
+/* Link Discord Button */
+.link-discord-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    background: transparent;
+    border: 2px solid #5865F2;
+    border-radius: 20px;
+    color: #5865F2;
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.link-discord-btn:hover {
+    background: #5865F2;
+    color: white;
+    box-shadow: 0 0 15px rgba(88, 101, 242, 0.4);
+}
+
+.link-discord-btn.linked {
+    border-color: #57F287;
+    color: #57F287;
+}
+
+.link-discord-btn.linked:hover {
+    background: rgba(87, 242, 135, 0.15);
+    color: #57F287;
+    box-shadow: 0 0 15px rgba(87, 242, 135, 0.3);
+}
+
+.discord-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
 }
 
 @media (max-width: 600px) {

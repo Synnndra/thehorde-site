@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.backgroundPosition = `calc(50% + ${moveX}px) calc(50% + ${moveY}px)`;
     });
 
+    // Discord link integration
+    initDiscordLink();
+
     // Add entrance animations
     const observerOptions = {
         threshold: 0.1,
@@ -47,6 +50,71 @@ document.addEventListener('DOMContentLoaded', () => {
         observer.observe(btn);
     });
 });
+
+// Discord Link functionality
+function initDiscordLink() {
+    const btn = document.getElementById('link-discord-btn');
+    if (!btn) return;
+
+    // Check URL params for Discord callback data
+    const params = new URLSearchParams(window.location.search);
+    const discordId = params.get('discord_id');
+    const discordUsername = params.get('discord_username');
+    const discordAvatar = params.get('discord_avatar');
+    const discordError = params.get('discord_error');
+
+    if (discordId && discordUsername) {
+        localStorage.setItem('discord_id', discordId);
+        localStorage.setItem('discord_username', discordUsername);
+        localStorage.setItem('discord_avatar', discordAvatar || '');
+        // Clean URL
+        window.history.replaceState({}, '', window.location.pathname);
+    } else if (discordError) {
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    renderDiscordBtn(btn);
+}
+
+function renderDiscordBtn(btn) {
+    const id = localStorage.getItem('discord_id');
+    const username = localStorage.getItem('discord_username');
+    const avatar = localStorage.getItem('discord_avatar');
+
+    if (id && username) {
+        // Linked state
+        btn.classList.add('linked');
+        btn.innerHTML = '';
+
+        if (avatar) {
+            const img = document.createElement('img');
+            img.src = `https://cdn.discordapp.com/avatars/${id}/${avatar}.png?size=40`;
+            img.alt = username;
+            img.className = 'discord-avatar';
+            btn.appendChild(img);
+        }
+
+        const label = document.createElement('span');
+        label.className = 'link-discord-label';
+        label.textContent = username;
+        btn.appendChild(label);
+
+        btn.title = 'Click to unlink Discord';
+        btn.onclick = () => {
+            if (confirm('Unlink your Discord account?')) {
+                localStorage.removeItem('discord_id');
+                localStorage.removeItem('discord_username');
+                localStorage.removeItem('discord_avatar');
+                location.reload();
+            }
+        };
+    } else {
+        // Unlinked state
+        btn.onclick = () => {
+            window.location.href = '/api/discord/auth';
+        };
+    }
+}
 
 // Add shake animation dynamically
 const style = document.createElement('style');
