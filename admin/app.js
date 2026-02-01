@@ -182,7 +182,7 @@
             const tr = document.createElement('tr');
             tr.className = 'offer-row';
             tr.innerHTML =
-                '<td><button class="expand-btn" data-idx="' + i + '">&#9654;</button></td>' +
+                '<td><button class="expand-btn" data-idx="' + i + '" aria-expanded="false" aria-label="Expand offer details">&#9654;</button></td>' +
                 '<td>' + escapeHtml(o.offerId) + '</td>' +
                 '<td><span class="badge ' + badgeClass(o.status) + '">' + escapeHtml(o.status || '') + '</span></td>' +
                 '<td title="' + escapeHtml(o.initiator || '') + '">' + truncateWallet(o.initiator) + '</td>' +
@@ -234,6 +234,7 @@
         const row = document.getElementById('txlog-' + idx);
         if (!row) return;
         row.hidden = !row.hidden;
+        btn.setAttribute('aria-expanded', !row.hidden);
         btn.innerHTML = row.hidden ? '&#9654;' : '&#9660;';
     });
 

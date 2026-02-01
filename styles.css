@@ -303,6 +303,10 @@ header {
 }
 
 @media (max-width: 768px) {
+    .button-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
     .origin-content,
     .dao-content {
         flex-direction: column;
@@ -486,6 +490,39 @@ footer {
 
     .portal-btn {
         padding: 1.2rem 1.5rem;
+    }
+}
+
+/* Skip link */
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 999;
+    padding: 0.5rem 1rem;
+    background: var(--color-accent);
+    color: var(--color-bg);
+    font-family: var(--font-display);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.skip-link:focus {
+    left: 0;
+}
+
+@media (max-width: 480px) {
+    .portal-btn {
+        font-size: 0.95rem;
+        padding: 1rem 1.2rem;
+    }
+
+    .btn-icon {
+        font-size: 1.4rem;
+    }
+
+    .portals h2 {
+        font-size: 1.5rem;
     }
 }
 
