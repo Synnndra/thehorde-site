@@ -17,7 +17,8 @@ import {
     verifyTransactionConfirmed,
     verifyNftOwnership,
     releaseEscrowToReceiver,
-    releaseEscrowToInitiator
+    releaseEscrowToInitiator,
+    appendTxLog
 } from './utils.js';
 
 export default async function handler(req, res) {
@@ -154,6 +155,8 @@ export default async function handler(req, res) {
         offer.escrowedAt = now;
         await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
 
+        await appendTxLog(offerId, { action: 'escrowed', wallet, txSignature: txSignature || null, error: null, details: null }, KV_REST_API_URL, KV_REST_API_TOKEN);
+
         // Mark signature as used
         await markSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN);
 
@@ -172,11 +175,13 @@ export default async function handler(req, res) {
                 } else {
                     offer.releaseToReceiverComplete = true;
                 }
+                await appendTxLog(offerId, { action: 'release_phase1', wallet: null, txSignature: releaseToReceiverTx || null, error: null, details: null }, KV_REST_API_URL, KV_REST_API_TOKEN);
             } catch (err) {
                 console.error('Release to receiver failed:', err);
                 releaseErrors.push({ phase: 'releaseToReceiver', error: err.message });
                 offer.releaseToReceiverComplete = false;
                 offer.releaseToReceiverError = err.message;
+                await appendTxLog(offerId, { action: 'release_phase1_error', wallet: null, txSignature: null, error: err.message, details: null }, KV_REST_API_URL, KV_REST_API_TOKEN);
             }
             // Persist immediately so crash can't lose phase 1 result
             await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
@@ -190,17 +195,20 @@ export default async function handler(req, res) {
                 } else {
                     offer.releaseToInitiatorComplete = true;
                 }
+                await appendTxLog(offerId, { action: 'release_phase2', wallet: null, txSignature: releaseToInitiatorTx || null, error: null, details: null }, KV_REST_API_URL, KV_REST_API_TOKEN);
             } catch (err) {
                 console.error('Release to initiator failed:', err);
                 releaseErrors.push({ phase: 'releaseToInitiator', error: err.message });
                 offer.releaseToInitiatorComplete = false;
                 offer.releaseToInitiatorError = err.message;
+                await appendTxLog(offerId, { action: 'release_phase2_error', wallet: null, txSignature: null, error: err.message, details: null }, KV_REST_API_URL, KV_REST_API_TOKEN);
             }
 
             // Set final status based on release results
             if (offer.releaseToReceiverComplete && offer.releaseToInitiatorComplete) {
                 offer.status = 'completed';
                 offer.completedAt = Date.now();
+                await appendTxLog(offerId, { action: 'completed', wallet: null, txSignature: null, error: null, details: null }, KV_REST_API_URL, KV_REST_API_TOKEN);
             }
         }
 

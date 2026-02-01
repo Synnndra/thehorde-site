@@ -8,7 +8,8 @@ import {
     releaseLock,
     returnEscrowToInitiator,
     returnReceiverEscrowAssets,
-    cleanApiKey
+    cleanApiKey,
+    appendTxLog
 } from './utils.js';
 
 const ALLOWED_STATUSES = ['pending', 'escrowed', 'failed'];
@@ -105,6 +106,8 @@ export default async function handler(req, res) {
         }
         offer.adminReleasedAt = Date.now();
         await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
+
+        await appendTxLog(offerId, { action: 'admin_release', wallet: null, txSignature: results.initiatorReturn || results.receiverReturn || null, error: results.errors.length > 0 ? JSON.stringify(results.errors) : null, details: null }, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
 

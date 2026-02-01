@@ -1,5 +1,5 @@
 // Vercel Serverless Function - Get Single Offer by ID
-import { isRateLimitedKV, getClientIp } from './utils.js';
+import { isRateLimitedKV, getClientIp, kvGet } from './utils.js';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -46,7 +46,10 @@ export default async function handler(req, res) {
             offer.status = 'expired';
         }
 
-        return res.status(200).json({ offer });
+        // Fetch transaction log
+        const txLog = await kvGet(`txlog:${id}`, KV_REST_API_URL, KV_REST_API_TOKEN) || [];
+
+        return res.status(200).json({ offer, txLog });
 
     } catch (error) {
         console.error('Get offer error:', error);

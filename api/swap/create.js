@@ -22,7 +22,8 @@ import {
     MAX_ACTIVE_OFFERS_PER_WALLET,
     OFFER_EXPIRY_HOURS,
     PLATFORM_FEE,
-    HOLDER_FEE
+    HOLDER_FEE,
+    appendTxLog
 } from './utils.js';
 
 // Generate cryptographically secure offer ID
@@ -304,6 +305,12 @@ export default async function handler(req, res) {
 
         // Save offer
         await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
+
+        // Log creation
+        await appendTxLog(offerId, { action: 'created', wallet: initiatorWallet, txSignature: null, error: null, details: null }, KV_REST_API_URL, KV_REST_API_TOKEN);
+        if (escrowTxSignature) {
+            await appendTxLog(offerId, { action: 'escrowed', wallet: initiatorWallet, txSignature: escrowTxSignature, error: null, details: null }, KV_REST_API_URL, KV_REST_API_TOKEN);
+        }
 
         // Update wallet offer lists in parallel
         await Promise.all([initiatorWallet, receiverWallet].map(async (wallet) => {

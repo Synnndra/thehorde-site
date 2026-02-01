@@ -12,7 +12,8 @@ import {
     acquireLock,
     releaseLock,
     releaseEscrowToReceiver,
-    releaseEscrowToInitiator
+    releaseEscrowToInitiator,
+    appendTxLog
 } from './utils.js';
 
 export default async function handler(req, res) {
@@ -113,10 +114,12 @@ export default async function handler(req, res) {
                 }
                 offer.releaseToReceiverComplete = true;
                 delete offer.releaseToReceiverError;
+                await appendTxLog(offerId, { action: 'release_phase1', wallet: wallet || null, txSignature: tx || null, error: null, details: 'manual retry' }, KV_REST_API_URL, KV_REST_API_TOKEN);
             } catch (err) {
                 console.error('Retry release to receiver failed:', err);
                 releaseErrors.push({ phase: 'releaseToReceiver', error: err.message });
                 offer.releaseToReceiverError = err.message;
+                await appendTxLog(offerId, { action: 'release_phase1_error', wallet: wallet || null, txSignature: null, error: err.message, details: 'manual retry' }, KV_REST_API_URL, KV_REST_API_TOKEN);
             }
         }
 
@@ -128,10 +131,12 @@ export default async function handler(req, res) {
                 }
                 offer.releaseToInitiatorComplete = true;
                 delete offer.releaseToInitiatorError;
+                await appendTxLog(offerId, { action: 'release_phase2', wallet: wallet || null, txSignature: tx || null, error: null, details: 'manual retry' }, KV_REST_API_URL, KV_REST_API_TOKEN);
             } catch (err) {
                 console.error('Retry release to initiator failed:', err);
                 releaseErrors.push({ phase: 'releaseToInitiator', error: err.message });
                 offer.releaseToInitiatorError = err.message;
+                await appendTxLog(offerId, { action: 'release_phase2_error', wallet: wallet || null, txSignature: null, error: err.message, details: 'manual retry' }, KV_REST_API_URL, KV_REST_API_TOKEN);
             }
         }
 
@@ -139,6 +144,7 @@ export default async function handler(req, res) {
         if (offer.releaseToReceiverComplete && offer.releaseToInitiatorComplete) {
             offer.status = 'completed';
             offer.completedAt = Date.now();
+            await appendTxLog(offerId, { action: 'completed', wallet: null, txSignature: null, error: null, details: 'completed via manual retry' }, KV_REST_API_URL, KV_REST_API_TOKEN);
         }
 
         offer.lastRetryAt = Date.now();

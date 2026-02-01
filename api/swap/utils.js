@@ -334,6 +334,18 @@ export async function kvDelete(key, kvUrl, kvToken) {
     });
 }
 
+export async function appendTxLog(offerId, entry, kvUrl, kvToken) {
+    try {
+        const key = `txlog:${offerId}`;
+        const existing = await kvGet(key, kvUrl, kvToken) || [];
+        existing.push({ ...entry, timestamp: Date.now() });
+        await kvSet(key, existing, kvUrl, kvToken);
+    } catch (err) {
+        console.error(`Failed to append txlog for ${offerId}:`, err);
+        // Never throw - logging should not break the operation
+    }
+}
+
 export async function acquireLock(offerId, kvUrl, kvToken, ttlSeconds = LOCK_TTL_SECONDS) {
     const lockKey = `lock:offer:${offerId}`;
     const now = Date.now();

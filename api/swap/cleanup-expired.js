@@ -10,6 +10,7 @@ import {
     acquireLock,
     releaseLock,
     cleanApiKey,
+    appendTxLog,
     ESCROW_WALLET
 } from './utils.js';
 
@@ -82,6 +83,7 @@ export default async function handler(req, res) {
                     try {
                         console.log(`Offer ${offer.id} has expired`);
                         results.expired++;
+                        await appendTxLog(offer.id, { action: 'expired', wallet: null, txSignature: null, error: null, details: null }, KV_REST_API_URL, KV_REST_API_TOKEN);
 
                         // Return initiator's escrow
                         if (ESCROW_PRIVATE_KEY && HELIUS_API_KEY && offer.escrowTxSignature) {
@@ -91,11 +93,13 @@ export default async function handler(req, res) {
                                     offer.escrowReturnTxSignature = returnTx;
                                     results.escrowReturned++;
                                     console.log(`Returned escrow for ${offer.id}: ${returnTx}`);
+                                    await appendTxLog(offer.id, { action: 'escrow_return', wallet: null, txSignature: returnTx, error: null, details: null }, KV_REST_API_URL, KV_REST_API_TOKEN);
                                 }
                             } catch (escrowErr) {
                                 console.error(`Escrow return failed for ${offer.id}:`, escrowErr.message);
                                 offer.escrowReturnError = escrowErr.message;
                                 results.errors.push({ offerId: offer.id, error: escrowErr.message });
+                                await appendTxLog(offer.id, { action: 'escrow_return_error', wallet: null, txSignature: null, error: escrowErr.message, details: null }, KV_REST_API_URL, KV_REST_API_TOKEN);
                             }
                         }
 
@@ -138,6 +142,7 @@ export default async function handler(req, res) {
                                 offer.failedAt = now;
                                 offer.failedReason = 'Escrow return failed after 10 cleanup retries';
                                 console.error(`Offer ${offer.id} failed after ${retryCount} escrow return retries`);
+                                await appendTxLog(offer.id, { action: 'failed', wallet: null, txSignature: null, error: null, details: 'Escrow return failed after 10 cleanup retries' }, KV_REST_API_URL, KV_REST_API_TOKEN);
                             } else {
                                 offer.escrowReturnPending = true;
                             }
@@ -311,6 +316,7 @@ export default async function handler(req, res) {
                                     offer.failedAt = now;
                                     offer.failedReason = `Escrow release failed after ${MAX_RETRIES} retries, assets returned to owners`;
                                     results.escrowFailed++;
+                                    await appendTxLog(offer.id, { action: 'failed', wallet: null, txSignature: null, error: null, details: `Escrow release failed after ${MAX_RETRIES} retries, assets returned to owners` }, KV_REST_API_URL, KV_REST_API_TOKEN);
                                 } else {
                                     offer.returnErrors = returnErrors;
                                     results.errors.push({ offerId: offer.id, errors: returnErrors });
@@ -332,10 +338,12 @@ export default async function handler(req, res) {
                                         }
                                         offer.releaseToReceiverComplete = true;
                                         delete offer.releaseToReceiverError;
+                                        await appendTxLog(offer.id, { action: 'retry_release', wallet: null, txSignature: tx || null, error: null, details: `phase1 retry #${retryCount}` }, KV_REST_API_URL, KV_REST_API_TOKEN);
                                     } catch (err) {
                                         console.error(`Retry release to receiver failed for ${offer.id}:`, err.message);
                                         offer.releaseToReceiverError = err.message;
                                         results.errors.push({ offerId: offer.id, phase: 'releaseToReceiver', error: err.message });
+                                        await appendTxLog(offer.id, { action: 'retry_release', wallet: null, txSignature: null, error: err.message, details: `phase1 retry #${retryCount} failed` }, KV_REST_API_URL, KV_REST_API_TOKEN);
                                     }
                                 }
 
@@ -347,10 +355,12 @@ export default async function handler(req, res) {
                                         }
                                         offer.releaseToInitiatorComplete = true;
                                         delete offer.releaseToInitiatorError;
+                                        await appendTxLog(offer.id, { action: 'retry_release', wallet: null, txSignature: tx || null, error: null, details: `phase2 retry #${retryCount}` }, KV_REST_API_URL, KV_REST_API_TOKEN);
                                     } catch (err) {
                                         console.error(`Retry release to initiator failed for ${offer.id}:`, err.message);
                                         offer.releaseToInitiatorError = err.message;
                                         results.errors.push({ offerId: offer.id, phase: 'releaseToInitiator', error: err.message });
+                                        await appendTxLog(offer.id, { action: 'retry_release', wallet: null, txSignature: null, error: err.message, details: `phase2 retry #${retryCount} failed` }, KV_REST_API_URL, KV_REST_API_TOKEN);
                                     }
                                 }
 

@@ -11,7 +11,8 @@ import {
     kvSet,
     acquireLock,
     releaseLock,
-    returnEscrowToInitiator
+    returnEscrowToInitiator,
+    appendTxLog
 } from './utils.js';
 
 export default async function handler(req, res) {
@@ -127,6 +128,9 @@ export default async function handler(req, res) {
             offer.cancelRequestedAction = action;
             await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
 
+            await appendTxLog(offerId, { action: 'cancel_requested', wallet, txSignature: null, error: offer.escrowReturnError || null, details: null }, KV_REST_API_URL, KV_REST_API_TOKEN);
+            await appendTxLog(offerId, { action: 'escrow_return_error', wallet: null, txSignature: null, error: offer.escrowReturnError || null, details: null }, KV_REST_API_URL, KV_REST_API_TOKEN);
+
             await markSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN);
             await releaseLock(lockKey, KV_REST_API_URL, KV_REST_API_TOKEN);
 
@@ -143,6 +147,8 @@ export default async function handler(req, res) {
         offer.cancelledBy = wallet;
         offer.cancelAction = action;
         await kvSet(`offer:${offerId}`, offer, KV_REST_API_URL, KV_REST_API_TOKEN);
+
+        await appendTxLog(offerId, { action: 'cancelled', wallet, txSignature: escrowReturnTx || null, error: null, details: null }, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         // Mark signature as used
         await markSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN);
