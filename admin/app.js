@@ -1,7 +1,6 @@
 // Admin Dashboard App
 (function () {
     const API_TXLOG = '/api/swap/admin-txlog';
-    const API_HEALTH = '/api/swap/admin-health';
 
     // DOM refs
     const loginScreen = document.getElementById('login-screen');
@@ -115,10 +114,10 @@
 
     async function fetchHealth() {
         const secret = getSecret();
-        const res = await fetch(API_HEALTH, {
+        const res = await fetch(API_TXLOG, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ secret })
+            body: JSON.stringify({ secret, mode: 'health' })
         });
         if (!res.ok) return null;
         return res.json();
