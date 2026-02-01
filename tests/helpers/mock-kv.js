@@ -4,6 +4,7 @@
 export class MockKV {
     constructor() {
         this.store = new Map();
+        this.lists = new Map();
         this.expiries = new Map();
         this._callLog = [];
         this._failures = [];
@@ -11,6 +12,7 @@ export class MockKV {
 
     reset() {
         this.store.clear();
+        this.lists.clear();
         this.expiries.clear();
         this._callLog = [];
         this._failures = [];
@@ -131,6 +133,26 @@ export class MockKV {
         return { result: matches };
     }
 
+    // Append to a list (Redis RPUSH)
+    rpush(key, value) {
+        this._logCall('rpush', key);
+        if (!this.lists.has(key)) {
+            this.lists.set(key, []);
+        }
+        this.lists.get(key).push(value);
+        return { result: this.lists.get(key).length };
+    }
+
+    // Get range from list (Redis LRANGE)
+    lrange(key, start, stop) {
+        this._logCall('lrange', key);
+        const list = this.lists.get(key) || [];
+        const len = list.length;
+        const s = start < 0 ? Math.max(len + start, 0) : start;
+        const e = stop < 0 ? len + stop : stop;
+        return { result: list.slice(s, e + 1) };
+    }
+
     // Handle Upstash REST API-style requests
     handleRequest(url, options = {}) {
         const urlStr = typeof url === 'string' ? url : url.toString();
@@ -140,6 +162,15 @@ export class MockKV {
             !urlStr.includes('/del/') && !urlStr.includes('/expire/') && !urlStr.includes('/keys/')) {
             try {
                 const body = JSON.parse(options.body);
+                if (Array.isArray(body) && body[0] === 'RPUSH') {
+                    const [, key, value] = body;
+                    this._logCall('rpush', key);
+                    const failError = this._shouldFail('rpush', key);
+                    if (failError) {
+                        return this._jsonResponse({ error: String(failError) }, 500);
+                    }
+                    return this._jsonResponse(this.rpush(key, value));
+                }
                 if (Array.isArray(body) && body[0] === 'SET') {
                     const [, key, value, ...rest] = body;
 
@@ -222,6 +253,17 @@ export class MockKV {
                 return this._jsonResponse({ error: String(failError) }, 500);
             }
             return this._jsonResponse(this.keys(pattern));
+        }
+
+        // GET /lrange/{key}/{start}/{stop}
+        const lrangeMatch = urlStr.match(/\/lrange\/(.+?)\/(-?\d+)\/(-?\d+)$/);
+        if (lrangeMatch) {
+            const key = decodeURIComponent(lrangeMatch[1]);
+            const failError = this._shouldFail('lrange', key);
+            if (failError) {
+                return this._jsonResponse({ error: String(failError) }, 500);
+            }
+            return this._jsonResponse(this.lrange(key, parseInt(lrangeMatch[2]), parseInt(lrangeMatch[3])));
         }
 
         // Unknown endpoint
