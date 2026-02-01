@@ -609,10 +609,12 @@ export async function fetchNftDetailsFromChain(nftIds, apiKey) {
                 return {
                     id: nftId,
                     name: asset.content?.metadata?.name || 'Unknown',
-                    imageUrl: asset.content?.links?.image || asset.content?.files?.[0]?.uri || ''
+                    imageUrl: asset.content?.links?.image || asset.content?.files?.[0]?.uri || '',
+                    assetType: asset.interface || null,
+                    collection: (asset.grouping || []).find(g => g.group_key === 'collection')?.group_value || null
                 };
             }
-            return { id: nftId, name: 'Unknown', imageUrl: '' };
+            return { id: nftId, name: 'Unknown', imageUrl: '', assetType: null, collection: null };
         } catch (err) {
             console.error(`Failed to fetch NFT details for ${nftId}:`, err);
             return { id: nftId, name: 'Unknown', imageUrl: '' };
@@ -686,18 +688,27 @@ export async function transferNftsFromEscrow(nfts, escrowKeypair, destinationPub
     const transaction = new Transaction();
 
     for (const nft of nfts) {
-        const assetInfo = await getAsset(nft.id, heliusApiKey);
+        let assetType = nft.assetType || null;
+        let collection = nft.collection || null;
+        let compression = null;
 
-        if (assetInfo?.interface === 'MplCoreAsset') {
-            const collection = assetInfo.grouping?.find(g => g.group_key === 'collection')?.group_value;
+        // Only fetch from Helius if metadata not stored (backwards compat)
+        if (!assetType) {
+            const assetInfo = await getAsset(nft.id, heliusApiKey);
+            assetType = assetInfo?.interface || null;
+            collection = assetInfo?.grouping?.find(g => g.group_key === 'collection')?.group_value || null;
+            compression = assetInfo?.compression;
+        }
+
+        if (assetType === 'MplCoreAsset') {
             transaction.add(createMplCoreTransferInstruction(
                 nft.id, escrowKeypair.publicKey, destinationPubkey, collection
             ));
-        } else if (assetInfo?.compression?.compressed) {
+        } else if (compression?.compressed) {
             const proof = await getAssetProof(nft.id, heliusApiKey);
             if (proof) {
                 transaction.add(createBubblegumTransferInstruction(
-                    escrowKeypair.publicKey, destinationPubkey, assetInfo.compression, proof
+                    escrowKeypair.publicKey, destinationPubkey, compression, proof
                 ));
             }
         }

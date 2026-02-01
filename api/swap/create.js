@@ -265,10 +265,12 @@ export default async function handler(req, res) {
                     return {
                         id: nftId,
                         name: asset.content?.metadata?.name || 'Unknown',
-                        imageUrl: asset.content?.links?.image || asset.content?.files?.[0]?.uri || ''
+                        imageUrl: asset.content?.links?.image || asset.content?.files?.[0]?.uri || '',
+                        assetType: asset.interface || null,
+                        collection: (asset.grouping || []).find(g => g.group_key === 'collection')?.group_value || null
                     };
                 }
-                return { id: nftId, name: 'Unknown', imageUrl: '' };
+                return { id: nftId, name: 'Unknown', imageUrl: '', assetType: null, collection: null };
             });
         }
 
