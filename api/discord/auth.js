@@ -1,5 +1,3 @@
-import crypto from 'crypto';
-
 export const config = { runtime: 'edge' };
 
 export default async function handler(req) {
@@ -7,7 +5,7 @@ export default async function handler(req) {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
-  const state = crypto.randomUUID();
+  const state = globalThis.crypto.randomUUID();
 
   // Store state in Vercel KV with 10-minute TTL
   const kvUrl = process.env.KV_REST_API_URL;
