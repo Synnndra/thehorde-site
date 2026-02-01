@@ -79,9 +79,15 @@ export default async function handler(req, res) {
 
         const items = heliusData.result?.items || [];
 
+        // Filter to Orcs only (exclude MidEvils and other non-Orc NFTs)
+        const orcItems = items.filter(item => {
+            const name = item.content?.metadata?.name || '';
+            return name.startsWith('Orc ');
+        });
+
         // Aggregate by wallet
         const walletMap = {};
-        for (const item of items) {
+        for (const item of orcItems) {
             const owner = item.ownership?.owner;
             if (!owner) continue;
 
@@ -119,7 +125,7 @@ export default async function handler(req, res) {
 
         const result = {
             holders,
-            totalOrcs: items.length,
+            totalOrcs: orcItems.length,
             totalHolders: holders.length,
             updatedAt: new Date().toISOString()
         };
