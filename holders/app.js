@@ -323,7 +323,7 @@ function toggleExpand(tr, holder, btn) {
 
         const tooltip = document.createElement('div');
         tooltip.className = 'orc-tooltip';
-        tooltip.textContent = orc.name;
+        tooltip.textContent = orc.name + (orc.rarityRank ? ' (#' + orc.rarityRank + ' rarity)' : '');
 
         wrapper.appendChild(img);
         wrapper.appendChild(tooltip);

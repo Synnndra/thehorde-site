@@ -97,6 +97,53 @@ export default async function handler(req, res) {
             return name.toLowerCase().includes('orc');
         });
 
+        // Extract traits and calculate rarity (same logic as orc-viewer)
+        const weightedTraits = ['head', 'clothing', 'background', 'skin'];
+        const RANK_OVERRIDES = [328, 265, 212, 233];
+
+        const orcsWithTraits = orcItems.map(item => {
+            const attrs = item.content?.metadata?.attributes || [];
+            const traits = {};
+            attrs.forEach(a => { if (a.trait_type && a.value) traits[a.trait_type] = a.value; });
+            const num = parseInt((item.content?.metadata?.name || '').match(/#(\d+)/)?.[1]) || 0;
+            return { item, traits, num };
+        });
+
+        // Build trait counts across all orcs
+        const traitCounts = {};
+        orcsWithTraits.forEach(({ traits }) => {
+            Object.entries(traits).forEach(([type, value]) => {
+                if (!traitCounts[type]) traitCounts[type] = {};
+                traitCounts[type][value] = (traitCounts[type][value] || 0) + 1;
+            });
+        });
+
+        // Calculate rarity scores
+        const total = orcsWithTraits.length;
+        orcsWithTraits.forEach(orc => {
+            let score = 0;
+            Object.entries(orc.traits).forEach(([type, value]) => {
+                const count = traitCounts[type]?.[value] || 0;
+                if (count > 0) {
+                    const weight = weightedTraits.includes(type.toLowerCase()) ? 1.5 : 1;
+                    score += weight * (1 / (count / total));
+                }
+            });
+            orc.rarityScore = score;
+        });
+
+        // Assign rarity ranks — force top 4 overrides, then sort rest by score
+        const overrides = RANK_OVERRIDES.map(num => orcsWithTraits.find(o => o.num === num)).filter(Boolean);
+        const rest = orcsWithTraits.filter(o => !RANK_OVERRIDES.includes(o.num)).sort((a, b) => b.rarityScore - a.rarityScore);
+        const sorted = [...overrides, ...rest];
+        sorted.forEach((orc, i) => { orc.rarityRank = i + 1; });
+
+        // Build rank lookup
+        const rarityByMint = {};
+        orcsWithTraits.forEach(orc => {
+            rarityByMint[orc.item.id] = orc.rarityRank;
+        });
+
         // Aggregate by wallet
         const walletMap = {};
         for (const item of orcItems) {
@@ -106,11 +153,12 @@ export default async function handler(req, res) {
             const name = item.content?.metadata?.name || 'Unknown Orc';
             const imageUrl = item.content?.links?.image || item.content?.files?.[0]?.uri || '';
             const mint = item.id;
+            const rarityRank = rarityByMint[mint] || 9999;
 
             if (!walletMap[owner]) {
                 walletMap[owner] = { wallet: owner, orcs: [] };
             }
-            walletMap[owner].orcs.push({ name, imageUrl, mint });
+            walletMap[owner].orcs.push({ name, imageUrl, mint, rarityRank });
         }
 
         // Read Discord mappings (single KV read)
@@ -132,7 +180,7 @@ export default async function handler(req, res) {
                 wallet: holder.wallet,
                 count: holder.orcs.length,
                 discord: discordMap[holder.wallet] || null,
-                orcs: holder.orcs.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+                orcs: holder.orcs.sort((a, b) => a.rarityRank - b.rarityRank)
             }));
 
         const result = {
