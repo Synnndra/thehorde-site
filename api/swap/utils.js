@@ -337,12 +337,37 @@ export async function kvDelete(key, kvUrl, kvToken) {
 export async function appendTxLog(offerId, entry, kvUrl, kvToken) {
     try {
         const key = `txlog:${offerId}`;
-        const existing = await kvGet(key, kvUrl, kvToken) || [];
-        existing.push({ ...entry, timestamp: Date.now() });
-        await kvSet(key, existing, kvUrl, kvToken);
+        // Atomic RPUSH — no read-modify-write race
+        await fetch(kvUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${kvToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(['RPUSH', key, JSON.stringify({ ...entry, timestamp: Date.now() })])
+        });
     } catch (err) {
         console.error(`Failed to append txlog for ${offerId}:`, err);
         // Never throw - logging should not break the operation
+    }
+}
+
+export async function getTxLog(offerId, kvUrl, kvToken) {
+    try {
+        const key = `txlog:${offerId}`;
+        const res = await fetch(`${kvUrl}/lrange/${key}/0/-1`, {
+            headers: { 'Authorization': `Bearer ${kvToken}` }
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        if (!Array.isArray(data.result)) return [];
+        return data.result.map(item => {
+            try { return typeof item === 'string' ? JSON.parse(item) : item; }
+            catch { return item; }
+        });
+    } catch (err) {
+        console.error(`Failed to read txlog for ${offerId}:`, err);
+        return [];
     }
 }
 
