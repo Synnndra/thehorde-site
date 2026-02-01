@@ -162,7 +162,7 @@ header {
     text-align: center;
     padding: 4rem 0 3rem;
     border-bottom: 2px solid var(--color-primary);
-    margin-bottom: 2rem;
+    margin-bottom: 3rem;
 }
 
 .title {
@@ -346,7 +346,8 @@ header {
 /* Portals Section */
 .portals {
     text-align: center;
-    padding: 2rem 0;
+    padding: 0;
+    margin-bottom: 3rem;
 }
 
 .portals h2 {
