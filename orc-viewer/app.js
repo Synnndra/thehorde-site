@@ -183,40 +183,20 @@ function extractTraits(attributes) {
 function calculateRarity() {
     const total = allNFTs.length;
 
-    // Trait weights for rarity calculation
-    const traitWeights = { headwear: 4, background: 2, clothing: 1, skin: 1.5, eyewear: 0.75 };
+    // Traits with higher weight in rarity calculation
+    const weightedTraits = ['head', 'clothing', 'background', 'skin'];
 
-    // Step 1: Rank each trait category individually
-    // For each trait type, rank orcs by how rare their value is (rarer = lower rank)
-    const traitTypes = Object.keys(traitCounts);
-    const traitRanks = {}; // nft.id -> { traitType: rank }
-
-    allNFTs.forEach(nft => { traitRanks[nft.id] = {}; });
-
-    traitTypes.forEach(type => {
-        // Score each orc by this trait's rarity (rarer = higher score)
-        const scored = allNFTs.map(nft => ({
-            nft,
-            traitScore: traitCounts[type]?.[nft.traits[type]]
-                ? total / traitCounts[type][nft.traits[type]]
-                : 0
-        }));
-        scored.sort((a, b) => b.traitScore - a.traitScore);
-        scored.forEach((entry, index) => {
-            traitRanks[entry.nft.id][type] = index + 1;
-        });
-    });
-
-    // Step 2: Combine per-trait ranks into a weighted overall score
-    // Lower combined rank = rarer, so we invert at the end
+    // Calculate rarity score for each NFT
     allNFTs.forEach(nft => {
-        let weightedRankSum = 0;
-        traitTypes.forEach(type => {
-            const weight = traitWeights[type.toLowerCase()] || 1;
-            weightedRankSum += weight * traitRanks[nft.id][type];
+        let score = 0;
+        Object.entries(nft.traits).forEach(([type, value]) => {
+            const count = traitCounts[type]?.[value] || 0;
+            if (count > 0) {
+                const weight = weightedTraits.includes(type.toLowerCase()) ? 1.5 : 1;
+                score += weight * (1 / (count / total));
+            }
         });
-        // Lower rank sum = rarer, so invert for scoring (higher score = rarer)
-        nft.rarityScore = 1 / weightedRankSum;
+        nft.rarityScore = score;
     });
 
     // Sort by score descending and assign ranks
