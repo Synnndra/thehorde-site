@@ -269,10 +269,11 @@ function renderTable() {
         }
         tr.appendChild(discordTd);
 
-        // Count
+        // Count + percentage
         const countTd = document.createElement('td');
         countTd.className = 'count-cell';
-        countTd.textContent = holder.count;
+        const pct = ((holder.count / holdersData.totalOrcs) * 100).toFixed(1);
+        countTd.innerHTML = holder.count + '<span class="pct">' + pct + '%</span>';
         tr.appendChild(countTd);
 
         // Expand
