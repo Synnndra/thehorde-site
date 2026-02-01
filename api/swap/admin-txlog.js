@@ -1,5 +1,5 @@
 // Admin endpoint to view offer transaction logs and health checks
-import { kvGet, getTxLog, cleanApiKey, ESCROW_WALLET } from '../../lib/swap-utils.js';
+import { kvGet, getTxLog, cleanApiKey, ESCROW_WALLET, isRateLimitedKV, getClientIp } from '../../lib/swap-utils.js';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -15,6 +15,12 @@ export default async function handler(req, res) {
     }
     if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
         return res.status(500).json({ error: 'Server configuration error' });
+    }
+
+    // Rate limit: 5 attempts per minute per IP (before auth check to block brute force)
+    const ip = getClientIp(req);
+    if (await isRateLimitedKV(ip, 'admin-txlog', 5, 60000, KV_REST_API_URL, KV_REST_API_TOKEN)) {
+        return res.status(429).json({ error: 'Too many requests' });
     }
 
     try {
