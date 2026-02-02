@@ -368,6 +368,7 @@ body::before {
 
 .badge-card:hover {
     transform: translateY(-2px);
+    z-index: 51;
 }
 
 .badge-card.earned {
