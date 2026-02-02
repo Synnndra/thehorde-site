@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Horde | The Horde</title>
+    <meta name="description" content="View your personal Orc collection — stats, traits, rarity, and more.">
+    <meta property="og:title" content="My Horde | The Horde">
+    <meta property="og:description" content="View your personal Orc collection — stats, traits, rarity, and more.">
+    <meta property="og:image" content="https://midhorde.com/orclogo.jpg">
+    <meta property="og:url" content="https://midhorde.com/my-horde">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="My Horde | The Horde">
+    <meta name="twitter:description" content="View your personal Orc collection — stats, traits, rarity, and more.">
+    <meta name="twitter:image" content="https://midhorde.com/orclogo.jpg">
+    <link rel="icon" href="/orclogo.jpg" type="image/jpeg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/shared/nav.css">
+    <link rel="stylesheet" href="/my-horde/style.css">
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <nav class="site-nav">
+        <a href="/">Home</a>
+        <span class="nav-sep">|</span>
+        <a href="/orc-viewer">Viewer</a>
+        <span class="nav-sep">|</span>
+        <a href="/collage-maker">Collage</a>
+        <span class="nav-sep">|</span>
+        <a href="/minigame">Game</a>
+        <span class="nav-sep">|</span>
+        <a href="/swap">Swap</a>
+        <span class="nav-sep">|</span>
+        <a href="/holders">Leaderboard</a>
+        <span class="nav-sep">|</span>
+        <a href="/my-horde" class="nav-active">My Horde</a>
+    </nav>
+
+    <div class="content" id="main-content">
+        <header class="page-header">
+            <h1 class="page-title">My Horde</h1>
+            <p class="page-subtitle">Your personal Orc collection</p>
+        </header>
+
+        <!-- Connect Wallet Prompt -->
+        <div id="connect-prompt" class="connect-prompt">
+            <p>Connect your wallet to view your Horde</p>
+            <button id="connect-wallet-btn" class="action-btn wallet-btn">Connect Wallet</button>
+        </div>
+
+        <!-- Connected State -->
+        <div id="connected-content" style="display:none">
+
+            <!-- Actions Bar -->
+            <div class="actions-bar">
+                <button id="disconnect-wallet-btn" class="action-btn wallet-btn disconnect">Disconnect</button>
+                <span id="wallet-address" class="wallet-address"></span>
+                <button id="link-discord-btn" class="action-btn discord-link-btn" style="display:none">Link Discord to Wallet</button>
+                <button id="unlink-discord-btn" class="action-btn discord-link-btn unlinked" style="display:none">Unlink Discord</button>
+                <button id="link-x-btn" class="action-btn x-link-btn" style="display:none">Link X to Wallet</button>
+                <button id="unlink-x-btn" class="action-btn x-link-btn unlinked" style="display:none">Unlink X</button>
+                <span class="privacy-info">&#x2139;&#xFE0F;
+                    <span class="privacy-tooltip">
+                        <strong>Is linking safe?</strong><br><br>
+                        Your Discord/X login is used once to fetch your public username and avatar.<br><br>
+                        No tokens or passwords are stored.<br><br>
+                        The wallet signature only proves ownership and cannot move funds.
+                    </span>
+                </span>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="stats-bar">
+                <div class="stat">
+                    <span class="stat-value" id="stat-rank">&mdash;</span>
+                    <span class="stat-label">Your Rank</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="stat-orcs">&mdash;</span>
+                    <span class="stat-label">Orcs Held</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="stat-enlisted">&mdash;</span>
+                    <span class="stat-label">Enlisted</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="stat-value">&mdash;</span>
+                    <span class="stat-label">Portfolio Value</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="stat-rarest">&mdash;</span>
+                    <span class="stat-label">Rarest Orc</span>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div id="loading" class="loading-state" style="display:none">
+                <div class="spinner"></div>
+                <p>Loading your Horde...</p>
+            </div>
+
+            <!-- Error -->
+            <div id="error" class="error-state" style="display:none"></div>
+
+            <!-- Not a Holder -->
+            <div id="not-holder" class="not-holder" style="display:none">
+                <p>This wallet doesn't hold any Orcs.</p>
+            </div>
+
+            <!-- Orc Gallery -->
+            <section id="gallery-section" style="display:none">
+                <div class="section-header">
+                    <h2 class="section-title">Your Orcs</h2>
+                    <div class="sort-controls">
+                        <label for="sort-select">Sort:</label>
+                        <select id="sort-select" class="sort-select">
+                            <option value="number">Number</option>
+                            <option value="rarity">Rarity</option>
+                            <option value="status">Status</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="orc-gallery" class="orc-gallery"></div>
+            </section>
+
+            <!-- Rarity Distribution -->
+            <section id="rarity-section" style="display:none">
+                <h2 class="section-title">Rarity Distribution</h2>
+                <div id="rarity-tiers" class="rarity-tiers"></div>
+            </section>
+
+            <!-- Trait Breakdown -->
+            <section id="trait-section" style="display:none">
+                <h2 class="section-title">Trait Breakdown</h2>
+                <div id="trait-breakdown" class="trait-breakdown"></div>
+            </section>
+
+            <!-- Share -->
+            <div class="share-bar">
+                <button id="share-x-btn" class="action-btn share-btn">Share My Horde to X</button>
+            </div>
+
+            <!-- Social Links -->
+            <div id="social-status" class="social-status" style="display:none">
+                <div id="discord-status" class="social-link"></div>
+                <div id="x-status" class="social-link"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orc Detail Modal -->
+    <div id="orc-modal" class="orc-modal" style="display:none">
+        <div class="orc-modal-content">
+            <button id="modal-close" class="modal-close">&times;</button>
+            <img id="modal-image" class="modal-image" src="" alt="">
+            <div class="modal-info">
+                <h3 id="modal-name" class="modal-name"></h3>
+                <div id="modal-rarity" class="modal-rarity"></div>
+                <div id="modal-status" class="modal-status"></div>
+                <div id="modal-traits" class="modal-traits"></div>
+                <div class="modal-mint">
+                    <span class="modal-mint-label">Mint Address</span>
+                    <span id="modal-mint" class="modal-mint-value"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/my-horde/app.js"></script>
+    <script defer src="/ambient-player.js"></script>
+</body>
+</html>

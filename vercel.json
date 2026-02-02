@@ -28,7 +28,8 @@
     { "source": "/api/holders", "destination": "/api/holders.js" },
     { "source": "/api/holders-link", "destination": "/api/holders-link.js" },
     { "source": "/api/holders-link-x", "destination": "/api/holders-link-x.js" },
-    { "source": "/holders", "destination": "/holders/index.html" }
+    { "source": "/holders", "destination": "/holders/index.html" },
+    { "source": "/my-horde", "destination": "/my-horde/index.html" }
   ],
   "headers": [
     {
