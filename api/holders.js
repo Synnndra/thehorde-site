@@ -38,15 +38,23 @@ export default async function handler(req, res) {
             });
             const assetData = await assetRes.json();
             const asset = assetData.result;
+            if (!asset) {
+                return res.status(200).json({
+                    mint: checkMint,
+                    error: 'Asset not found',
+                    rawResponse: assetData
+                });
+            }
             return res.status(200).json({
                 mint: checkMint,
-                name: asset?.content?.metadata?.name,
-                owner: asset?.ownership?.owner,
-                delegate: asset?.ownership?.delegate,
-                delegated: asset?.ownership?.delegated,
-                frozen: asset?.ownership?.frozen,
-                burnt: asset?.burnt,
-                interface: asset?.interface
+                name: asset.content?.metadata?.name || null,
+                owner: asset.ownership?.owner || null,
+                delegate: asset.ownership?.delegate || null,
+                delegated: asset.ownership?.delegated || false,
+                frozen: asset.ownership?.frozen || false,
+                burnt: asset.burnt || false,
+                interface: asset.interface || null,
+                collection: (asset.grouping || []).find(g => g.group_key === 'collection')?.group_value || null
             });
         } catch (err) {
             return res.status(500).json({ error: 'Check failed: ' + err.message });
