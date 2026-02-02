@@ -1,4 +1,5 @@
 // Admin endpoint to view offer transaction logs and health checks
+import { timingSafeEqual } from 'crypto';
 import { kvGet, getTxLog, cleanApiKey, ESCROW_WALLET, isRateLimitedKV, getClientIp } from '../../lib/swap-utils.js';
 
 export default async function handler(req, res) {
@@ -26,7 +27,9 @@ export default async function handler(req, res) {
     try {
         const { secret, offerId, mode } = req.body;
 
-        if (secret !== ADMIN_SECRET) {
+        const secretBuf = Buffer.from(String(secret || ''));
+        const adminBuf = Buffer.from(ADMIN_SECRET);
+        if (secretBuf.length !== adminBuf.length || !timingSafeEqual(secretBuf, adminBuf)) {
             return res.status(403).json({ error: 'Unauthorized' });
         }
 
@@ -80,7 +83,7 @@ export default async function handler(req, res) {
 
         // Mode 1: Specific offer
         if (offerId) {
-            if (typeof offerId !== 'string' || !offerId.startsWith('offer_') || offerId.length < 8 || offerId.length > 40) {
+            if (typeof offerId !== 'string' || !/^offer_[a-f0-9]{32}$/.test(offerId)) {
                 return res.status(400).json({ error: 'Valid offerId required' });
             }
 

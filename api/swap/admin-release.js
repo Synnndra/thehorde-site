@@ -1,5 +1,6 @@
 // Admin endpoint to manually release stuck NFTs from escrow
 // Returns each side's assets to their original owner based on offer data
+import { timingSafeEqual } from 'crypto';
 import {
     validateSolanaAddress,
     kvGet,
@@ -9,7 +10,9 @@ import {
     returnEscrowToInitiator,
     returnReceiverEscrowAssets,
     cleanApiKey,
-    appendTxLog
+    appendTxLog,
+    getClientIp,
+    isRateLimitedKV
 } from '../../lib/swap-utils.js';
 
 const ALLOWED_STATUSES = ['pending', 'escrowed', 'failed'];
@@ -32,12 +35,20 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Server configuration error' });
     }
 
+    // Rate limit before auth check to block brute force
+    const ip = getClientIp(req);
+    if (await isRateLimitedKV(ip, 'admin-release', 5, 60000, KV_REST_API_URL, KV_REST_API_TOKEN)) {
+        return res.status(429).json({ error: 'Too many requests' });
+    }
+
     let lockKey = null;
 
     try {
         const { secret, offerId } = req.body;
 
-        if (secret !== ADMIN_SECRET) {
+        const secretBuf = Buffer.from(String(secret || ''));
+        const adminBuf = Buffer.from(ADMIN_SECRET);
+        if (secretBuf.length !== adminBuf.length || !timingSafeEqual(secretBuf, adminBuf)) {
             return res.status(403).json({ error: 'Unauthorized' });
         }
         if (!offerId || typeof offerId !== 'string' || !/^offer_[a-f0-9]{32}$/.test(offerId)) {

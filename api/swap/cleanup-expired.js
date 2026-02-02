@@ -1,4 +1,5 @@
 // Vercel Serverless Function - Cleanup Expired and Stuck Escrowed Offers
+import { timingSafeEqual } from 'crypto';
 import {
     kvGet,
     kvSet,
@@ -40,7 +41,13 @@ export default async function handler(req, res) {
         : req.headers['x-cleanup-secret'];
     const cronAuth = req.headers['authorization'] === `Bearer ${CRON_SECRET}`;
 
-    if (!cronAuth && (!CLEANUP_SECRET || secret !== CLEANUP_SECRET)) {
+    let secretValid = false;
+    if (CLEANUP_SECRET && secret) {
+        const secretBuf = Buffer.from(String(secret));
+        const cleanupBuf = Buffer.from(CLEANUP_SECRET);
+        secretValid = secretBuf.length === cleanupBuf.length && timingSafeEqual(secretBuf, cleanupBuf);
+    }
+    if (!cronAuth && !secretValid) {
         return res.status(403).json({ error: 'Unauthorized' });
     }
 

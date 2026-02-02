@@ -1,4 +1,5 @@
 // Vercel Serverless Function - Retry Escrow Release for Stuck Offers
+import { timingSafeEqual } from 'crypto';
 import {
     getClientIp,
     isRateLimitedKV,
@@ -50,7 +51,12 @@ export default async function handler(req, res) {
         }
 
         // Auth: either wallet signature from a party, or admin secret
-        const isAdminAuth = ADMIN_SECRET && secret === ADMIN_SECRET;
+        let isAdminAuth = false;
+        if (ADMIN_SECRET && secret) {
+            const secretBuf = Buffer.from(String(secret));
+            const adminBuf = Buffer.from(ADMIN_SECRET);
+            isAdminAuth = secretBuf.length === adminBuf.length && timingSafeEqual(secretBuf, adminBuf);
+        }
 
         if (!isAdminAuth) {
             if (!wallet || !signature || !message) {

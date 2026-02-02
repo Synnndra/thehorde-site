@@ -153,11 +153,18 @@ function renderXBtn(btn) {
         btn.innerHTML = '';
 
         if (avatar) {
-            const img = document.createElement('img');
-            img.src = avatar;
-            img.alt = username;
-            img.className = 'x-avatar';
-            btn.appendChild(img);
+            try {
+                const avatarUrl = new URL(avatar);
+                if (avatarUrl.protocol === 'https:' && avatarUrl.hostname.endsWith('.twimg.com')) {
+                    const img = document.createElement('img');
+                    img.src = avatarUrl.href;
+                    img.alt = username;
+                    img.className = 'x-avatar';
+                    btn.appendChild(img);
+                }
+            } catch (e) {
+                // Invalid URL, skip avatar
+            }
         }
 
         const label = document.createElement('span');
