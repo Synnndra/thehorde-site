@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { secret, mode, badgeId, name, description, icon, wallets } = req.body;
+        const { secret, mode, badgeId, name, description, icon, imageUrl, wallets } = req.body;
 
         // Auth
         const secretBuf = Buffer.from(String(secret || ''));
@@ -72,6 +72,9 @@ export default async function handler(req, res) {
                 icon: String(icon || '⭐').slice(0, 8),
                 createdAt: Date.now()
             };
+            if (imageUrl && typeof imageUrl === 'string') {
+                defs[badgeId].imageUrl = String(imageUrl).slice(0, 512);
+            }
 
             await kvSet(DEFS_KEY, defs, KV_REST_API_URL, KV_REST_API_TOKEN);
             return res.status(200).json({ success: true, badge: defs[badgeId] });

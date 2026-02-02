@@ -366,13 +366,16 @@
         successEl.hidden = true;
 
         try {
-            var data = await fetchBadgeAdmin({
+            var body = {
                 mode: 'create',
                 badgeId: document.getElementById('badge-id-input').value.trim(),
                 name: document.getElementById('badge-name-input').value.trim(),
                 description: document.getElementById('badge-desc-input').value.trim(),
                 icon: document.getElementById('badge-icon-input').value.trim() || '⭐'
-            });
+            };
+            var imageUrl = document.getElementById('badge-image-input').value.trim();
+            if (imageUrl) body.imageUrl = imageUrl;
+            var data = await fetchBadgeAdmin(body);
             if (!data) return;
             successEl.textContent = 'Badge "' + data.badge.name + '" created.';
             successEl.hidden = false;

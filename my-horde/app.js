@@ -9,30 +9,30 @@ let badgeData = { eventBadges: [], swapCount: 0 };
 
 // Badge definitions (stat-based, computed client-side)
 var STAT_BADGES = [
-    { id: 'warlord', name: 'Warlord', description: 'Hold 50+ orcs', icon: '⚔️', check: function(h, b) { return h.count >= 50; } },
-    { id: 'commander', name: 'Commander', description: 'Hold 20+ orcs', icon: '🛡️', check: function(h, b) { return h.count >= 20; } },
-    { id: 'squad_leader', name: 'Squad Leader', description: 'Hold 10+ orcs', icon: '⚔️', check: function(h, b) { return h.count >= 10; } },
-    { id: 'recruit', name: 'Recruit', description: 'Hold your first orc', icon: '👶', check: function(h, b) { return h.count >= 1; } },
-    { id: 'enlisted', name: 'Enlisted', description: '100% of orcs enlisted', icon: '🎖️', check: function(h, b) {
+    { id: 'warlord', name: 'Warlord', description: 'Hold 50+ orcs', icon: '⚔️', image: '/badges/warlord.png', check: function(h, b) { return h.count >= 50; } },
+    { id: 'commander', name: 'Commander', description: 'Hold 20+ orcs', icon: '🛡️', image: '/badges/commander.png', check: function(h, b) { return h.count >= 20; } },
+    { id: 'squad_leader', name: 'Squad Leader', description: 'Hold 10+ orcs', icon: '⚔️', image: '/badges/squad_leader.png', check: function(h, b) { return h.count >= 10; } },
+    { id: 'recruit', name: 'Recruit', description: 'Hold your first orc', icon: '👶', image: '/badges/recruit.png', check: function(h, b) { return h.count >= 1; } },
+    { id: 'enlisted', name: 'Enlisted', description: '100% of orcs enlisted', icon: '🎖️', image: '/badges/enlisted.png', check: function(h, b) {
         if (h.count === 0) return false;
         var frozen = 0;
         h.orcs.forEach(function(o) { if (o.isFrozen) frozen++; });
         return frozen === h.count;
     }},
-    { id: 'drill_sergeant', name: 'Drill Sergeant', description: '10+ orcs enlisted', icon: '🎖️', check: function(h, b) {
+    { id: 'drill_sergeant', name: 'Drill Sergeant', description: '10+ orcs enlisted', icon: '🎖️', image: '/badges/drill_sergeant.png', check: function(h, b) {
         var frozen = 0;
         h.orcs.forEach(function(o) { if (o.isFrozen) frozen++; });
         return frozen >= 10;
     }},
-    { id: 'legendary_keeper', name: 'Legendary Keeper', description: 'Own a Legendary orc (top 10 rarity)', icon: '👑', check: function(h, b) {
+    { id: 'legendary_keeper', name: 'Legendary Keeper', description: 'Own a Legendary orc (top 10 rarity)', icon: '👑', image: '/badges/legendary_keeper.png', check: function(h, b) {
         return h.orcs.some(function(o) { return o.rarityRank && o.rarityRank <= 10; });
     }},
-    { id: 'rare_collector', name: 'Rare Collector', description: 'Own 5+ Epic or Legendary orcs', icon: '💎', check: function(h, b) {
+    { id: 'rare_collector', name: 'Rare Collector', description: 'Own 5+ Epic or Legendary orcs', icon: '💎', image: '/badges/rare_collector.png', check: function(h, b) {
         var count = 0;
         h.orcs.forEach(function(o) { if (o.rarityRank && o.rarityRank <= 40) count++; });
         return count >= 5;
     }},
-    { id: 'diversity', name: 'Diversity', description: 'Own orcs across all 4 rarity tiers', icon: '🌈', check: function(h, b) {
+    { id: 'diversity', name: 'Diversity', description: 'Own orcs across all 4 rarity tiers', icon: '🌈', image: '/badges/diversity.png', check: function(h, b) {
         var tiers = { legendary: false, epic: false, rare: false, common: false };
         h.orcs.forEach(function(o) {
             if (!o.rarityRank) return;
@@ -41,9 +41,9 @@ var STAT_BADGES = [
         });
         return tiers.legendary && tiers.epic && tiers.rare && tiers.common;
     }},
-    { id: 'trader', name: 'Trader', description: 'Completed a swap', icon: '🤝', check: function(h, b) { return b.swapCount >= 1; } },
-    { id: 'deal_maker', name: 'Deal Maker', description: 'Completed 5+ swaps', icon: '💼', check: function(h, b) { return b.swapCount >= 5; } },
-    { id: 'fully_connected', name: 'Fully Connected', description: 'Linked both Discord and X', icon: '🔗', check: function(h, b) { return h.discord != null && h.x != null; } }
+    { id: 'trader', name: 'Trader', description: 'Completed a swap', icon: '🤝', image: '/badges/trader.png', check: function(h, b) { return b.swapCount >= 1; } },
+    { id: 'deal_maker', name: 'Deal Maker', description: 'Completed 5+ swaps', icon: '💼', image: '/badges/deal_maker.png', check: function(h, b) { return b.swapCount >= 5; } },
+    { id: 'fully_connected', name: 'Fully Connected', description: 'Linked both Discord and X', icon: '🔗', image: '/badges/fully_connected.png', check: function(h, b) { return h.discord != null && h.x != null; } }
 ];
 
 // --- Wallet ---
@@ -476,23 +476,32 @@ function renderBadges() {
     // Stat-based badges
     STAT_BADGES.forEach(function(badge) {
         var earned = badge.check(myHolder, badgeData);
-        grid.appendChild(createBadgeElement(badge.icon, badge.name, badge.description, earned));
+        grid.appendChild(createBadgeElement(badge.icon, badge.name, badge.description, earned, badge.image));
     });
 
     // Event-based badges
     var eventBadges = badgeData.eventBadges || [];
     eventBadges.forEach(function(badge) {
-        grid.appendChild(createBadgeElement(badge.icon || '⭐', badge.name, badge.description || '', true));
+        grid.appendChild(createBadgeElement(badge.icon || '⭐', badge.name, badge.description || '', true, badge.imageUrl || null));
     });
 }
 
-function createBadgeElement(icon, name, tooltip, earned) {
+function createBadgeElement(icon, name, tooltip, earned, imageUrl) {
     var el = document.createElement('div');
     el.className = 'badge-card' + (earned ? ' earned' : ' locked');
 
     var iconEl = document.createElement('div');
     iconEl.className = 'badge-card-icon';
-    iconEl.textContent = icon;
+    if (imageUrl) {
+        var img = document.createElement('img');
+        img.src = imageUrl;
+        img.alt = name;
+        img.className = 'badge-card-img';
+        img.onerror = function() { this.remove(); iconEl.textContent = icon; };
+        iconEl.appendChild(img);
+    } else {
+        iconEl.textContent = icon;
+    }
     el.appendChild(iconEl);
 
     var nameEl = document.createElement('div');
