@@ -174,7 +174,6 @@ export default async function handler(req, res) {
         }
 
         // Extract traits and calculate rarity (same logic as orc-viewer)
-        const weightedTraits = ['head', 'clothing', 'background', 'skin'];
         const RANK_OVERRIDES = [328, 265, 212, 233];
 
         const orcsWithTraits = orcItems.map(item => {
@@ -201,8 +200,7 @@ export default async function handler(req, res) {
             Object.entries(orc.traits).forEach(([type, value]) => {
                 const count = traitCounts[type]?.[value] || 0;
                 if (count > 0) {
-                    const weight = weightedTraits.includes(type.toLowerCase()) ? 1.5 : 1;
-                    score += weight * (1 / (count / total));
+                    score += 1 / (count / total);
                 }
             });
             orc.rarityScore = score;

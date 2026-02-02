@@ -183,17 +183,13 @@ function extractTraits(attributes) {
 function calculateRarity() {
     const total = allNFTs.length;
 
-    // Traits with higher weight in rarity calculation
-    const weightedTraits = ['head', 'clothing', 'background', 'skin'];
-
     // Calculate rarity score for each NFT
     allNFTs.forEach(nft => {
         let score = 0;
         Object.entries(nft.traits).forEach(([type, value]) => {
             const count = traitCounts[type]?.[value] || 0;
             if (count > 0) {
-                const weight = weightedTraits.includes(type.toLowerCase()) ? 1.5 : 1;
-                score += weight * (1 / (count / total));
+                score += 1 / (count / total);
             }
         });
         nft.rarityScore = score;
