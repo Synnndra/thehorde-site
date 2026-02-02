@@ -206,6 +206,14 @@ body {
     letter-spacing: 0.05em;
 }
 
+.rarity-disclaimer {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-style: italic;
+    color: var(--color-text-dim);
+    margin-top: 0.25rem;
+}
+
 /* Main Layout */
 .main {
     flex: 1;
