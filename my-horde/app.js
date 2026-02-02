@@ -6,15 +6,6 @@ let myHolder = null;
 let traitData = {}; // mint -> traits object
 let currentSort = 'number';
 
-const MIDEVIL_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
-
-const RARE_TRAITS = [
-    'Necromancers Helmet',
-    'Necromancers Armor',
-    'Morgoths hat',
-    'Morgoths cloak'
-];
-
 // --- Wallet ---
 
 function isMobileBrowser() {
@@ -323,7 +314,6 @@ async function loadData() {
     document.getElementById('not-holder').style.display = 'none';
     document.getElementById('gallery-section').style.display = 'none';
     document.getElementById('rarity-section').style.display = 'none';
-    document.getElementById('trait-section').style.display = 'none';
     document.getElementById('social-status').style.display = 'none';
 
     try {
@@ -351,13 +341,11 @@ async function loadData() {
 
         renderGallery();
         renderRarityDistribution();
-        renderTraitBreakdown();
         renderSocialStatus();
 
         loading.style.display = 'none';
         document.getElementById('gallery-section').style.display = '';
         document.getElementById('rarity-section').style.display = '';
-        document.getElementById('trait-section').style.display = '';
         document.getElementById('social-status').style.display = '';
     } catch (err) {
         console.error('Load data failed:', err);
@@ -644,76 +632,6 @@ function renderRarityDistribution() {
             '<div class="tier-count">' + tiers[def.key] + '</div>' +
             '<div class="tier-range">' + def.range + '</div>';
         container.appendChild(card);
-    });
-}
-
-// --- Trait Breakdown ---
-
-function renderTraitBreakdown() {
-    if (!myHolder) return;
-
-    // Collect traits across all user orcs
-    var traitGroups = {};
-
-    myHolder.orcs.forEach(function(orc) {
-        var traits = traitData[orc.mint] || {};
-        Object.entries(traits).forEach(function(entry) {
-            var type = entry[0];
-            var value = entry[1];
-            if (!traitGroups[type]) traitGroups[type] = {};
-            traitGroups[type][value] = (traitGroups[type][value] || 0) + 1;
-        });
-    });
-
-    var container = document.getElementById('trait-breakdown');
-    container.innerHTML = '';
-
-    var types = Object.keys(traitGroups).sort();
-
-    types.forEach(function(type) {
-        var values = traitGroups[type];
-        var sortedValues = Object.entries(values).sort(function(a, b) { return b[1] - a[1]; });
-
-        var group = document.createElement('div');
-        group.className = 'trait-group';
-
-        var header = document.createElement('div');
-        header.className = 'trait-group-header';
-        header.innerHTML = '<h3>' + escapeHtml(type) + '</h3><span class="chevron">+</span>';
-
-        var items = document.createElement('div');
-        items.className = 'trait-group-items';
-        items.style.display = 'none';
-
-        sortedValues.forEach(function(entry) {
-            var row = document.createElement('div');
-            row.className = 'trait-row';
-
-            var nameSpan = document.createElement('span');
-            nameSpan.className = 'trait-name';
-            if (RARE_TRAITS.indexOf(entry[0]) !== -1) {
-                nameSpan.classList.add('rare-trait');
-            }
-            nameSpan.textContent = entry[0];
-
-            var countSpan = document.createElement('span');
-            countSpan.className = 'trait-count';
-            countSpan.textContent = entry[1];
-
-            row.appendChild(nameSpan);
-            row.appendChild(countSpan);
-            items.appendChild(row);
-        });
-
-        header.addEventListener('click', function() {
-            var isHidden = items.style.display === 'none';
-            items.style.display = isHidden ? '' : 'none';
-            header.querySelector('.chevron').textContent = isHidden ? '\u2212' : '+';
-        });
-
-        group.appendChild(header);
-        group.appendChild(items);
-        container.appendChild(group);
     });
 }
 
