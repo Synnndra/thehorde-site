@@ -271,7 +271,7 @@ export default async function handler(req, res) {
 
         const result = {
             holders,
-            totalOrcs: orcItems.length - listedOrcs.length,
+            totalOrcs: orcItems.length,
             totalHolders: holders.length,
             listedForSale: listedOrcs.sort((a, b) => a.rarityRank - b.rarityRank),
             updatedAt: new Date().toISOString()
