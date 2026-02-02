@@ -319,20 +319,6 @@ export default async function handler(req, res) {
             console.error('Floor price fetch failed:', e);
         }
 
-        // Fetch volume from Magic Eden (all-time, whole MidEvils collection)
-        let volumeAll = null;
-        try {
-            const meRes = await fetch('https://api-mainnet.magiceden.dev/v2/collections/midevils/stats');
-            if (meRes.ok) {
-                const meData = await meRes.json();
-                if (meData.volumeAll != null) {
-                    volumeAll = Math.round(meData.volumeAll / 1e9); // lamports to SOL
-                }
-            }
-        } catch (e) {
-            console.error('Volume fetch failed:', e);
-        }
-
         const totalHeldOrcs = orcItems.length - listedOrcs.length;
         const result = {
             holders,
@@ -342,7 +328,6 @@ export default async function handler(req, res) {
             floorPrice,
             enlistedCount,
             avgHold: Math.round((totalHeldOrcs / holders.length) * 10) / 10,
-            volumeAll,
             updatedAt: new Date().toISOString()
         };
 

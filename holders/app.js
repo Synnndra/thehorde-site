@@ -344,9 +344,6 @@ function renderStats() {
     document.getElementById('floor-price').textContent = holdersData.floorPrice != null
         ? holdersData.floorPrice + ' SOL'
         : '—';
-    document.getElementById('volume-all').textContent = holdersData.volumeAll != null
-        ? holdersData.volumeAll.toLocaleString() + ' SOL'
-        : '—';
 
     const updatedAt = new Date(holdersData.updatedAt);
     const now = new Date();
