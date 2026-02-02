@@ -70,12 +70,10 @@ export default async function handler(req) {
     user = userData.data;
 
     if (!user?.id) {
-      if (debug) return new Response(JSON.stringify({ error: 'no_user_id', userData }), { headers: { 'Content-Type': 'application/json' } });
-      return Response.redirect(`${baseUrl}/?x_error=user_fetch_failed`, 302);
+      return new Response('User fetch failed: ' + JSON.stringify(userData), { status: 200, headers: { 'Content-Type': 'text/plain' } });
     }
   } catch (e) {
-    if (debug) return new Response(JSON.stringify({ error: 'user_catch', message: e.message }), { headers: { 'Content-Type': 'application/json' } });
-    return Response.redirect(`${baseUrl}/?x_error=user_fetch_failed`, 302);
+    return new Response('User fetch error: ' + e.message, { status: 200, headers: { 'Content-Type': 'text/plain' } });
   }
 
   const params = new URLSearchParams({
