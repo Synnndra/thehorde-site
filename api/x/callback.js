@@ -55,12 +55,12 @@ export default async function handler(req) {
     tokenData = await tokenRes.json();
 
     if (!tokenData.access_token) {
-      if (debug) return new Response(JSON.stringify({ error: 'no_access_token', tokenData }), { headers: { 'Content-Type': 'application/json' } });
-      return Response.redirect(`${baseUrl}/?x_error=token_exchange_failed`, 302);
+      const detail = encodeURIComponent(JSON.stringify(tokenData));
+      return Response.redirect(`${baseUrl}/?x_error=token_exchange_failed&x_detail=${detail}`, 302);
     }
   } catch (e) {
-    if (debug) return new Response(JSON.stringify({ error: 'token_catch', message: e.message }), { headers: { 'Content-Type': 'application/json' } });
-    return Response.redirect(`${baseUrl}/?x_error=token_exchange_failed`, 302);
+    const detail = encodeURIComponent(e.message);
+    return Response.redirect(`${baseUrl}/?x_error=token_catch&x_detail=${detail}`, 302);
   }
 
   // Fetch user info
