@@ -1901,25 +1901,39 @@ body {
 }
 
 .share-x-btn {
-    display: inline-block;
-    margin-top: 12px;
-    padding: 10px 20px;
-    background: #000;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 12px 28px;
+    background: linear-gradient(135deg, #000 0%, #1a1a2e 100%);
     color: #fff;
-    border: 2px solid #333;
-    border-radius: 24px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 28px;
     font-family: var(--font-display, 'Cinzel', serif);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 700;
     text-decoration: none;
     letter-spacing: 0.05em;
     transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.share-x-btn::before {
+    content: '𝕏';
+    font-size: 1.15rem;
+    font-weight: 900;
 }
 
 .share-x-btn:hover {
-    background: #1a1a1a;
-    border-color: #fff;
-    box-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
+    background: linear-gradient(135deg, #1a1a2e 0%, #2a2a4e 100%);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15), 0 0 30px rgba(255, 255, 255, 0.05);
+    transform: translateY(-2px);
+}
+
+.share-x-btn:active {
+    transform: translateY(0);
 }
 
 /* Blockchain status indicator */
