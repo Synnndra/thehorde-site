@@ -23,7 +23,7 @@ export default async function handler(req) {
     response_type: 'code',
     client_id: process.env.X_CLIENT_ID,
     redirect_uri: process.env.X_REDIRECT_URI,
-    scope: 'users.read tweet.read',
+    scope: 'users.read',
     state,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
