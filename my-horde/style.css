@@ -432,18 +432,18 @@ body::before {
 }
 
 .gallery-card.rarity-legendary img {
-    border-color: rgba(255, 215, 0, 0.7);
-    box-shadow: 0 0 6px rgba(255, 215, 0, 0.3);
+    border: 2px solid rgba(255, 215, 0, 0.9);
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
 }
 
 .gallery-card.rarity-epic img {
-    border-color: rgba(168, 85, 247, 0.7);
-    box-shadow: 0 0 6px rgba(168, 85, 247, 0.3);
+    border: 2px solid rgba(168, 85, 247, 0.9);
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.5);
 }
 
 .gallery-card.rarity-rare img {
-    border-color: rgba(59, 130, 246, 0.7);
-    box-shadow: 0 0 6px rgba(59, 130, 246, 0.3);
+    border: 2px solid rgba(59, 130, 246, 0.9);
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
 }
 
 .gallery-card:hover img {
