@@ -275,8 +275,8 @@ export default async function handler(req, res) {
             });
         }
 
-        let serverInitNftDetails = initNfts.length > 0 ? detailsFromAssets(initNfts) : (initiatorNftDetails || []);
-        let serverRecvNftDetails = recvNfts.length > 0 ? detailsFromAssets(recvNfts) : (receiverNftDetails || []);
+        let serverInitNftDetails = detailsFromAssets(initNfts);
+        let serverRecvNftDetails = detailsFromAssets(recvNfts);
 
         // Create offer
         const now = Date.now();
