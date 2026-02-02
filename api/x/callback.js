@@ -38,18 +38,17 @@ export default async function handler(req) {
   // Exchange code for token
   let tokenData;
   try {
-    const basicAuth = btoa(`${process.env.X_CLIENT_ID}:${process.env.X_CLIENT_SECRET}`);
     const tokenRes = await fetch('https://api.x.com/2/oauth2/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${basicAuth}`,
       },
       body: new URLSearchParams({
         code,
         grant_type: 'authorization_code',
         redirect_uri: process.env.X_REDIRECT_URI,
         code_verifier: codeVerifier,
+        client_id: process.env.X_CLIENT_ID,
       }),
     });
     tokenData = await tokenRes.json();
