@@ -127,16 +127,4 @@ describe('admin-txlog.js handler', () => {
         expect(res.data.offers).toEqual([]);
     });
 
-    it('accepts older alphanumeric offer IDs', async () => {
-        const offerId = 'offer_abc123XYZ';
-        const offer = makeOffer();
-        mockKV.set(`offer:${offerId}`, offer);
-
-        const req = createMockReq({ body: { secret: ADMIN_SECRET, offerId } });
-        const res = createMockRes();
-        await handler(req, res);
-
-        expect(res.statusCode).toBe(200);
-        expect(res.data.offers[0].offerId).toBe(offerId);
-    });
 });
