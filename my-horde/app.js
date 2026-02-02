@@ -452,6 +452,8 @@ function renderGallery() {
     orcs.forEach(function(orc) {
         var card = document.createElement('div');
         card.className = 'gallery-card';
+        var rarityTier = orc.rarityRank ? getRarityTier(orc.rarityRank) : '';
+        if (rarityTier && rarityTier !== 'common') card.classList.add('rarity-' + rarityTier);
 
         var img = document.createElement('img');
         img.src = orc.imageUrl;

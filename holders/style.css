@@ -554,6 +554,21 @@ body::before {
     cursor: pointer;
 }
 
+.orc-thumb.rarity-legendary {
+    border-color: rgba(255, 215, 0, 0.7);
+    box-shadow: 0 0 6px rgba(255, 215, 0, 0.3);
+}
+
+.orc-thumb.rarity-epic {
+    border-color: rgba(168, 85, 247, 0.7);
+    box-shadow: 0 0 6px rgba(168, 85, 247, 0.3);
+}
+
+.orc-thumb.rarity-rare {
+    border-color: rgba(59, 130, 246, 0.7);
+    box-shadow: 0 0 6px rgba(59, 130, 246, 0.3);
+}
+
 .orc-thumb:hover {
     border-color: var(--color-accent);
     transform: scale(1.15);

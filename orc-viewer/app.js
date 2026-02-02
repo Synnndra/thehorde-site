@@ -443,6 +443,7 @@ function renderNFTs() {
     filteredNFTs.forEach(nft => {
         const card = document.createElement('div');
         card.className = 'nft-card';
+        if (nft.rarityTier && nft.rarityTier !== 'common') card.classList.add('rarity-' + nft.rarityTier);
 
         const img = document.createElement('img');
         img.className = 'nft-image loading';

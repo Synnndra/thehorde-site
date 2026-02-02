@@ -311,6 +311,16 @@ async function unlinkX() {
     }
 }
 
+// --- Rarity ---
+
+function getRarityClass(rank) {
+    if (!rank) return '';
+    if (rank <= 10) return 'rarity-legendary';
+    if (rank <= 40) return 'rarity-epic';
+    if (rank <= 115) return 'rarity-rare';
+    return '';
+}
+
 // --- Data Loading ---
 
 async function fetchHolders() {
@@ -486,6 +496,8 @@ function renderListedForSale() {
 
         const img = document.createElement('img');
         img.className = 'orc-thumb';
+        const rarityClass = getRarityClass(orc.rarityRank);
+        if (rarityClass) img.classList.add(rarityClass);
         img.src = orc.imageUrl;
         img.alt = orc.name;
         img.loading = 'lazy';
@@ -527,6 +539,8 @@ function toggleExpand(tr, holder, btn) {
 
         const img = document.createElement('img');
         img.className = 'orc-thumb';
+        const rarityClass = getRarityClass(orc.rarityRank);
+        if (rarityClass) img.classList.add(rarityClass);
         img.src = orc.imageUrl;
         img.alt = orc.name;
         img.loading = 'lazy';
