@@ -286,11 +286,26 @@ export default async function handler(req, res) {
                 orcs: holder.orcs.sort((a, b) => a.rarityRank - b.rarityRank)
             }));
 
+        // Fetch floor price from Magic Eden
+        let floorPrice = null;
+        try {
+            const meRes = await fetch('https://api-mainnet.magiceden.dev/v2/collections/the_orc_wars/stats');
+            if (meRes.ok) {
+                const meData = await meRes.json();
+                if (meData.floorPrice) {
+                    floorPrice = meData.floorPrice / 1e9; // lamports to SOL
+                }
+            }
+        } catch (e) {
+            console.error('Floor price fetch failed:', e);
+        }
+
         const result = {
             holders,
             totalOrcs: orcItems.length,
             totalHolders: holders.length,
             listedForSale: listedOrcs.sort((a, b) => a.rarityRank - b.rarityRank),
+            floorPrice,
             updatedAt: new Date().toISOString()
         };
 

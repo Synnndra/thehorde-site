@@ -339,6 +339,9 @@ function renderStats() {
     document.getElementById('total-holders').textContent = holdersData.totalHolders;
     document.getElementById('total-orcs').textContent = holdersData.totalOrcs;
     document.getElementById('total-listed').textContent = holdersData.listedForSale?.length || 0;
+    document.getElementById('floor-price').textContent = holdersData.floorPrice != null
+        ? holdersData.floorPrice + ' SOL'
+        : '—';
 
     const updatedAt = new Date(holdersData.updatedAt);
     const now = new Date();
