@@ -19,12 +19,15 @@
     { "source": "/api/rpc", "destination": "/api/rpc.js" },
     { "source": "/api/discord/auth", "destination": "/api/discord/auth.js" },
     { "source": "/api/discord/callback", "destination": "/api/discord/callback.js" },
+    { "source": "/api/x/auth", "destination": "/api/x/auth.js" },
+    { "source": "/api/x/callback", "destination": "/api/x/callback.js" },
     { "source": "/api/swap/admin-txlog", "destination": "/api/swap/admin-txlog.js" },
     { "source": "/admin", "destination": "/admin/index.html" },
     { "source": "/minigame", "destination": "/minigame/index.html" },
     { "source": "/swap", "destination": "/swap/index.html" },
     { "source": "/api/holders", "destination": "/api/holders.js" },
     { "source": "/api/holders-link", "destination": "/api/holders-link.js" },
+    { "source": "/api/holders-link-x", "destination": "/api/holders-link-x.js" },
     { "source": "/holders", "destination": "/holders/index.html" }
   ],
   "headers": [

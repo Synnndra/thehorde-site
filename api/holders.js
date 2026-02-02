@@ -254,8 +254,9 @@ export default async function handler(req, res) {
             walletMap[owner].orcs.push({ name, imageUrl, mint, rarityRank, isDelegated, isFrozen, delegate });
         }
 
-        // Read Discord mappings (single KV read)
+        // Read Discord and X mappings
         let discordMap = {};
+        let xMap = {};
         try {
             const rawMap = await kvGet(DISCORD_MAP_KEY);
             if (rawMap) {
@@ -263,6 +264,14 @@ export default async function handler(req, res) {
             }
         } catch (e) {
             console.error('Failed to read Discord map:', e);
+        }
+        try {
+            const rawXMap = await kvGet('holders:x_map');
+            if (rawXMap) {
+                xMap = typeof rawXMap === 'string' ? JSON.parse(rawXMap) : rawXMap;
+            }
+        } catch (e) {
+            console.error('Failed to read X map:', e);
         }
 
         // Build sorted leaderboard
@@ -273,6 +282,7 @@ export default async function handler(req, res) {
                 wallet: holder.wallet,
                 count: holder.orcs.length,
                 discord: discordMap[holder.wallet] || null,
+                x: xMap[holder.wallet] || null,
                 orcs: holder.orcs.sort((a, b) => a.rarityRank - b.rarityRank)
             }));
 

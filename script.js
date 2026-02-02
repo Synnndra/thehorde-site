@@ -28,6 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Discord link integration
     initDiscordLink();
 
+    // X link integration
+    initXLink();
+
     // Add entrance animations
     const observerOptions = {
         threshold: 0.1,
@@ -112,6 +115,68 @@ function renderDiscordBtn(btn) {
         // Unlinked state
         btn.onclick = () => {
             window.location.href = '/api/discord/auth';
+        };
+    }
+}
+
+// X Link functionality
+function initXLink() {
+    const btn = document.getElementById('link-x-btn');
+    if (!btn) return;
+
+    // Check URL params for X callback data
+    const params = new URLSearchParams(window.location.search);
+    const xId = params.get('x_id');
+    const xUsername = params.get('x_username');
+    const xAvatar = params.get('x_avatar');
+    const xError = params.get('x_error');
+
+    if (xId && xUsername) {
+        localStorage.setItem('x_id', xId);
+        localStorage.setItem('x_username', xUsername);
+        localStorage.setItem('x_avatar', xAvatar || '');
+        window.history.replaceState({}, '', window.location.pathname);
+    } else if (xError) {
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    renderXBtn(btn);
+}
+
+function renderXBtn(btn) {
+    const id = localStorage.getItem('x_id');
+    const username = localStorage.getItem('x_username');
+    const avatar = localStorage.getItem('x_avatar');
+
+    if (id && username) {
+        btn.classList.add('linked');
+        btn.innerHTML = '';
+
+        if (avatar) {
+            const img = document.createElement('img');
+            img.src = avatar;
+            img.alt = username;
+            img.className = 'x-avatar';
+            btn.appendChild(img);
+        }
+
+        const label = document.createElement('span');
+        label.className = 'link-x-label';
+        label.textContent = '@' + username;
+        btn.appendChild(label);
+
+        btn.title = 'Click to unlink X';
+        btn.onclick = () => {
+            if (confirm('Unlink your X account?')) {
+                localStorage.removeItem('x_id');
+                localStorage.removeItem('x_username');
+                localStorage.removeItem('x_avatar');
+                location.reload();
+            }
+        };
+    } else {
+        btn.onclick = () => {
+            window.location.href = '/api/x/auth';
         };
     }
 }

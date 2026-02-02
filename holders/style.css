@@ -357,6 +357,74 @@ body::before {
     font-style: italic;
 }
 
+/* X cell */
+.col-x { width: 130px; }
+
+.x-cell {
+    font-size: 0.85rem;
+}
+
+.x-linked {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 2px 8px 2px 2px;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    color: inherit;
+}
+
+.x-linked:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+}
+
+.x-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.x-name {
+    color: #d4d4d4;
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+}
+
+.x-cell .no-x {
+    color: rgba(154, 148, 132, 0.4);
+    font-style: italic;
+}
+
+/* X link button in actions bar */
+.x-link-btn {
+    background: transparent;
+    border-color: #888;
+    color: #ccc;
+}
+
+.x-link-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #fff;
+    color: #fff;
+}
+
+.x-link-btn.unlinked {
+    border-color: var(--color-text-dim);
+    color: var(--color-text-dim);
+}
+
+.x-link-btn.unlinked:hover {
+    border-color: var(--color-blood);
+    color: #a03030;
+}
+
 /* Count cell */
 .count-cell {
     text-align: center;
@@ -549,11 +617,8 @@ body::before {
         text-align: center;
     }
 
-    .col-discord {
-        display: none;
-    }
-
-    .col-discord-header {
+    .col-discord,
+    .col-x {
         display: none;
     }
 

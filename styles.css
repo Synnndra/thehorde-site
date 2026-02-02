@@ -171,6 +171,47 @@ body {
     object-fit: cover;
 }
 
+/* Link X Button */
+.link-x-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    background: transparent;
+    border: 1px solid #888;
+    border-radius: 20px;
+    color: #ccc;
+    font-family: 'Crimson Text', serif;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.link-x-btn:hover {
+    background: #fff;
+    color: #000;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+.link-x-btn.linked {
+    border-color: #1d9bf0;
+    color: #1d9bf0;
+}
+
+.link-x-btn.linked:hover {
+    background: rgba(29, 155, 240, 0.15);
+    color: #1d9bf0;
+    box-shadow: 0 0 15px rgba(29, 155, 240, 0.3);
+}
+
+.x-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
 @media (max-width: 600px) {
     .top-bar {
         padding: 0.5rem 1rem;

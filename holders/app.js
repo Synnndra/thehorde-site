@@ -53,6 +53,8 @@ function updateWalletUI() {
     const walletAddr = document.getElementById('wallet-address');
     const linkBtn = document.getElementById('link-discord-btn');
     const unlinkBtn = document.getElementById('unlink-discord-btn');
+    const linkXBtn = document.getElementById('link-x-btn');
+    const unlinkXBtn = document.getElementById('unlink-x-btn');
 
     if (connectedWallet) {
         connectBtn.style.display = 'none';
@@ -75,12 +77,29 @@ function updateWalletUI() {
             linkBtn.style.display = 'none';
             unlinkBtn.style.display = 'none';
         }
+
+        // Show link/unlink X
+        const xInfo = getStoredX();
+        const isXLinked = isWalletXLinked();
+
+        if (xInfo && !isXLinked) {
+            linkXBtn.style.display = '';
+            unlinkXBtn.style.display = 'none';
+        } else if (isXLinked) {
+            linkXBtn.style.display = 'none';
+            unlinkXBtn.style.display = '';
+        } else {
+            linkXBtn.style.display = 'none';
+            unlinkXBtn.style.display = 'none';
+        }
     } else {
         connectBtn.style.display = '';
         disconnectBtn.style.display = 'none';
         walletAddr.style.display = 'none';
         linkBtn.style.display = 'none';
         unlinkBtn.style.display = 'none';
+        linkXBtn.style.display = 'none';
+        unlinkXBtn.style.display = 'none';
     }
 }
 
@@ -96,6 +115,20 @@ function isWalletLinked() {
     if (!connectedWallet || !holdersData) return false;
     const holder = holdersData.holders.find(h => h.wallet === connectedWallet);
     return holder?.discord != null;
+}
+
+function getStoredX() {
+    const username = localStorage.getItem('x_username');
+    const id = localStorage.getItem('x_id');
+    const avatar = localStorage.getItem('x_avatar');
+    if (!username) return null;
+    return { username, id, avatar };
+}
+
+function isWalletXLinked() {
+    if (!connectedWallet || !holdersData) return false;
+    const holder = holdersData.holders.find(h => h.wallet === connectedWallet);
+    return holder?.x != null;
 }
 
 // --- Base58 ---
@@ -198,6 +231,78 @@ async function unlinkDiscord() {
     }
 }
 
+// --- X Linking ---
+
+async function linkX() {
+    if (!connectedWallet) return;
+    const x = getStoredX();
+    if (!x) {
+        showError('No X account linked. Use the X button on the home page first.');
+        return;
+    }
+
+    const provider = getWalletProvider();
+    if (!provider) return;
+
+    try {
+        const message = `Link X to wallet ${connectedWallet} on midhorde.com`;
+        const encodedMsg = new TextEncoder().encode(message);
+        const signed = await provider.signMessage(encodedMsg, 'utf8');
+        const signature = toBase58(signed.signature);
+
+        const res = await fetch('/api/holders-link-x', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ wallet: connectedWallet, signature, x })
+        });
+
+        const data = await res.json();
+        if (data.error) {
+            showError('Link failed: ' + data.error);
+            return;
+        }
+
+        await fetchHolders();
+        updateWalletUI();
+    } catch (err) {
+        console.error('Link X failed:', err);
+        if (err.message?.includes('User rejected')) return;
+        showError('Failed to link X. Please try again.');
+    }
+}
+
+async function unlinkX() {
+    if (!connectedWallet) return;
+    const provider = getWalletProvider();
+    if (!provider) return;
+
+    try {
+        const message = `Unlink X from wallet ${connectedWallet} on midhorde.com`;
+        const encodedMsg = new TextEncoder().encode(message);
+        const signed = await provider.signMessage(encodedMsg, 'utf8');
+        const signature = toBase58(signed.signature);
+
+        const res = await fetch('/api/holders-link-x', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ wallet: connectedWallet, signature })
+        });
+
+        const data = await res.json();
+        if (data.error) {
+            showError('Unlink failed: ' + data.error);
+            return;
+        }
+
+        await fetchHolders();
+        updateWalletUI();
+    } catch (err) {
+        console.error('Unlink X failed:', err);
+        if (err.message?.includes('User rejected')) return;
+        showError('Failed to unlink X. Please try again.');
+    }
+}
+
 // --- Data Loading ---
 
 async function fetchHolders() {
@@ -287,6 +392,36 @@ function renderTable() {
         }
         tr.appendChild(discordTd);
 
+        // X
+        const xTd = document.createElement('td');
+        xTd.className = 'x-cell';
+        if (holder.x?.username) {
+            const xWrap = document.createElement('a');
+            xWrap.className = 'x-linked';
+            xWrap.href = 'https://x.com/' + holder.x.username;
+            xWrap.target = '_blank';
+            xWrap.rel = 'noopener';
+
+            if (holder.x.avatar) {
+                const avatar = document.createElement('img');
+                avatar.className = 'x-avatar';
+                avatar.src = holder.x.avatar;
+                avatar.alt = '';
+                avatar.onerror = function() { this.style.display = 'none'; };
+                xWrap.appendChild(avatar);
+            }
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'x-name';
+            nameSpan.textContent = '@' + holder.x.username;
+            xWrap.appendChild(nameSpan);
+
+            xTd.appendChild(xWrap);
+        } else {
+            xTd.innerHTML = '<span class="no-x">—</span>';
+        }
+        tr.appendChild(xTd);
+
         // Count + percentage
         const countTd = document.createElement('td');
         countTd.className = 'count-cell';
@@ -363,7 +498,7 @@ function toggleExpand(tr, holder, btn) {
     const gridRow = document.createElement('tr');
     gridRow.className = 'orc-grid-row';
     const gridTd = document.createElement('td');
-    gridTd.colSpan = 5;
+    gridTd.colSpan = 6;
 
     const grid = document.createElement('div');
     grid.className = 'orc-grid';
@@ -477,6 +612,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('disconnect-wallet-btn').addEventListener('click', disconnectWallet);
     document.getElementById('link-discord-btn').addEventListener('click', linkDiscord);
     document.getElementById('unlink-discord-btn').addEventListener('click', unlinkDiscord);
+    document.getElementById('link-x-btn').addEventListener('click', linkX);
+    document.getElementById('unlink-x-btn').addEventListener('click', unlinkX);
     setupWalletAddressCopy();
 
     fetchHolders();
