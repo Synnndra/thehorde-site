@@ -289,7 +289,7 @@ export default async function handler(req, res) {
         // Fetch floor price from Magic Eden
         let floorPrice = null;
         try {
-            const meRes = await fetch('https://api-mainnet.magiceden.dev/v2/collections/the_orc_wars/stats');
+            const meRes = await fetch('https://api-mainnet.magiceden.dev/v2/collections/midevils/stats');
             if (meRes.ok) {
                 const meData = await meRes.json();
                 if (meData.floorPrice) {
