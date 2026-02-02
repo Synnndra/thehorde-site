@@ -5,6 +5,11 @@ const CACHE_KEY = 'holders:leaderboard';
 const DISCORD_MAP_KEY = 'holders:discord_map';
 const CACHE_TTL = 300; // 5 minutes in seconds
 
+// Marketplace escrow wallets — NFTs listed for sale are held here
+const EXCLUDED_WALLETS = new Set([
+    '1BWutmTvYPwDtmw9abTkS4Ssr8no61spGAvW1X6NDix',  // Magic Eden
+]);
+
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -217,10 +222,12 @@ export default async function handler(req, res) {
 
         // Aggregate by wallet — use fresh ownership from getAssetBatch
         const walletMap = {};
+        let listedCount = 0;
         for (const item of orcItems) {
             const ownership = freshOwnership[item.id] || item.ownership;
             const owner = ownership?.owner;
             if (!owner) continue;
+            if (EXCLUDED_WALLETS.has(owner)) { listedCount++; continue; }
 
             const name = item.content?.metadata?.name || 'Unknown Orc';
             const imageUrl = item.content?.links?.image || item.content?.files?.[0]?.uri || '';
@@ -260,8 +267,9 @@ export default async function handler(req, res) {
 
         const result = {
             holders,
-            totalOrcs: orcItems.length,
+            totalOrcs: orcItems.length - listedCount,
             totalHolders: holders.length,
+            listedForSale: listedCount,
             updatedAt: new Date().toISOString()
         };
 
