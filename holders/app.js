@@ -322,9 +322,30 @@ function toggleExpand(tr, holder, btn) {
         img.loading = 'lazy';
         img.onerror = function() { this.src = '/orclogo.jpg'; };
 
+        // Show staking/delegation status badge
+        if (orc.isFrozen || orc.isDelegated) {
+            const badge = document.createElement('span');
+            badge.className = 'orc-status-badge';
+            if (orc.isFrozen && orc.isDelegated) {
+                badge.textContent = 'Enlisted';
+                badge.classList.add('enlisted');
+            } else if (orc.isFrozen) {
+                badge.textContent = 'Enlisted';
+                badge.classList.add('enlisted');
+            } else {
+                badge.textContent = 'On Loan';
+                badge.classList.add('on-loan');
+            }
+            wrapper.appendChild(badge);
+        }
+
         const tooltip = document.createElement('div');
         tooltip.className = 'orc-tooltip';
-        tooltip.textContent = orc.name + (orc.rarityRank ? ' (#' + orc.rarityRank + ' rarity)' : '');
+        let tooltipText = orc.name + (orc.rarityRank ? ' (#' + orc.rarityRank + ' rarity)' : '');
+        if (orc.isFrozen && orc.isDelegated) tooltipText += ' — Enlisted';
+        else if (orc.isFrozen) tooltipText += ' — Enlisted';
+        else if (orc.isDelegated) tooltipText += ' — On Loan';
+        tooltip.textContent = tooltipText;
 
         wrapper.appendChild(img);
         wrapper.appendChild(tooltip);

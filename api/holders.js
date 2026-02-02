@@ -141,6 +141,33 @@ export default async function handler(req, res) {
             return name.toLowerCase().includes('orc');
         });
 
+        // Refresh ownership data via getAssetBatch for accuracy.
+        // getAssetsByGroup can return stale ownership for staked/delegated NFTs.
+        const orcMints = orcItems.map(item => item.id);
+        const freshOwnership = {};
+        const BATCH_SIZE = 1000;
+        for (let i = 0; i < orcMints.length; i += BATCH_SIZE) {
+            const batch = orcMints.slice(i, i + BATCH_SIZE);
+            const batchRes = await fetch(`https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 'holders-batch',
+                    method: 'getAssetBatch',
+                    params: { ids: batch }
+                })
+            });
+            const batchData = await batchRes.json();
+            if (batchData.result && Array.isArray(batchData.result)) {
+                for (const asset of batchData.result) {
+                    if (asset && asset.id && asset.ownership) {
+                        freshOwnership[asset.id] = asset.ownership;
+                    }
+                }
+            }
+        }
+
         // Extract traits and calculate rarity (same logic as orc-viewer)
         const weightedTraits = ['head', 'clothing', 'background', 'skin'];
         const RANK_OVERRIDES = [328, 265, 212, 233];
@@ -188,23 +215,25 @@ export default async function handler(req, res) {
             rarityByMint[orc.item.id] = orc.rarityRank;
         });
 
-        // Aggregate by wallet
+        // Aggregate by wallet — use fresh ownership from getAssetBatch
         const walletMap = {};
         for (const item of orcItems) {
-            const owner = item.ownership?.owner;
+            const ownership = freshOwnership[item.id] || item.ownership;
+            const owner = ownership?.owner;
             if (!owner) continue;
 
             const name = item.content?.metadata?.name || 'Unknown Orc';
             const imageUrl = item.content?.links?.image || item.content?.files?.[0]?.uri || '';
             const mint = item.id;
             const rarityRank = rarityByMint[mint] || 9999;
-            const isDelegated = item.ownership?.delegated === true;
-            const delegate = item.ownership?.delegate || null;
+            const isDelegated = ownership?.delegated === true;
+            const isFrozen = ownership?.frozen === true;
+            const delegate = ownership?.delegate || null;
 
             if (!walletMap[owner]) {
                 walletMap[owner] = { wallet: owner, orcs: [] };
             }
-            walletMap[owner].orcs.push({ name, imageUrl, mint, rarityRank, isDelegated, delegate });
+            walletMap[owner].orcs.push({ name, imageUrl, mint, rarityRank, isDelegated, isFrozen, delegate });
         }
 
         // Read Discord mappings (single KV read)
