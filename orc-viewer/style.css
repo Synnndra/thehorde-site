@@ -218,6 +218,7 @@ body {
     color: var(--color-accent);
     margin-top: 0.25rem;
     text-align: center;
+    white-space: nowrap;
 }
 
 /* Main Layout */
