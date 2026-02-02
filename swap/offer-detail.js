@@ -2,9 +2,8 @@
 
 function getShareOnXUrl() {
     const nftCount = (currentOffer.initiator?.nfts?.length || 0) + (currentOffer.receiver?.nfts?.length || 0);
-    const text = `Just completed a ${nftCount} NFT swap on Midswap! Trade MidEvils NFTs peer-to-peer at`;
-    const url = 'https://midhorde.com/swap';
-    return `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    const text = `Just completed a ${nftCount} NFT swap on Midswap!\n\nTrade MidEvils NFTs peer-to-peer at midhorde.com/swap\n\n@MidHorde @MidEvilsNFT\nMidEvils.com`;
+    return `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
 }
 
 async function loadOfferDetails(offerId) {
