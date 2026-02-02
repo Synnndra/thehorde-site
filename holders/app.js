@@ -339,8 +339,13 @@ function renderStats() {
     document.getElementById('total-holders').textContent = holdersData.totalHolders;
     document.getElementById('total-orcs').textContent = holdersData.totalOrcs;
     document.getElementById('total-listed').textContent = holdersData.listedForSale?.length || 0;
+    document.getElementById('total-enlisted').textContent = holdersData.enlistedCount || 0;
+    document.getElementById('avg-hold').textContent = holdersData.avgHold || '—';
     document.getElementById('floor-price').textContent = holdersData.floorPrice != null
         ? holdersData.floorPrice + ' SOL'
+        : '—';
+    document.getElementById('volume-all').textContent = holdersData.volumeAll != null
+        ? holdersData.volumeAll.toLocaleString() + ' SOL'
         : '—';
 
     const updatedAt = new Date(holdersData.updatedAt);

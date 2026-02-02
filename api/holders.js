@@ -286,6 +286,14 @@ export default async function handler(req, res) {
                 orcs: holder.orcs.sort((a, b) => a.rarityRank - b.rarityRank)
             }));
 
+        // Count enlisted (frozen) orcs
+        let enlistedCount = 0;
+        for (const holder of Object.values(walletMap)) {
+            for (const orc of holder.orcs) {
+                if (orc.isFrozen) enlistedCount++;
+            }
+        }
+
         // Fetch orc floor price from Magic Eden listings
         let floorPrice = null;
         try {
@@ -311,12 +319,30 @@ export default async function handler(req, res) {
             console.error('Floor price fetch failed:', e);
         }
 
+        // Fetch volume from Magic Eden (all-time, whole MidEvils collection)
+        let volumeAll = null;
+        try {
+            const meRes = await fetch('https://api-mainnet.magiceden.dev/v2/collections/midevils/stats');
+            if (meRes.ok) {
+                const meData = await meRes.json();
+                if (meData.volumeAll != null) {
+                    volumeAll = Math.round(meData.volumeAll / 1e9); // lamports to SOL
+                }
+            }
+        } catch (e) {
+            console.error('Volume fetch failed:', e);
+        }
+
+        const totalHeldOrcs = orcItems.length - listedOrcs.length;
         const result = {
             holders,
             totalOrcs: orcItems.length,
             totalHolders: holders.length,
             listedForSale: listedOrcs.sort((a, b) => a.rarityRank - b.rarityRank),
             floorPrice,
+            enlistedCount,
+            avgHold: Math.round((totalHeldOrcs / holders.length) * 10) / 10,
+            volumeAll,
             updatedAt: new Date().toISOString()
         };
 
