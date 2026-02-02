@@ -72,6 +72,7 @@
                 passwordInput.value = '';
                 showDashboard();
                 loadAll();
+                loadBadges();
             } else {
                 loginError.textContent = res.status === 403 ? 'Invalid secret.' : 'Login failed.';
                 loginError.hidden = false;
@@ -277,11 +278,197 @@
         }
     }
 
+    // ---- Badge Management ----
+
+    const API_BADGES_ADMIN = '/api/badges-admin';
+    const badgeCreateForm = document.getElementById('badge-create-form');
+    const badgeAwardForm = document.getElementById('badge-award-form');
+    const badgeAwardSelect = document.getElementById('badge-award-select');
+    const badgeRevokeBtn = document.getElementById('badge-revoke-btn');
+    const badgeRefreshBtn = document.getElementById('badge-refresh-btn');
+    const badgeBackfillBtn = document.getElementById('badge-backfill-btn');
+
+    async function fetchBadgeAdmin(body) {
+        const secret = getSecret();
+        const res = await fetch(API_BADGES_ADMIN, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ secret, ...body })
+        });
+        if (res.status === 403) {
+            sessionStorage.removeItem('admin_secret');
+            showLogin();
+            return null;
+        }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Request failed');
+        return data;
+    }
+
+    async function loadBadges() {
+        try {
+            const data = await fetchBadgeAdmin({ mode: 'list' });
+            if (!data) return;
+
+            const listEl = document.getElementById('badge-list');
+            const emptyEl = document.getElementById('badge-list-empty');
+            listEl.innerHTML = '';
+
+            // Update award dropdown
+            badgeAwardSelect.innerHTML = '<option value="">Select a badge...</option>';
+
+            if (!data.badges || data.badges.length === 0) {
+                emptyEl.hidden = false;
+                return;
+            }
+            emptyEl.hidden = true;
+
+            data.badges.forEach(function (b) {
+                // List card
+                var card = document.createElement('div');
+                card.className = 'badge-list-item';
+                card.innerHTML =
+                    '<span class="badge-icon">' + escapeHtml(b.icon || '⭐') + '</span>' +
+                    '<span class="badge-info"><strong>' + escapeHtml(b.name) + '</strong> <code>' + escapeHtml(b.id) + '</code></span>' +
+                    '<span class="badge-count">' + (data.counts[b.id] || 0) + ' awarded</span>';
+
+                card.addEventListener('click', function () { viewBadgeWallets(b.id, b.name); });
+                listEl.appendChild(card);
+
+                // Dropdown option
+                var opt = document.createElement('option');
+                opt.value = b.id;
+                opt.textContent = b.icon + ' ' + b.name;
+                badgeAwardSelect.appendChild(opt);
+            });
+        } catch (err) {
+            console.error('Load badges failed:', err);
+        }
+    }
+
+    async function viewBadgeWallets(badgeId, badgeName) {
+        try {
+            var data = await fetchBadgeAdmin({ mode: 'view', badgeId: badgeId });
+            if (!data) return;
+            var wallets = data.wallets || [];
+            var msg = badgeName + ' (' + wallets.length + ' wallets):\n' + (wallets.length > 0 ? wallets.join('\n') : '(none)');
+            alert(msg);
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    badgeCreateForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var errEl = document.getElementById('badge-create-error');
+        var successEl = document.getElementById('badge-create-success');
+        errEl.hidden = true;
+        successEl.hidden = true;
+
+        try {
+            var data = await fetchBadgeAdmin({
+                mode: 'create',
+                badgeId: document.getElementById('badge-id-input').value.trim(),
+                name: document.getElementById('badge-name-input').value.trim(),
+                description: document.getElementById('badge-desc-input').value.trim(),
+                icon: document.getElementById('badge-icon-input').value.trim() || '⭐'
+            });
+            if (!data) return;
+            successEl.textContent = 'Badge "' + data.badge.name + '" created.';
+            successEl.hidden = false;
+            badgeCreateForm.reset();
+            loadBadges();
+        } catch (err) {
+            errEl.textContent = err.message;
+            errEl.hidden = false;
+        }
+    });
+
+    badgeAwardForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var errEl = document.getElementById('badge-award-error');
+        var successEl = document.getElementById('badge-award-success');
+        errEl.hidden = true;
+        successEl.hidden = true;
+
+        var badgeId = badgeAwardSelect.value;
+        var walletsRaw = document.getElementById('badge-wallets-input').value.trim();
+        if (!badgeId || !walletsRaw) {
+            errEl.textContent = 'Select a badge and enter wallet addresses.';
+            errEl.hidden = false;
+            return;
+        }
+
+        var wallets = walletsRaw.split(/[\n,]+/).map(function (w) { return w.trim(); }).filter(Boolean);
+
+        try {
+            var data = await fetchBadgeAdmin({ mode: 'award', badgeId: badgeId, wallets: wallets });
+            if (!data) return;
+            successEl.textContent = 'Awarded to ' + data.awarded + ' new wallets (' + data.total + ' total).';
+            successEl.hidden = false;
+            loadBadges();
+        } catch (err) {
+            errEl.textContent = err.message;
+            errEl.hidden = false;
+        }
+    });
+
+    badgeRevokeBtn.addEventListener('click', async function () {
+        var errEl = document.getElementById('badge-award-error');
+        var successEl = document.getElementById('badge-award-success');
+        errEl.hidden = true;
+        successEl.hidden = true;
+
+        var badgeId = badgeAwardSelect.value;
+        var walletsRaw = document.getElementById('badge-wallets-input').value.trim();
+        if (!badgeId || !walletsRaw) {
+            errEl.textContent = 'Select a badge and enter wallet addresses.';
+            errEl.hidden = false;
+            return;
+        }
+
+        var wallets = walletsRaw.split(/[\n,]+/).map(function (w) { return w.trim(); }).filter(Boolean);
+
+        try {
+            var data = await fetchBadgeAdmin({ mode: 'revoke', badgeId: badgeId, wallets: wallets });
+            if (!data) return;
+            successEl.textContent = 'Revoked from ' + data.revoked + ' wallets (' + data.total + ' remaining).';
+            successEl.hidden = false;
+            loadBadges();
+        } catch (err) {
+            errEl.textContent = err.message;
+            errEl.hidden = false;
+        }
+    });
+
+    badgeRefreshBtn.addEventListener('click', loadBadges);
+
+    badgeBackfillBtn.addEventListener('click', async function () {
+        var resultEl = document.getElementById('badge-backfill-result');
+        resultEl.hidden = true;
+        badgeBackfillBtn.disabled = true;
+        badgeBackfillBtn.textContent = 'Backfilling...';
+
+        try {
+            var data = await fetchBadgeAdmin({ mode: 'backfill-swaps' });
+            if (!data) return;
+            resultEl.textContent = 'Backfill complete: ' + data.walletsUpdated + ' wallets updated.';
+            resultEl.hidden = false;
+        } catch (err) {
+            resultEl.textContent = 'Error: ' + err.message;
+            resultEl.hidden = false;
+        } finally {
+            badgeBackfillBtn.disabled = false;
+            badgeBackfillBtn.textContent = 'Backfill Swap Counts';
+        }
+    });
+
     // ---- Init ----
 
     if (getSecret()) {
         showDashboard();
         loadAll();
+        loadBadges();
     } else {
         showLogin();
     }

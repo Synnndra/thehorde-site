@@ -5,6 +5,46 @@ let holdersData = null;
 let myHolder = null;
 let traitData = {}; // mint -> traits object
 let currentSort = 'number';
+let badgeData = { eventBadges: [], swapCount: 0 };
+
+// Badge definitions (stat-based, computed client-side)
+var STAT_BADGES = [
+    { id: 'warlord', name: 'Warlord', description: 'Hold 50+ orcs', icon: '⚔️', check: function(h, b) { return h.count >= 50; } },
+    { id: 'commander', name: 'Commander', description: 'Hold 20+ orcs', icon: '🛡️', check: function(h, b) { return h.count >= 20; } },
+    { id: 'squad_leader', name: 'Squad Leader', description: 'Hold 10+ orcs', icon: '⚔️', check: function(h, b) { return h.count >= 10; } },
+    { id: 'recruit', name: 'Recruit', description: 'Hold your first orc', icon: '👶', check: function(h, b) { return h.count >= 1; } },
+    { id: 'enlisted', name: 'Enlisted', description: '100% of orcs enlisted', icon: '🎖️', check: function(h, b) {
+        if (h.count === 0) return false;
+        var frozen = 0;
+        h.orcs.forEach(function(o) { if (o.isFrozen) frozen++; });
+        return frozen === h.count;
+    }},
+    { id: 'drill_sergeant', name: 'Drill Sergeant', description: '10+ orcs enlisted', icon: '🎖️', check: function(h, b) {
+        var frozen = 0;
+        h.orcs.forEach(function(o) { if (o.isFrozen) frozen++; });
+        return frozen >= 10;
+    }},
+    { id: 'legendary_keeper', name: 'Legendary Keeper', description: 'Own a Legendary orc (top 10 rarity)', icon: '👑', check: function(h, b) {
+        return h.orcs.some(function(o) { return o.rarityRank && o.rarityRank <= 10; });
+    }},
+    { id: 'rare_collector', name: 'Rare Collector', description: 'Own 5+ Epic or Legendary orcs', icon: '💎', check: function(h, b) {
+        var count = 0;
+        h.orcs.forEach(function(o) { if (o.rarityRank && o.rarityRank <= 40) count++; });
+        return count >= 5;
+    }},
+    { id: 'diversity', name: 'Diversity', description: 'Own orcs across all 4 rarity tiers', icon: '🌈', check: function(h, b) {
+        var tiers = { legendary: false, epic: false, rare: false, common: false };
+        h.orcs.forEach(function(o) {
+            if (!o.rarityRank) return;
+            var t = getRarityTier(o.rarityRank);
+            tiers[t] = true;
+        });
+        return tiers.legendary && tiers.epic && tiers.rare && tiers.common;
+    }},
+    { id: 'trader', name: 'Trader', description: 'Completed a swap', icon: '🤝', check: function(h, b) { return b.swapCount >= 1; } },
+    { id: 'deal_maker', name: 'Deal Maker', description: 'Completed 5+ swaps', icon: '💼', check: function(h, b) { return b.swapCount >= 5; } },
+    { id: 'fully_connected', name: 'Fully Connected', description: 'Linked both Discord and X', icon: '🔗', check: function(h, b) { return h.discord != null && h.x != null; } }
+];
 
 // --- Wallet ---
 
@@ -325,6 +365,7 @@ async function loadData() {
     loading.style.display = '';
     hideError();
     document.getElementById('not-holder').style.display = 'none';
+    document.getElementById('badges-section').style.display = 'none';
     document.getElementById('gallery-section').style.display = 'none';
     document.getElementById('rarity-section').style.display = 'none';
     document.getElementById('social-status').style.display = 'none';
@@ -349,14 +390,19 @@ async function loadData() {
         renderStats();
         updateWalletUI();
 
-        // Fetch trait data for user's orcs via helius
-        await fetchTraitData(myHolder.orcs);
+        // Fetch badge data and trait data in parallel
+        await Promise.all([
+            fetchBadgeData(connectedWallet),
+            fetchTraitData(myHolder.orcs)
+        ]);
 
+        renderBadges();
         renderGallery();
         renderRarityDistribution();
         renderSocialStatus();
 
         loading.style.display = 'none';
+        document.getElementById('badges-section').style.display = '';
         document.getElementById('gallery-section').style.display = '';
         document.getElementById('rarity-section').style.display = '';
         document.getElementById('social-status').style.display = '';
@@ -404,6 +450,64 @@ async function fetchTraitData(orcs) {
         });
         await Promise.all(promises);
     }
+}
+
+// --- Badges ---
+
+async function fetchBadgeData(wallet) {
+    try {
+        var res = await fetch('/api/badges?wallet=' + encodeURIComponent(wallet));
+        if (res.ok) {
+            badgeData = await res.json();
+        } else {
+            badgeData = { eventBadges: [], swapCount: 0 };
+        }
+    } catch (e) {
+        console.error('Badge fetch failed:', e);
+        badgeData = { eventBadges: [], swapCount: 0 };
+    }
+}
+
+function renderBadges() {
+    var grid = document.getElementById('badges-grid');
+    if (!grid || !myHolder) return;
+    grid.innerHTML = '';
+
+    // Stat-based badges
+    STAT_BADGES.forEach(function(badge) {
+        var earned = badge.check(myHolder, badgeData);
+        grid.appendChild(createBadgeElement(badge.icon, badge.name, badge.description, earned));
+    });
+
+    // Event-based badges
+    var eventBadges = badgeData.eventBadges || [];
+    eventBadges.forEach(function(badge) {
+        grid.appendChild(createBadgeElement(badge.icon || '⭐', badge.name, badge.description || '', true));
+    });
+}
+
+function createBadgeElement(icon, name, tooltip, earned) {
+    var el = document.createElement('div');
+    el.className = 'badge-card' + (earned ? ' earned' : ' locked');
+
+    var iconEl = document.createElement('div');
+    iconEl.className = 'badge-card-icon';
+    iconEl.textContent = icon;
+    el.appendChild(iconEl);
+
+    var nameEl = document.createElement('div');
+    nameEl.className = 'badge-card-name';
+    nameEl.textContent = name;
+    el.appendChild(nameEl);
+
+    if (tooltip) {
+        var tipEl = document.createElement('div');
+        tipEl.className = 'badge-tooltip';
+        tipEl.textContent = tooltip;
+        el.appendChild(tipEl);
+    }
+
+    return el;
 }
 
 // --- Stats ---

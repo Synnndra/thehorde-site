@@ -11,6 +11,7 @@ import {
     releaseEscrowTxClaim,
     kvGet,
     kvSet,
+    kvIncr,
     acquireLock,
     releaseLock,
     verifyEscrowTransactionContent,
@@ -209,6 +210,16 @@ export default async function handler(req, res) {
                 offer.status = 'completed';
                 offer.completedAt = Date.now();
                 await appendTxLog(offerId, { action: 'completed', wallet: null, txSignature: null, error: null, details: null }, KV_REST_API_URL, KV_REST_API_TOKEN);
+
+                // Increment swap badge counters for both parties
+                try {
+                    await Promise.all([
+                        kvIncr(`badges:swaps:${offer.initiator.wallet}`, KV_REST_API_URL, KV_REST_API_TOKEN),
+                        kvIncr(`badges:swaps:${offer.receiver.wallet}`, KV_REST_API_URL, KV_REST_API_TOKEN)
+                    ]);
+                } catch (e) {
+                    console.error('Badge swap counter increment failed:', e);
+                }
             }
         }
 

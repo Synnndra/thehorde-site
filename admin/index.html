@@ -78,6 +78,56 @@
             <p id="search-error" class="error-text" hidden></p>
         </section>
 
+        <!-- Badge Management -->
+        <section class="card" id="badges-section">
+            <h2>Badge Management</h2>
+
+            <!-- Create Badge -->
+            <div class="badge-subsection">
+                <h3>Create Badge</h3>
+                <form id="badge-create-form" class="badge-form">
+                    <input type="text" id="badge-id-input" placeholder="badge_id (lowercase, underscores)" required pattern="^[a-z0-9_]+$">
+                    <input type="text" id="badge-name-input" placeholder="Display Name" required maxlength="64">
+                    <input type="text" id="badge-desc-input" placeholder="Description (optional)" maxlength="256">
+                    <input type="text" id="badge-icon-input" placeholder="Icon emoji (default: ⭐)" maxlength="8">
+                    <button type="submit">Create Badge</button>
+                </form>
+                <p id="badge-create-error" class="error-text" hidden></p>
+                <p id="badge-create-success" class="success-text" hidden></p>
+            </div>
+
+            <!-- Award Badge -->
+            <div class="badge-subsection">
+                <h3>Award Badge</h3>
+                <form id="badge-award-form" class="badge-form">
+                    <select id="badge-award-select">
+                        <option value="">Select a badge...</option>
+                    </select>
+                    <textarea id="badge-wallets-input" placeholder="Wallet addresses (one per line)" rows="4"></textarea>
+                    <div class="badge-form-actions">
+                        <button type="submit">Award</button>
+                        <button type="button" id="badge-revoke-btn" class="btn-danger">Revoke</button>
+                    </div>
+                </form>
+                <p id="badge-award-error" class="error-text" hidden></p>
+                <p id="badge-award-success" class="success-text" hidden></p>
+            </div>
+
+            <!-- Badge List -->
+            <div class="badge-subsection">
+                <h3>Existing Badges</h3>
+                <button id="badge-refresh-btn" class="btn-small">Refresh</button>
+                <div id="badge-list" class="badge-list"></div>
+                <p id="badge-list-empty" class="empty-text" hidden>No badges created yet.</p>
+            </div>
+
+            <!-- Backfill -->
+            <div class="badge-subsection">
+                <button id="badge-backfill-btn" class="btn-small">Backfill Swap Counts</button>
+                <p id="badge-backfill-result" class="success-text" hidden></p>
+            </div>
+        </section>
+
         <!-- Offer Table -->
         <section class="card" id="offers-section">
             <h2>Recent Offers</h2>

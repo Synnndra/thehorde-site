@@ -323,6 +323,117 @@ tr.txlog-row td {
     padding: 1rem 0;
 }
 
+/* Badge Management */
+.badge-subsection {
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.badge-subsection:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.badge-subsection h3 {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    color: var(--color-text-dim);
+    margin-bottom: 0.5rem;
+}
+
+.badge-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 420px;
+}
+
+.badge-form select,
+.badge-form textarea {
+    background: var(--color-bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    padding: 0.6rem 0.8rem;
+    outline: none;
+}
+
+.badge-form select:focus,
+.badge-form textarea:focus {
+    border-color: var(--color-primary);
+}
+
+.badge-form-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-danger {
+    background: var(--color-blood);
+}
+
+.btn-danger:hover {
+    background: #8a2424;
+}
+
+.btn-small {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.success-text {
+    color: #2ecc40;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.badge-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.badge-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--color-bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.badge-list-item:hover {
+    border-color: var(--color-primary);
+}
+
+.badge-icon {
+    font-size: 1.3rem;
+}
+
+.badge-info {
+    flex: 1;
+    font-size: 0.9rem;
+}
+
+.badge-info code {
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    margin-left: 0.3rem;
+}
+
+.badge-count {
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+}
+
 /* Responsive */
 @media (max-width: 600px) {
     .stats-row { gap: 0.5rem; }
