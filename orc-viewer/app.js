@@ -183,13 +183,22 @@ function extractTraits(attributes) {
 function calculateRarity() {
     const total = allNFTs.length;
 
+    // Individual trait value multipliers
+    const traitMultipliers = {
+        'Necromancers Helmet': 5,
+        'Necromancers Armor': 2.5,
+        'Morgoths hat': 2.5,
+        'Morgoths cloak': 2.5,
+    };
+
     // Calculate rarity score for each NFT
     allNFTs.forEach(nft => {
         let score = 0;
         Object.entries(nft.traits).forEach(([type, value]) => {
             const count = traitCounts[type]?.[value] || 0;
             if (count > 0) {
-                score += 1 / (count / total);
+                const multiplier = traitMultipliers[value] || 1;
+                score += multiplier * (1 / (count / total));
             }
         });
         nft.rarityScore = score;

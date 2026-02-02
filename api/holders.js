@@ -193,6 +193,14 @@ export default async function handler(req, res) {
             });
         });
 
+        // Individual trait value multipliers
+        const traitMultipliers = {
+            'Necromancers Helmet': 5,
+            'Necromancers Armor': 2.5,
+            'Morgoths hat': 2.5,
+            'Morgoths cloak': 2.5,
+        };
+
         // Calculate rarity scores
         const total = orcsWithTraits.length;
         orcsWithTraits.forEach(orc => {
@@ -200,7 +208,8 @@ export default async function handler(req, res) {
             Object.entries(orc.traits).forEach(([type, value]) => {
                 const count = traitCounts[type]?.[value] || 0;
                 if (count > 0) {
-                    score += 1 / (count / total);
+                    const multiplier = traitMultipliers[value] || 1;
+                    score += multiplier * (1 / (count / total));
                 }
             });
             orc.rarityScore = score;
