@@ -42,11 +42,14 @@
                     <span class="logo-text">The Horde</span>
                 </a>
                 <div class="header-controls">
-                    <select id="sortSelect" class="header-select">
-                        <option value="number">Sort by Number</option>
-                        <option value="rarity">Rarity (Rarest First)</option>
-                        <option value="random">Random</option>
-                    </select>
+                    <div class="sort-group">
+                        <select id="sortSelect" class="header-select">
+                            <option value="number">Sort by Number</option>
+                            <option value="rarity">Rarity (Rarest First)</option>
+                            <option value="random">Random</option>
+                        </select>
+                        <p class="rarity-disclaimer">Rarity is an unofficial ranking created by The Horde DAO</p>
+                    </div>
                     <div class="search-wrapper">
                         <input type="text" id="searchInput" class="search-input" placeholder="Search by ID #">
                         <button id="searchBtn" class="search-btn">Search</button>
@@ -56,7 +59,6 @@
                     <span id="totalCount" class="stat">0 Orcs</span>
                 </div>
             </div>
-            <p class="rarity-disclaimer">Rarity is an unofficial ranking created by The Horde DAO</p>
         </header>
 
         <!-- Main Content -->
