@@ -142,7 +142,7 @@ export default async function handler(req, res) {
 
         const sanitizedUsername = username.slice(0, 32).replace(/[^\w._-]/g, '');
         const sanitizedId = xId ? String(xId).slice(0, 20).replace(/[^0-9]/g, '') : null;
-        const sanitizedAvatar = avatar ? String(avatar).slice(0, 256) : null;
+        const sanitizedAvatar = avatar ? String(avatar).slice(0, 256).replace(/[^a-zA-Z0-9_\-:/.]/g, '') : null;
 
         const xInfo = {
             username: sanitizedUsername,

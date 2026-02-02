@@ -39,7 +39,12 @@ export default async function handler(req, res) {
     const secret = req.method === 'POST'
         ? (req.body?.secret)
         : req.headers['x-cleanup-secret'];
-    const cronAuth = req.headers['authorization'] === `Bearer ${CRON_SECRET}`;
+    let cronAuth = false;
+    if (CRON_SECRET && req.headers['authorization']) {
+        const provided = Buffer.from(String(req.headers['authorization']));
+        const expected = Buffer.from(`Bearer ${CRON_SECRET}`);
+        cronAuth = provided.length === expected.length && timingSafeEqual(provided, expected);
+    }
 
     let secretValid = false;
     if (CLEANUP_SECRET && secret) {
@@ -425,6 +430,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Cleanup error:', error);
-        return res.status(500).json({ error: 'Cleanup failed: ' + error.message });
+        return res.status(500).json({ error: 'Cleanup failed' });
     }
 }

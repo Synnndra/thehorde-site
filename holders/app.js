@@ -21,7 +21,20 @@ async function connectWallet() {
     if (!provider) {
         if (isMobileBrowser()) {
             const currentUrl = encodeURIComponent(window.location.href);
-            showError(`No wallet detected. <a href="https://phantom.app/ul/browse/${currentUrl}" style="color:#c9a227">Open in Phantom</a> or <a href="https://solflare.com/ul/v1/browse/${currentUrl}" style="color:#c9a227">Solflare</a>`);
+            const frag = document.createDocumentFragment();
+            frag.appendChild(document.createTextNode('No wallet detected. '));
+            const phantomLink = document.createElement('a');
+            phantomLink.href = 'https://phantom.app/ul/browse/' + currentUrl;
+            phantomLink.style.color = '#c9a227';
+            phantomLink.textContent = 'Open in Phantom';
+            frag.appendChild(phantomLink);
+            frag.appendChild(document.createTextNode(' or '));
+            const solflareLink = document.createElement('a');
+            solflareLink.href = 'https://solflare.com/ul/v1/browse/' + currentUrl;
+            solflareLink.style.color = '#c9a227';
+            solflareLink.textContent = 'Solflare';
+            frag.appendChild(solflareLink);
+            showError(frag);
         } else {
             showError('No Solana wallet found. Please install Phantom or Solflare.');
         }
@@ -340,7 +353,12 @@ async function fetchHolders() {
 
 function showError(msg) {
     const el = document.getElementById('error');
-    el.innerHTML = msg;
+    el.textContent = '';
+    if (msg instanceof HTMLElement) {
+        el.appendChild(msg);
+    } else {
+        el.textContent = msg;
+    }
     el.style.display = 'block';
     setTimeout(() => { el.style.display = 'none'; }, 8000);
 }
@@ -585,7 +603,7 @@ function highlightMyRow() {
     document.querySelectorAll('.row-highlight').forEach(el => el.classList.remove('row-highlight'));
     if (!connectedWallet) return;
 
-    const row = document.querySelector(`tr[data-wallet="${connectedWallet}"]`);
+    const row = document.querySelector(`tr[data-wallet="${CSS.escape(connectedWallet)}"]`);
     if (row) row.classList.add('row-highlight');
 }
 

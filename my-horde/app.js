@@ -24,7 +24,20 @@ async function connectWallet() {
     if (!provider) {
         if (isMobileBrowser()) {
             const currentUrl = encodeURIComponent(window.location.href);
-            showError('No wallet detected. <a href="https://phantom.app/ul/browse/' + currentUrl + '" style="color:#c9a227">Open in Phantom</a> or <a href="https://solflare.com/ul/v1/browse/' + currentUrl + '" style="color:#c9a227">Solflare</a>');
+            var frag = document.createDocumentFragment();
+            frag.appendChild(document.createTextNode('No wallet detected. '));
+            var phantomLink = document.createElement('a');
+            phantomLink.href = 'https://phantom.app/ul/browse/' + currentUrl;
+            phantomLink.style.color = '#c9a227';
+            phantomLink.textContent = 'Open in Phantom';
+            frag.appendChild(phantomLink);
+            frag.appendChild(document.createTextNode(' or '));
+            var solflareLink = document.createElement('a');
+            solflareLink.href = 'https://solflare.com/ul/v1/browse/' + currentUrl;
+            solflareLink.style.color = '#c9a227';
+            solflareLink.textContent = 'Solflare';
+            frag.appendChild(solflareLink);
+            showError(frag);
         } else {
             showError('No Solana wallet found. Please install Phantom or Solflare.');
         }
@@ -709,7 +722,12 @@ function escapeHtml(text) {
 
 function showError(msg) {
     var el = document.getElementById('error');
-    el.innerHTML = msg;
+    el.textContent = '';
+    if (msg instanceof HTMLElement) {
+        el.appendChild(msg);
+    } else {
+        el.textContent = msg;
+    }
     el.style.display = 'block';
     setTimeout(function() { el.style.display = 'none'; }, 8000);
 }

@@ -582,10 +582,10 @@ function createNFTCard(nft) {
 
     // Create card HTML with lazy loading for images (removed description for performance)
     card.innerHTML = `
-        <img class="nft-image" loading="lazy" src="${imageUrl || placeholderImage}" alt="${name}"
+        <img class="nft-image" loading="lazy" src="${escapeHtml(imageUrl || placeholderImage)}" alt="${escapeHtml(name)}"
              onerror="this.src='${placeholderImage}'">
         <div class="nft-info">
-            <div class="nft-name">${name}</div>
+            <div class="nft-name">${escapeHtml(name)}</div>
         </div>
     `;
 

@@ -27,44 +27,7 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Helius API key not configured' });
     }
 
-    // Debug: check a specific NFT's ownership directly via getAsset
-    // Usage: /api/holders?check=MINT_ADDRESS
-    const checkMint = req.query?.check;
-    if (checkMint) {
-        try {
-            const assetRes = await fetch(`https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    jsonrpc: '2.0', id: 1,
-                    method: 'getAsset',
-                    params: { id: checkMint }
-                })
-            });
-            const assetData = await assetRes.json();
-            const asset = assetData.result;
-            if (!asset) {
-                return res.status(200).json({
-                    mint: checkMint,
-                    error: 'Asset not found',
-                    rawResponse: assetData
-                });
-            }
-            return res.status(200).json({
-                mint: checkMint,
-                name: asset.content?.metadata?.name || null,
-                owner: asset.ownership?.owner || null,
-                delegate: asset.ownership?.delegate || null,
-                delegated: asset.ownership?.delegated || false,
-                frozen: asset.ownership?.frozen || false,
-                burnt: asset.burnt || false,
-                interface: asset.interface || null,
-                collection: (asset.grouping || []).find(g => g.group_key === 'collection')?.group_value || null
-            });
-        } catch (err) {
-            return res.status(500).json({ error: 'Check failed: ' + err.message });
-        }
-    }
+    // Debug endpoint removed for security
 
     async function kvGet(key) {
         const response = await fetch(`${KV_REST_API_URL}/get/${key}`, {
@@ -87,16 +50,11 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Allow cache bypass with ?fresh=1
-        const forceRefresh = req.query?.fresh === '1';
-
-        // Check cache first (unless bypassed)
-        if (!forceRefresh) {
-            const cached = await kvGet(CACHE_KEY);
-            if (cached) {
-                const data = typeof cached === 'string' ? JSON.parse(cached) : cached;
-                return res.status(200).json(data);
-            }
+        // Check cache first
+        const cached = await kvGet(CACHE_KEY);
+        if (cached) {
+            const data = typeof cached === 'string' ? JSON.parse(cached) : cached;
+            return res.status(200).json(data);
         }
 
         // Fetch all items from Helius (paginated, same as orc-viewer)
