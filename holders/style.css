@@ -319,7 +319,37 @@ body::before {
 /* Discord cell */
 .discord-cell {
     font-size: 0.85rem;
-    color: #9B9FFF;
+}
+
+.discord-linked {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(88, 101, 242, 0.12);
+    border: 1px solid rgba(88, 101, 242, 0.3);
+    border-radius: 12px;
+    padding: 2px 8px 2px 2px;
+    transition: all 0.2s ease;
+}
+
+.discord-linked:hover {
+    background: rgba(88, 101, 242, 0.2);
+    border-color: rgba(88, 101, 242, 0.5);
+    box-shadow: 0 0 8px rgba(88, 101, 242, 0.2);
+}
+
+.discord-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid rgba(88, 101, 242, 0.4);
+}
+
+.discord-name {
+    color: #B5B9FF;
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
 }
 
 .discord-cell .no-discord {

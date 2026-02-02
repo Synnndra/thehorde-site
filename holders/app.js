@@ -264,7 +264,24 @@ function renderTable() {
         const discordTd = document.createElement('td');
         discordTd.className = 'discord-cell';
         if (holder.discord?.username) {
-            discordTd.textContent = holder.discord.username;
+            const discordWrap = document.createElement('span');
+            discordWrap.className = 'discord-linked';
+
+            if (holder.discord.avatar && holder.discord.id) {
+                const avatar = document.createElement('img');
+                avatar.className = 'discord-avatar';
+                avatar.src = 'https://cdn.discordapp.com/avatars/' + holder.discord.id + '/' + holder.discord.avatar + '.png?size=32';
+                avatar.alt = '';
+                avatar.onerror = function() { this.style.display = 'none'; };
+                discordWrap.appendChild(avatar);
+            }
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'discord-name';
+            nameSpan.textContent = holder.discord.username;
+            discordWrap.appendChild(nameSpan);
+
+            discordTd.appendChild(discordWrap);
         } else {
             discordTd.innerHTML = '<span class="no-discord">—</span>';
         }
