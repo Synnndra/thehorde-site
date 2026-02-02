@@ -116,7 +116,7 @@ body {
 
 .header-controls {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
     flex: 1;
     max-width: 500px;
