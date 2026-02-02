@@ -11,13 +11,11 @@ function displayNFTs(nfts, container, side) {
     }
 
     let sortedNfts = [...nfts];
-    if (side === 'your') {
-        sortedNfts.sort((a, b) => {
-            const aLocked = a.ownership?.frozen || a.ownership?.delegated ? 1 : 0;
-            const bLocked = b.ownership?.frozen || b.ownership?.delegated ? 1 : 0;
-            return aLocked - bLocked;
-        });
-    }
+    sortedNfts.sort((a, b) => {
+        const aLocked = a.ownership?.frozen || a.ownership?.delegated ? 1 : 0;
+        const bLocked = b.ownership?.frozen || b.ownership?.delegated ? 1 : 0;
+        return aLocked - bLocked;
+    });
 
     sortedNfts.forEach((nft, index) => {
         const card = createNFTCard(nft, side, index);
