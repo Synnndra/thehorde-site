@@ -286,15 +286,26 @@ export default async function handler(req, res) {
                 orcs: holder.orcs.sort((a, b) => a.rarityRank - b.rarityRank)
             }));
 
-        // Fetch floor price from Magic Eden
+        // Fetch orc floor price from Magic Eden listings
         let floorPrice = null;
         try {
-            const meRes = await fetch('https://api-mainnet.magiceden.dev/v2/collections/midevils/stats');
-            if (meRes.ok) {
-                const meData = await meRes.json();
-                if (meData.floorPrice) {
-                    floorPrice = meData.floorPrice / 1e9; // lamports to SOL
+            const listedMints = listedOrcs.map(o => o.mint);
+            let lowestPrice = Infinity;
+            for (const mint of listedMints) {
+                const listingRes = await fetch(`https://api-mainnet.magiceden.dev/v2/tokens/${mint}/listings`);
+                if (listingRes.ok) {
+                    const listings = await listingRes.json();
+                    if (Array.isArray(listings)) {
+                        for (const listing of listings) {
+                            if (listing.price && listing.price < lowestPrice) {
+                                lowestPrice = listing.price;
+                            }
+                        }
+                    }
                 }
+            }
+            if (lowestPrice < Infinity) {
+                floorPrice = lowestPrice;
             }
         } catch (e) {
             console.error('Floor price fetch failed:', e);
