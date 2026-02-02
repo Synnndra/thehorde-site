@@ -679,11 +679,19 @@ function shareToX() {
         }
     });
 
-    var text = 'My Horde: ' + myHolder.count + ' orcs | Rank #' + myHolder.rank;
+    var tier = rarest ? getRarityTier(rarest.rarityRank) : '';
+    var tierEmoji = tier === 'legendary' ? '\uD83D\uDC51' : tier === 'epic' ? '\uD83D\uDC8E' : tier === 'rare' ? '\u2728' : '\u2694\uFE0F';
+
+    var text = '\uD83D\uDEE1\uFE0F My Horde\n\n';
+    text += '\u2694\uFE0F ' + myHolder.count + ' Orcs\n';
+    text += '\uD83C\uDFC6 Rank #' + myHolder.rank + ' of ' + holdersData.totalHolders + ' holders\n';
     if (rarest) {
-        text += ' | Rarest: ' + rarest.name + ' (#' + rarest.rarityRank + ' rarity)';
+        text += tierEmoji + ' Rarest: ' + rarest.name + ' (#' + rarest.rarityRank + ' — ' + capitalize(tier) + ')\n';
     }
-    text += '\n\nmidhorde.com/my-horde\n@MidHorde @MidEvilsNFT';
+    if (holdersData.floorPrice != null) {
+        text += '\uD83D\uDCB0 Portfolio: ' + (myHolder.count * holdersData.floorPrice).toFixed(2) + ' SOL\n';
+    }
+    text += '\nmidhorde.com/my-horde\n@MidHorde @MidEvilsNFT';
 
     var url = 'https://x.com/intent/tweet?text=' + encodeURIComponent(text);
     window.open(url, '_blank', 'noopener');
