@@ -425,6 +425,18 @@ body::before {
     color: #a03030;
 }
 
+/* Privacy info tooltip */
+.privacy-info {
+    font-size: 1.1rem;
+    color: var(--color-text-dim);
+    cursor: help;
+    line-height: 1;
+}
+
+.privacy-info:hover {
+    color: var(--color-accent);
+}
+
 /* Count cell */
 .count-cell {
     text-align: center;

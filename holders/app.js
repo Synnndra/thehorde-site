@@ -55,6 +55,7 @@ function updateWalletUI() {
     const unlinkBtn = document.getElementById('unlink-discord-btn');
     const linkXBtn = document.getElementById('link-x-btn');
     const unlinkXBtn = document.getElementById('unlink-x-btn');
+    const privacyInfo = document.querySelector('.privacy-info');
 
     if (connectedWallet) {
         connectBtn.style.display = 'none';
@@ -92,6 +93,12 @@ function updateWalletUI() {
             linkXBtn.style.display = 'none';
             unlinkXBtn.style.display = 'none';
         }
+        // Show privacy info when any link button is visible
+        if (privacyInfo) {
+            const anyLinkVisible = linkBtn.style.display !== 'none' || unlinkBtn.style.display !== 'none' ||
+                linkXBtn.style.display !== 'none' || unlinkXBtn.style.display !== 'none';
+            privacyInfo.style.display = anyLinkVisible ? '' : 'none';
+        }
     } else {
         connectBtn.style.display = '';
         disconnectBtn.style.display = 'none';
@@ -100,6 +107,7 @@ function updateWalletUI() {
         unlinkBtn.style.display = 'none';
         linkXBtn.style.display = 'none';
         unlinkXBtn.style.display = 'none';
+        if (privacyInfo) privacyInfo.style.display = 'none';
     }
 }
 
