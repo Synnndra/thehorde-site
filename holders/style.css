@@ -431,10 +431,54 @@ body::before {
     color: var(--color-text-dim);
     cursor: help;
     line-height: 1;
+    position: relative;
 }
 
 .privacy-info:hover {
     color: var(--color-accent);
+}
+
+.privacy-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 260px;
+    padding: 1rem;
+    background: rgba(10, 10, 10, 0.95);
+    border: 1px solid var(--color-primary);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    color: var(--color-text);
+    line-height: 1.4;
+    text-align: left;
+    z-index: 50;
+    pointer-events: none;
+}
+
+.privacy-tooltip strong {
+    color: var(--color-accent);
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.privacy-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: var(--color-primary);
+}
+
+.privacy-info:hover .privacy-tooltip {
+    display: block;
 }
 
 /* Count cell */
