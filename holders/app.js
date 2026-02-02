@@ -338,7 +338,9 @@ function showError(msg) {
 function renderStats() {
     document.getElementById('total-holders').textContent = holdersData.totalHolders;
     document.getElementById('total-orcs').textContent = holdersData.totalOrcs;
-    document.getElementById('total-listed').textContent = holdersData.listedForSale?.length || 0;
+    const listed = holdersData.listedForSale?.length || 0;
+    const listedPct = holdersData.totalOrcs ? ((listed / holdersData.totalOrcs) * 100).toFixed(1) : 0;
+    document.getElementById('total-listed').textContent = listed + ' (' + listedPct + '%)';
     const enlisted = holdersData.enlistedCount || 0;
     const enlistedPct = holdersData.totalOrcs ? ((enlisted / holdersData.totalOrcs) * 100).toFixed(1) : 0;
     document.getElementById('total-enlisted').textContent = enlisted + ' (' + enlistedPct + '%)';
