@@ -8,10 +8,11 @@ export default async function handler(req) {
   const url = new URL(req.url);
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
+  const debug = url.searchParams.get('debug') === '1';
   const baseUrl = `${url.protocol}//${url.host}`;
 
   if (!code || !state) {
-    return Response.redirect(`${baseUrl}/?x_error=missing_params`, 302);
+    return Response.redirect(`${baseUrl}/?x_error=missing_params&x_detail=no_code_or_state`, 302);
   }
 
   // Retrieve code_verifier from KV
@@ -24,7 +25,7 @@ export default async function handler(req) {
   const stateData = await stateRes.json();
 
   if (!stateData.result) {
-    return Response.redirect(`${baseUrl}/?x_error=invalid_state`, 302);
+    return Response.redirect(`${baseUrl}/?x_error=invalid_state&x_detail=kv_empty`, 302);
   }
 
   const codeVerifier = decodeURIComponent(stateData.result);
@@ -54,9 +55,11 @@ export default async function handler(req) {
     tokenData = await tokenRes.json();
 
     if (!tokenData.access_token) {
+      if (debug) return new Response(JSON.stringify({ error: 'no_access_token', tokenData }), { headers: { 'Content-Type': 'application/json' } });
       return Response.redirect(`${baseUrl}/?x_error=token_exchange_failed`, 302);
     }
-  } catch {
+  } catch (e) {
+    if (debug) return new Response(JSON.stringify({ error: 'token_catch', message: e.message }), { headers: { 'Content-Type': 'application/json' } });
     return Response.redirect(`${baseUrl}/?x_error=token_exchange_failed`, 302);
   }
 
@@ -70,9 +73,11 @@ export default async function handler(req) {
     user = userData.data;
 
     if (!user?.id) {
+      if (debug) return new Response(JSON.stringify({ error: 'no_user_id', userData }), { headers: { 'Content-Type': 'application/json' } });
       return Response.redirect(`${baseUrl}/?x_error=user_fetch_failed`, 302);
     }
-  } catch {
+  } catch (e) {
+    if (debug) return new Response(JSON.stringify({ error: 'user_catch', message: e.message }), { headers: { 'Content-Type': 'application/json' } });
     return Response.redirect(`${baseUrl}/?x_error=user_fetch_failed`, 302);
   }
 

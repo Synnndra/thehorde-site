@@ -137,6 +137,8 @@ function initXLink() {
         localStorage.setItem('x_avatar', xAvatar || '');
         window.history.replaceState({}, '', window.location.pathname);
     } else if (xError) {
+        const xDetail = params.get('x_detail') || '';
+        alert('X login failed: ' + xError + (xDetail ? ' (' + xDetail + ')' : ''));
         window.history.replaceState({}, '', window.location.pathname);
     }
 
