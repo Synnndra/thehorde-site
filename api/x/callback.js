@@ -55,12 +55,10 @@ export default async function handler(req) {
     tokenData = await tokenRes.json();
 
     if (!tokenData.access_token) {
-      const detail = encodeURIComponent(JSON.stringify(tokenData));
-      return Response.redirect(`${baseUrl}/?x_error=token_exchange_failed&x_detail=${detail}`, 302);
+      return new Response('Token exchange failed: ' + JSON.stringify(tokenData), { status: 200, headers: { 'Content-Type': 'text/plain' } });
     }
   } catch (e) {
-    const detail = encodeURIComponent(e.message);
-    return Response.redirect(`${baseUrl}/?x_error=token_catch&x_detail=${detail}`, 302);
+    return new Response('Token exchange error: ' + e.message, { status: 200, headers: { 'Content-Type': 'text/plain' } });
   }
 
   // Fetch user info
