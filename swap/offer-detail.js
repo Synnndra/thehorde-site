@@ -1,5 +1,12 @@
 // MidEvils NFT Swap - Offer Detail Page
 
+function getShareOnXUrl() {
+    const nftCount = (currentOffer.initiator?.nfts?.length || 0) + (currentOffer.receiver?.nfts?.length || 0);
+    const text = `Just completed a ${nftCount} NFT swap on Midswap! Trade MidEvils NFTs peer-to-peer at`;
+    const url = 'https://midhorde.com/swap';
+    return `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+}
+
 async function loadOfferDetails(offerId) {
     showLoading('Loading offer details...');
 
@@ -121,6 +128,7 @@ function displayOfferActions() {
             completedHtml += `<br><a href="https://solscan.io/tx/${currentOffer.escrowTxSignature}" target="_blank" rel="noopener" class="solscan-link">View transaction on Solscan</a>`;
         }
         completedHtml += '</p>';
+        completedHtml += `<a href="${getShareOnXUrl()}" target="_blank" rel="noopener" class="share-x-btn">Share on 𝕏</a>`;
         elements.offerActions.innerHTML = completedHtml;
         return;
     }
@@ -360,6 +368,9 @@ async function executeOfferAction(action) {
 
         elements.resultModalTitle.textContent = data.status === 'completed' || action !== 'accept' ? 'Success!' : 'Processing...';
         elements.resultModalMessage.innerHTML = successMessages[action];
+        if (action === 'accept' && data.status === 'completed') {
+            elements.resultModalMessage.innerHTML += `<br><br><a href="${getShareOnXUrl()}" target="_blank" rel="noopener" class="share-x-btn">Share on 𝕏</a>`;
+        }
         elements.resultModal.style.display = 'flex';
 
         if (data.status !== 'completed') {

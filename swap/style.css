@@ -1900,6 +1900,28 @@ body {
     border-left: 4px solid #4aff7a;
 }
 
+.share-x-btn {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 10px 20px;
+    background: #000;
+    color: #fff;
+    border: 2px solid #333;
+    border-radius: 24px;
+    font-family: var(--font-display, 'Cinzel', serif);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    transition: all 0.3s ease;
+}
+
+.share-x-btn:hover {
+    background: #1a1a1a;
+    border-color: #fff;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
+}
+
 /* Blockchain status indicator */
 .blockchain-status {
     display: inline-flex;
