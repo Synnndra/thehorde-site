@@ -349,16 +349,14 @@ body::before {
 
 /* Badges */
 .badges-grid {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
     gap: 10px;
-    justify-content: center;
     margin-bottom: 2rem;
 }
 
 .badge-card {
     position: relative;
-    width: 72px;
     text-align: center;
     padding: 8px 4px;
     border-radius: 6px;
@@ -953,9 +951,8 @@ body::before {
         justify-content: center;
     }
 
-    .badge-card {
-        width: 64px;
-        padding: 6px 3px;
+    .badges-grid {
+        grid-template-columns: repeat(4, 1fr);
     }
 
     .badge-card-icon {
@@ -1000,5 +997,9 @@ body::before {
 
     .gallery-card-name {
         font-size: 0.5rem;
+    }
+
+    .badges-grid {
+        grid-template-columns: repeat(3, 1fr);
     }
 }
