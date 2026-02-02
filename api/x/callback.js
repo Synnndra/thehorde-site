@@ -8,11 +8,10 @@ export default async function handler(req) {
   const url = new URL(req.url);
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
-  const debug = url.searchParams.get('debug') === '1';
   const baseUrl = `${url.protocol}//${url.host}`;
 
   if (!code || !state) {
-    return Response.redirect(`${baseUrl}/?x_error=missing_params&x_detail=no_code_or_state`, 302);
+    return Response.redirect(`${baseUrl}/?x_error=missing_params`, 302);
   }
 
   // Retrieve code_verifier from KV
@@ -25,7 +24,7 @@ export default async function handler(req) {
   const stateData = await stateRes.json();
 
   if (!stateData.result) {
-    return Response.redirect(`${baseUrl}/?x_error=invalid_state&x_detail=kv_empty`, 302);
+    return Response.redirect(`${baseUrl}/?x_error=invalid_state`, 302);
   }
 
   const codeVerifier = decodeURIComponent(stateData.result);
@@ -59,10 +58,10 @@ export default async function handler(req) {
     tokenData = await tokenRes.json();
 
     if (!tokenData.access_token) {
-      return new Response('Token exchange failed.\nClient ID length: ' + clientId.length + '\nSecret length: ' + clientSecret.length + '\nResponse: ' + JSON.stringify(tokenData), { status: 200, headers: { 'Content-Type': 'text/plain' } });
+      return Response.redirect(`${baseUrl}/?x_error=token_exchange_failed`, 302);
     }
-  } catch (e) {
-    return new Response('Token exchange error: ' + e.message, { status: 200, headers: { 'Content-Type': 'text/plain' } });
+  } catch {
+    return Response.redirect(`${baseUrl}/?x_error=token_exchange_failed`, 302);
   }
 
   // Fetch user info
@@ -75,10 +74,10 @@ export default async function handler(req) {
     user = userData.data;
 
     if (!user?.id) {
-      return new Response('User fetch failed: ' + JSON.stringify(userData), { status: 200, headers: { 'Content-Type': 'text/plain' } });
+      return Response.redirect(`${baseUrl}/?x_error=user_fetch_failed`, 302);
     }
-  } catch (e) {
-    return new Response('User fetch error: ' + e.message, { status: 200, headers: { 'Content-Type': 'text/plain' } });
+  } catch {
+    return Response.redirect(`${baseUrl}/?x_error=user_fetch_failed`, 302);
   }
 
   const params = new URLSearchParams({

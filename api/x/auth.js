@@ -19,22 +19,10 @@ export default async function handler(req) {
     headers: { Authorization: `Bearer ${kvToken}` },
   });
 
-  const clientId = process.env.X_CLIENT_ID;
-  const redirectUri = process.env.X_REDIRECT_URI;
-
-  // Debug endpoint: /api/x/auth?debug=1
-  if (new URL(req.url).searchParams.get('debug') === '1') {
-    return new Response(JSON.stringify({
-      client_id: clientId ? clientId.slice(0, 4) + '...' : 'NOT SET',
-      redirect_uri: redirectUri || 'NOT SET',
-      client_secret_set: !!process.env.X_CLIENT_SECRET,
-    }), { headers: { 'Content-Type': 'application/json' } });
-  }
-
   const params = new URLSearchParams({
     response_type: 'code',
-    client_id: clientId,
-    redirect_uri: redirectUri,
+    client_id: process.env.X_CLIENT_ID,
+    redirect_uri: process.env.X_REDIRECT_URI,
     scope: 'users.read tweet.read',
     state,
     code_challenge: codeChallenge,
