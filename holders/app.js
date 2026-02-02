@@ -207,6 +207,7 @@ async function fetchHolders() {
         holdersData = await res.json();
         renderStats();
         renderTable();
+        renderListedForSale();
         highlightMyRow();
     } catch (err) {
         console.error('Fetch holders failed:', err);
@@ -291,6 +292,45 @@ function renderTable() {
 
     document.getElementById('loading').style.display = 'none';
     document.getElementById('leaderboard-container').style.display = '';
+}
+
+function renderListedForSale() {
+    const container = document.getElementById('listed-for-sale');
+    if (!container) return;
+
+    const listed = holdersData.listedForSale;
+    if (!listed || !listed.length) {
+        container.style.display = 'none';
+        return;
+    }
+
+    const countEl = document.getElementById('listed-count');
+    if (countEl) countEl.textContent = listed.length;
+
+    const grid = document.getElementById('listed-grid');
+    grid.innerHTML = '';
+
+    for (const orc of listed) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'orc-thumb-wrapper';
+
+        const img = document.createElement('img');
+        img.className = 'orc-thumb';
+        img.src = orc.imageUrl;
+        img.alt = orc.name;
+        img.loading = 'lazy';
+        img.onerror = function() { this.src = '/orclogo.jpg'; };
+
+        const tooltip = document.createElement('div');
+        tooltip.className = 'orc-tooltip';
+        tooltip.textContent = orc.name + (orc.rarityRank ? ' (#' + orc.rarityRank + ' rarity)' : '');
+
+        wrapper.appendChild(img);
+        wrapper.appendChild(tooltip);
+        grid.appendChild(wrapper);
+    }
+
+    container.style.display = '';
 }
 
 function toggleExpand(tr, holder, btn) {

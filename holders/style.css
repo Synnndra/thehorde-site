@@ -460,6 +460,34 @@ body::before {
     display: block;
 }
 
+/* Listed for Sale Section */
+.listed-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--color-primary);
+}
+
+.listed-title {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+}
+
+.listed-count {
+    font-size: 0.85rem;
+    color: var(--color-accent);
+    margin-left: 0.3rem;
+}
+
+.listed-grid {
+    padding: 0;
+    background: none;
+}
+
 /* No nav-active underline */
 .nav-active {
     color: var(--color-text) !important;

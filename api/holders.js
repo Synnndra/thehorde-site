@@ -222,12 +222,11 @@ export default async function handler(req, res) {
 
         // Aggregate by wallet — use fresh ownership from getAssetBatch
         const walletMap = {};
-        let listedCount = 0;
+        const listedOrcs = [];
         for (const item of orcItems) {
             const ownership = freshOwnership[item.id] || item.ownership;
             const owner = ownership?.owner;
             if (!owner) continue;
-            if (EXCLUDED_WALLETS.has(owner)) { listedCount++; continue; }
 
             const name = item.content?.metadata?.name || 'Unknown Orc';
             const imageUrl = item.content?.links?.image || item.content?.files?.[0]?.uri || '';
@@ -236,6 +235,11 @@ export default async function handler(req, res) {
             const isDelegated = ownership?.delegated === true;
             const isFrozen = ownership?.frozen === true;
             const delegate = ownership?.delegate || null;
+
+            if (EXCLUDED_WALLETS.has(owner)) {
+                listedOrcs.push({ name, imageUrl, mint, rarityRank });
+                continue;
+            }
 
             if (!walletMap[owner]) {
                 walletMap[owner] = { wallet: owner, orcs: [] };
@@ -267,9 +271,9 @@ export default async function handler(req, res) {
 
         const result = {
             holders,
-            totalOrcs: orcItems.length - listedCount,
+            totalOrcs: orcItems.length - listedOrcs.length,
             totalHolders: holders.length,
-            listedForSale: listedCount,
+            listedForSale: listedOrcs.sort((a, b) => a.rarityRank - b.rarityRank),
             updatedAt: new Date().toISOString()
         };
 
