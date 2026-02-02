@@ -691,7 +691,7 @@ function shareToX() {
     if (holdersData.floorPrice != null) {
         text += '\uD83D\uDCB0 Portfolio: ' + (myHolder.count * holdersData.floorPrice).toFixed(2) + ' SOL\n';
     }
-    text += '\nmidhorde.com/my-horde\n@MidHorde @MidEvilsNFT';
+    text += '\nmidhorde.com\n@MidHorde @MidEvilsNFT';
 
     var url = 'https://x.com/intent/tweet?text=' + encodeURIComponent(text);
     window.open(url, '_blank', 'noopener');
