@@ -297,7 +297,7 @@ function createMplCoreTransferInstruction(assetId, fromPubkey, toPubkey, collect
         { pubkey: asset, isSigner: false, isWritable: true },
         { pubkey: collectionAddress ? new solanaWeb3.PublicKey(collectionAddress) : programId, isSigner: false, isWritable: false },
         { pubkey: fromPubkey, isSigner: true, isWritable: true },
-        { pubkey: fromPubkey, isSigner: true, isWritable: false },
+        { pubkey: fromPubkey, isSigner: false, isWritable: false },
         { pubkey: toPubkey, isSigner: false, isWritable: false },
         { pubkey: systemProgram, isSigner: false, isWritable: false },
         { pubkey: logWrapper, isSigner: false, isWritable: false },
