@@ -9,7 +9,7 @@ let badgeData = { eventBadges: [], swapCount: 0 };
 
 // Badge definitions (stat-based, computed client-side)
 var STAT_BADGES = [
-    { id: 'warlord', name: 'Warlord', description: 'Hold 50+ orcs', icon: '⚔️', image: '/badges/warlord.png', check: function(h, b) { return h.count >= 50; } },
+    { id: 'warlord', name: 'Warlord', description: 'Hold 33+ orcs', icon: '⚔️', image: '/badges/warlord.png', check: function(h, b) { return h.count >= 33; } },
     { id: 'commander', name: 'Commander', description: 'Hold 20+ orcs', icon: '🛡️', image: '/badges/commander.png', check: function(h, b) { return h.count >= 20; } },
     { id: 'squad_leader', name: 'Squad Leader', description: 'Hold 10+ orcs', icon: '⚔️', image: '/badges/squad_leader.png', check: function(h, b) { return h.count >= 10; } },
     { id: 'recruit', name: 'Recruit', description: 'Hold your first orc', icon: '👶', image: '/badges/recruit.png', check: function(h, b) { return h.count >= 1; } },

@@ -1,5 +1,5 @@
 const BADGES = {
-    warlord: { name: 'Warlord', description: 'Hold 50+ orcs', image: '/badges/warlord.png' },
+    warlord: { name: 'Warlord', description: 'Hold 33+ orcs', image: '/badges/warlord.png' },
     commander: { name: 'Commander', description: 'Hold 20+ orcs', image: '/badges/commander.png' },
     squad_leader: { name: 'Squad Leader', description: 'Hold 10+ orcs', image: '/badges/squad_leader.png' },
     recruit: { name: 'Recruit', description: 'Hold your first orc', image: '/badges/recruit.png' },
