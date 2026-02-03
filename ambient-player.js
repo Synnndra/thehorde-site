@@ -13,10 +13,17 @@
     localStorage.removeItem('horde_music_muted');
 
     var audio = document.createElement('audio');
-    audio.src = '/ambient.mp3';
     audio.loop = true;
     audio.volume = 0.3;
-    audio.preload = 'auto';
+    audio.preload = 'none';
+
+    var audioLoaded = false;
+    function loadAudio() {
+        if (!audioLoaded) {
+            audio.src = '/ambient.mp3';
+            audioLoaded = true;
+        }
+    }
 
     var savedPref = localStorage.getItem(STORAGE_KEY);
     var isMuted = savedPref === null ? false : savedPref === 'true';
@@ -33,14 +40,12 @@
     }
 
     function tryPlay() {
+        loadAudio();
         audio.play().catch(function () {});
     }
 
     if (!isMuted) {
         audio.muted = false;
-        tryPlay();
-    } else {
-        audio.muted = true;
         tryPlay();
     }
 
