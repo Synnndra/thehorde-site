@@ -31,6 +31,9 @@
         <a href="/swap">Swap</a><span class="nav-sep">|</span>
         <a href="/holders">Leaderboard</a><span class="nav-sep">|</span>
         <a href="/my-horde">My Horde</a>
+        <span class="nav-sep">|</span>
+        <button id="nav-link-discord" class="nav-link-discord" title="Link Discord">Link Discord</button>
+        <button id="nav-link-x" class="nav-link-x" title="Link X">Link X</button>
     </nav>
     <div class="container" id="main-content">
         <!-- Header -->
@@ -212,6 +215,7 @@
     </div>
 
     <!-- Solana Web3.js for blockchain transactions -->
+    <script src="/shared/nav.js"></script>
     <script defer src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js" integrity="sha384-xo1g+ODR6i1cxIVZeALc/apXFHeaJHO1j1whMO3dhtdBChWeaihnDs7UnXs9ch78" crossorigin="anonymous"></script>
     <!-- Extract Buffer from web3.js bundle for wallets that expect it globally (e.g. Solflare) -->
     <script defer src="/swap/buffer-polyfill.js"></script>

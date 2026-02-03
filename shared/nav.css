@@ -44,10 +44,51 @@
     user-select: none;
 }
 
+.nav-link-discord,
+.nav-link-x {
+    background: none;
+    border: 1px solid #8b4513;
+    color: #c9a227;
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    white-space: nowrap;
+}
+
+.nav-link-discord:hover,
+.nav-link-x:hover {
+    color: #e8e4d9;
+    border-color: #c9a227;
+}
+
+.nav-link-discord.linked,
+.nav-link-x.linked {
+    border-color: #c9a227;
+}
+
+.nav-link-discord .nav-avatar,
+.nav-link-x .nav-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    vertical-align: middle;
+}
+
 @media (max-width: 480px) {
     .site-nav {
         gap: 0.75rem;
         font-size: 0.75rem;
         flex-wrap: wrap;
+    }
+
+    .nav-link-discord,
+    .nav-link-x {
+        font-size: 0.65rem;
+        padding: 0.15rem 0.35rem;
     }
 }

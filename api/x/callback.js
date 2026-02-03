@@ -27,7 +27,9 @@ export default async function handler(req) {
     return Response.redirect(`${baseUrl}/?x_error=invalid_state`, 302);
   }
 
-  const codeVerifier = decodeURIComponent(stateData.result);
+  const statePayload = JSON.parse(decodeURIComponent(stateData.result));
+  const codeVerifier = statePayload.codeVerifier;
+  const returnTo = statePayload.returnTo && statePayload.returnTo.startsWith('/') ? statePayload.returnTo : '/';
 
   // Delete state after use
   await fetch(`${kvUrl}/del/x_state:${state}`, {
@@ -58,10 +60,10 @@ export default async function handler(req) {
     tokenData = await tokenRes.json();
 
     if (!tokenData.access_token) {
-      return Response.redirect(`${baseUrl}/?x_error=token_exchange_failed`, 302);
+      return Response.redirect(`${baseUrl}${returnTo}?x_error=token_exchange_failed`, 302);
     }
   } catch {
-    return Response.redirect(`${baseUrl}/?x_error=token_exchange_failed`, 302);
+    return Response.redirect(`${baseUrl}${returnTo}?x_error=token_exchange_failed`, 302);
   }
 
   // Fetch user info
@@ -74,10 +76,10 @@ export default async function handler(req) {
     user = userData.data;
 
     if (!user?.id) {
-      return Response.redirect(`${baseUrl}/?x_error=user_fetch_failed`, 302);
+      return Response.redirect(`${baseUrl}${returnTo}?x_error=user_fetch_failed`, 302);
     }
   } catch {
-    return Response.redirect(`${baseUrl}/?x_error=user_fetch_failed`, 302);
+    return Response.redirect(`${baseUrl}${returnTo}?x_error=user_fetch_failed`, 302);
   }
 
   const params = new URLSearchParams({
@@ -86,5 +88,5 @@ export default async function handler(req) {
     x_avatar: user.profile_image_url || '',
   });
 
-  return Response.redirect(`${baseUrl}/?${params.toString()}`, 302);
+  return Response.redirect(`${baseUrl}${returnTo}?${params.toString()}`, 302);
 }

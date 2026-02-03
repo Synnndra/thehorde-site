@@ -27,6 +27,9 @@ export default async function handler(req) {
     return Response.redirect(`${baseUrl}/?discord_error=invalid_state`, 302);
   }
 
+  const returnTo = decodeURIComponent(stateData.result);
+  const redirectPath = returnTo.startsWith('/') ? returnTo : '/';
+
   // Delete state after use
   await fetch(`${kvUrl}/del/discord_state:${state}`, {
     headers: { Authorization: `Bearer ${kvToken}` },
@@ -49,10 +52,10 @@ export default async function handler(req) {
     tokenData = await tokenRes.json();
 
     if (!tokenData.access_token) {
-      return Response.redirect(`${baseUrl}/?discord_error=token_exchange_failed`, 302);
+      return Response.redirect(`${baseUrl}${redirectPath}?discord_error=token_exchange_failed`, 302);
     }
   } catch {
-    return Response.redirect(`${baseUrl}/?discord_error=token_exchange_failed`, 302);
+    return Response.redirect(`${baseUrl}${redirectPath}?discord_error=token_exchange_failed`, 302);
   }
 
   // Fetch user info
@@ -64,10 +67,10 @@ export default async function handler(req) {
     user = await userRes.json();
 
     if (!user.id) {
-      return Response.redirect(`${baseUrl}/?discord_error=user_fetch_failed`, 302);
+      return Response.redirect(`${baseUrl}${redirectPath}?discord_error=user_fetch_failed`, 302);
     }
   } catch {
-    return Response.redirect(`${baseUrl}/?discord_error=user_fetch_failed`, 302);
+    return Response.redirect(`${baseUrl}${redirectPath}?discord_error=user_fetch_failed`, 302);
   }
 
   const params = new URLSearchParams({
@@ -76,5 +79,5 @@ export default async function handler(req) {
     discord_avatar: user.avatar || '',
   });
 
-  return Response.redirect(`${baseUrl}/?${params.toString()}`, 302);
+  return Response.redirect(`${baseUrl}${redirectPath}?${params.toString()}`, 302);
 }

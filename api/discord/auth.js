@@ -5,13 +5,17 @@ export default async function handler(req) {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
+  const url = new URL(req.url);
+  let returnTo = url.searchParams.get('return_to') || '/';
+  if (!returnTo.startsWith('/')) returnTo = '/';
+
   const state = globalThis.crypto.randomUUID();
 
-  // Store state in Vercel KV with 10-minute TTL
+  // Store state + return_to in Vercel KV with 10-minute TTL
   const kvUrl = process.env.KV_REST_API_URL;
   const kvToken = process.env.KV_REST_API_TOKEN;
 
-  await fetch(`${kvUrl}/set/discord_state:${state}/1/EX/600`, {
+  await fetch(`${kvUrl}/set/discord_state:${state}/${encodeURIComponent(returnTo)}/EX/600`, {
     headers: { Authorization: `Bearer ${kvToken}` },
   });
 
