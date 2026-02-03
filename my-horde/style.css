@@ -1115,6 +1115,64 @@ body::before {
     }
 }
 
+/* Wallet Link Buttons */
+.wallet-link-btn {
+    background: transparent;
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+.wallet-link-btn:hover {
+    background: rgba(201, 162, 39, 0.15);
+}
+
+.wallet-link-btn.unlinked {
+    border-color: var(--color-text-dim);
+    color: var(--color-text-dim);
+}
+
+.wallet-link-btn.unlinked:hover {
+    border-color: var(--color-blood);
+    color: #a03030;
+}
+
+.wallet-link-btn.cancel {
+    border-color: var(--color-blood);
+    color: #a03030;
+}
+
+.wallet-link-btn.cancel:hover {
+    background: rgba(107, 28, 28, 0.2);
+    border-color: #a03030;
+}
+
+.linked-wallet-info {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    color: var(--color-text-dim);
+    letter-spacing: 0.03em;
+}
+
+.linked-wallet-info .linked-addr {
+    color: var(--color-accent);
+    font-family: monospace;
+    font-size: 0.75rem;
+}
+
+.wallet-link-step2 {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: rgba(201, 162, 39, 0.08);
+    border: 1px solid rgba(201, 162, 39, 0.3);
+    border-radius: 4px;
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    color: var(--color-accent);
+    text-align: center;
+    letter-spacing: 0.03em;
+    line-height: 1.5;
+}
+
 /* Wallet Selection Modal */
 .wallet-modal-overlay {
     position: fixed;

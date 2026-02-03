@@ -201,6 +201,15 @@ function onWalletConnected() {
     document.getElementById('connected-content').style.display = '';
     updateWalletUI();
     loadData();
+
+    // Check for pending wallet link (step 2)
+    var pending = getPendingWalletLink();
+    if (pending && connectedWallet !== pending.walletA) {
+        showWalletLinkStep2Prompt();
+        if (confirm('You have a pending wallet link from ' + pending.walletA.slice(0, 4) + '...' + pending.walletA.slice(-4) + '. Complete the link with this wallet?')) {
+            completeWalletLink();
+        }
+    }
 }
 
 function updateWalletUI() {
@@ -210,6 +219,11 @@ function updateWalletUI() {
     const linkXBtn = document.getElementById('link-x-btn');
     const unlinkXBtn = document.getElementById('unlink-x-btn');
     const privacyInfo = document.querySelector('.privacy-info');
+    const linkWalletBtn = document.getElementById('link-wallet-btn');
+    const unlinkWalletBtn = document.getElementById('unlink-wallet-btn');
+    const cancelWalletLinkBtn = document.getElementById('cancel-wallet-link-btn');
+    const linkedWalletInfo = document.getElementById('linked-wallet-info');
+    const walletLinkStep2 = document.getElementById('wallet-link-step2');
 
     if (connectedWallet) {
         walletAddr.textContent = connectedWallet.slice(0, 4) + '...' + connectedWallet.slice(-4);
@@ -243,9 +257,49 @@ function updateWalletUI() {
             unlinkXBtn.style.display = 'none';
         }
 
+        // Wallet link button visibility
+        var pending = getPendingWalletLink();
+        var linkedW = getLinkedWallet();
+
+        if (pending) {
+            // Pending link in progress
+            linkWalletBtn.style.display = 'none';
+            unlinkWalletBtn.style.display = 'none';
+            cancelWalletLinkBtn.style.display = '';
+            linkedWalletInfo.style.display = 'none';
+            if (connectedWallet === pending.walletA) {
+                showWalletLinkStep2Prompt();
+            } else {
+                walletLinkStep2.style.display = 'none';
+            }
+        } else if (linkedW) {
+            // Already linked
+            linkWalletBtn.style.display = 'none';
+            unlinkWalletBtn.style.display = '';
+            cancelWalletLinkBtn.style.display = 'none';
+            walletLinkStep2.style.display = 'none';
+            linkedWalletInfo.style.display = '';
+            linkedWalletInfo.innerHTML = 'Linked: <span class="linked-addr">' + linkedW.slice(0, 4) + '...' + linkedW.slice(-4) + '</span>';
+        } else if (myHolder || holdersData) {
+            // Can link
+            linkWalletBtn.style.display = '';
+            unlinkWalletBtn.style.display = 'none';
+            cancelWalletLinkBtn.style.display = 'none';
+            walletLinkStep2.style.display = 'none';
+            linkedWalletInfo.style.display = 'none';
+        } else {
+            linkWalletBtn.style.display = 'none';
+            unlinkWalletBtn.style.display = 'none';
+            cancelWalletLinkBtn.style.display = 'none';
+            walletLinkStep2.style.display = 'none';
+            linkedWalletInfo.style.display = 'none';
+        }
+
         if (privacyInfo) {
             const anyLinkVisible = linkBtn.style.display !== 'none' || unlinkBtn.style.display !== 'none' ||
-                linkXBtn.style.display !== 'none' || unlinkXBtn.style.display !== 'none';
+                linkXBtn.style.display !== 'none' || unlinkXBtn.style.display !== 'none' ||
+                linkWalletBtn.style.display !== 'none' || unlinkWalletBtn.style.display !== 'none' ||
+                cancelWalletLinkBtn.style.display !== 'none';
             privacyInfo.style.display = anyLinkVisible ? '' : 'none';
         }
     }
@@ -450,6 +504,141 @@ async function unlinkX() {
     }
 }
 
+// --- Wallet Linking ---
+
+function getPendingWalletLink() {
+    try {
+        var raw = localStorage.getItem('pending_wallet_link');
+        if (!raw) return null;
+        return JSON.parse(raw);
+    } catch (e) {
+        return null;
+    }
+}
+
+function getLinkedWallet() {
+    if (!connectedWallet || !holdersData) return null;
+    var holder = holdersData.holders.find(function(h) { return h.wallet === connectedWallet; });
+    if (holder && holder.linkedWallet) return holder.linkedWallet;
+    // Check if another holder references us
+    var other = holdersData.holders.find(function(h) { return h.linkedWallet === connectedWallet; });
+    if (other) return other.wallet;
+    return null;
+}
+
+async function linkWallet() {
+    if (!connectedWallet) return;
+    var provider = getWalletProvider();
+    if (!provider) return;
+
+    try {
+        var message = 'Link wallet ' + connectedWallet + ' to another wallet on midhorde.com';
+        var encodedMsg = new TextEncoder().encode(message);
+        var signed = await provider.signMessage(encodedMsg, 'utf8');
+        var signature = toBase58(signed.signature);
+
+        localStorage.setItem('pending_wallet_link', JSON.stringify({
+            walletA: connectedWallet,
+            signatureA: signature
+        }));
+
+        showWalletLinkStep2Prompt();
+        updateWalletUI();
+    } catch (err) {
+        console.error('Link wallet step 1 failed:', err);
+        if (err.message?.includes('User rejected')) return;
+        showError('Failed to sign wallet link. Please try again.');
+    }
+}
+
+function showWalletLinkStep2Prompt() {
+    var el = document.getElementById('wallet-link-step2');
+    el.style.display = '';
+    el.textContent = 'Step 1 complete. Now disconnect and connect your second wallet to finish linking.';
+}
+
+async function completeWalletLink() {
+    var pending = getPendingWalletLink();
+    if (!pending || !connectedWallet) return;
+
+    if (connectedWallet === pending.walletA) {
+        showError('Please connect a different wallet to complete the link.');
+        return;
+    }
+
+    var provider = getWalletProvider();
+    if (!provider) return;
+
+    try {
+        var message = 'Confirm link wallet ' + connectedWallet + ' to wallet ' + pending.walletA + ' on midhorde.com';
+        var encodedMsg = new TextEncoder().encode(message);
+        var signed = await provider.signMessage(encodedMsg, 'utf8');
+        var signatureB = toBase58(signed.signature);
+
+        var res = await fetch('/api/holders-link-wallet', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                walletA: pending.walletA,
+                signatureA: pending.signatureA,
+                walletB: connectedWallet,
+                signatureB: signatureB
+            })
+        });
+
+        var data = await res.json();
+        if (data.error) {
+            showError('Link failed: ' + data.error);
+            return;
+        }
+
+        localStorage.removeItem('pending_wallet_link');
+        document.getElementById('wallet-link-step2').style.display = 'none';
+        await loadData();
+    } catch (err) {
+        console.error('Complete wallet link failed:', err);
+        if (err.message?.includes('User rejected')) return;
+        showError('Failed to complete wallet link. Please try again.');
+    }
+}
+
+function cancelWalletLink() {
+    localStorage.removeItem('pending_wallet_link');
+    document.getElementById('wallet-link-step2').style.display = 'none';
+    updateWalletUI();
+}
+
+async function unlinkWallet() {
+    if (!connectedWallet) return;
+    var provider = getWalletProvider();
+    if (!provider) return;
+
+    try {
+        var message = 'Unlink wallet ' + connectedWallet + ' on midhorde.com';
+        var encodedMsg = new TextEncoder().encode(message);
+        var signed = await provider.signMessage(encodedMsg, 'utf8');
+        var signature = toBase58(signed.signature);
+
+        var res = await fetch('/api/holders-link-wallet', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ wallet: connectedWallet, signature: signature })
+        });
+
+        var data = await res.json();
+        if (data.error) {
+            showError('Unlink failed: ' + data.error);
+            return;
+        }
+
+        await loadData();
+    } catch (err) {
+        console.error('Unlink wallet failed:', err);
+        if (err.message?.includes('User rejected')) return;
+        showError('Failed to unlink wallet. Please try again.');
+    }
+}
+
 // --- Data Loading ---
 
 async function loadData() {
@@ -470,6 +659,44 @@ async function loadData() {
 
         // Find current wallet
         myHolder = holdersData.holders.find(function(h) { return h.wallet === connectedWallet; });
+
+        // Check for linked wallet and merge orcs
+        var linkedWalletAddr = myHolder ? myHolder.linkedWallet : null;
+        if (!linkedWalletAddr) {
+            // Check if another holder references this wallet
+            var referencing = holdersData.holders.find(function(h) { return h.linkedWallet === connectedWallet; });
+            if (referencing) linkedWalletAddr = referencing.wallet;
+        }
+
+        if (linkedWalletAddr) {
+            var linkedHolder = holdersData.holders.find(function(h) { return h.wallet === linkedWalletAddr; });
+
+            if (!myHolder && linkedHolder) {
+                // Current wallet has no orcs, create synthetic holder from linked
+                myHolder = {
+                    rank: linkedHolder.rank,
+                    wallet: connectedWallet,
+                    count: linkedHolder.count,
+                    discord: linkedHolder.discord,
+                    x: linkedHolder.x,
+                    linkedWallet: linkedWalletAddr,
+                    orcs: linkedHolder.orcs.map(function(o) { var c = Object.assign({}, o); c.sourceWallet = linkedWalletAddr; return c; })
+                };
+            } else if (myHolder && linkedHolder) {
+                // Both wallets have orcs — merge
+                var myOrcs = myHolder.orcs.map(function(o) { var c = Object.assign({}, o); c.sourceWallet = connectedWallet; return c; });
+                var linkedOrcs = linkedHolder.orcs.map(function(o) { var c = Object.assign({}, o); c.sourceWallet = linkedWalletAddr; return c; });
+                myHolder.orcs = myOrcs.concat(linkedOrcs);
+                myHolder.count = myHolder.orcs.length;
+                myHolder.rank = Math.min(myHolder.rank, linkedHolder.rank);
+                // Prefer connected wallet's social data
+                if (!myHolder.discord && linkedHolder.discord) myHolder.discord = linkedHolder.discord;
+                if (!myHolder.x && linkedHolder.x) myHolder.x = linkedHolder.x;
+            } else if (myHolder) {
+                // Linked wallet has no orcs — tag source on existing
+                myHolder.orcs = myHolder.orcs.map(function(o) { var c = Object.assign({}, o); c.sourceWallet = connectedWallet; return c; });
+            }
+        }
 
         if (!myHolder) {
             loading.style.display = 'none';
@@ -1090,6 +1317,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('unlink-discord-btn').addEventListener('click', unlinkDiscord);
     document.getElementById('link-x-btn').addEventListener('click', linkX);
     document.getElementById('unlink-x-btn').addEventListener('click', unlinkX);
+    document.getElementById('link-wallet-btn').addEventListener('click', linkWallet);
+    document.getElementById('unlink-wallet-btn').addEventListener('click', unlinkWallet);
+    document.getElementById('cancel-wallet-link-btn').addEventListener('click', cancelWalletLink);
     document.getElementById('share-x-btn').addEventListener('click', shareToX);
     document.getElementById('modal-close').addEventListener('click', closeOrcModal);
     document.getElementById('badge-modal-close').addEventListener('click', closeBadgeModal);

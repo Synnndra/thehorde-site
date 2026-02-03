@@ -29,6 +29,7 @@
     { "source": "/api/holders", "destination": "/api/holders.js" },
     { "source": "/api/holders-link", "destination": "/api/holders-link.js" },
     { "source": "/api/holders-link-x", "destination": "/api/holders-link-x.js" },
+    { "source": "/api/holders-link-wallet", "destination": "/api/holders-link-wallet.js" },
     { "source": "/api/badges", "destination": "/api/badges.js" },
     { "source": "/api/badges-admin", "destination": "/api/badges-admin.js" },
     { "source": "/holders", "destination": "/holders/index.html" },

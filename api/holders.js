@@ -208,6 +208,13 @@ export default async function handler(req, res) {
             console.error('Failed to read X map:', e);
         }
 
+        // Read wallet link map
+        let walletLinkMap = {};
+        try {
+            const rawWalletMap = await kvGet('holders:wallet_map');
+            if (rawWalletMap) walletLinkMap = typeof rawWalletMap === 'string' ? JSON.parse(rawWalletMap) : rawWalletMap;
+        } catch (e) { console.error('Failed to read wallet map:', e); }
+
         // Build sorted leaderboard
         const holders = Object.values(walletMap)
             .sort((a, b) => b.orcs.length - a.orcs.length)
@@ -217,6 +224,7 @@ export default async function handler(req, res) {
                 count: holder.orcs.length,
                 discord: discordMap[holder.wallet] || null,
                 x: xMap[holder.wallet] || null,
+                linkedWallet: walletLinkMap[holder.wallet]?.linkedWallet || null,
                 orcs: holder.orcs.sort((a, b) => a.rarityRank - b.rarityRank)
             }));
 
