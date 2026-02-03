@@ -9,13 +9,13 @@ function isMobileBrowser() {
 function getAvailableWallets() {
     var wallets = [];
     if (window.phantom?.solana?.isPhantom) {
-        wallets.push({ name: 'Phantom', icon: 'https://phantom.app/img/phantom-icon-purple-rounded.png', provider: window.phantom.solana });
+        wallets.push({ name: 'Phantom', icon: window.phantom.solana.icon || '', provider: window.phantom.solana });
     }
     if (window.solflare?.isSolflare) {
-        wallets.push({ name: 'Solflare', icon: 'https://solflare.com/favicon.ico', provider: window.solflare });
+        wallets.push({ name: 'Solflare', icon: window.solflare.icon || '', provider: window.solflare });
     }
     if (window.backpack?.isBackpack) {
-        wallets.push({ name: 'Backpack', icon: 'https://backpack.app/favicon.ico', provider: window.backpack });
+        wallets.push({ name: 'Backpack', icon: window.backpack.icon || '', provider: window.backpack });
     }
     // Generic fallback — only if not already matched
     if (window.solana && !wallets.some(function(w) { return w.provider === window.solana; })) {
