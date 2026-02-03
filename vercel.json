@@ -31,7 +31,8 @@
     { "source": "/api/badges", "destination": "/api/badges.js" },
     { "source": "/api/badges-admin", "destination": "/api/badges-admin.js" },
     { "source": "/holders", "destination": "/holders/index.html" },
-    { "source": "/my-horde", "destination": "/my-horde/index.html" }
+    { "source": "/my-horde", "destination": "/my-horde/index.html" },
+    { "source": "/badge/:id", "destination": "/api/badge-share.js?id=:id" }
   ],
   "headers": [
     {

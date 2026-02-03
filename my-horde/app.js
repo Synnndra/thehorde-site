@@ -593,7 +593,7 @@ function renderBadges() {
             changed = true;
         }
         var date = earned ? (dates[badge.id] || null) : null;
-        grid.appendChild(createBadgeElement(badge.icon, badge.name, badge.description, earned, badge.image, date));
+        grid.appendChild(createBadgeElement(badge.id, badge.icon, badge.name, badge.description, earned, badge.image, date));
     });
 
     // Event-based badges
@@ -605,13 +605,13 @@ function renderBadges() {
             changed = true;
         }
         var date = dates[id] || null;
-        grid.appendChild(createBadgeElement(badge.icon || '⭐', badge.name, badge.description || '', true, badge.imageUrl || null, date));
+        grid.appendChild(createBadgeElement(id, badge.icon || '⭐', badge.name, badge.description || '', true, badge.imageUrl || null, date));
     });
 
     if (changed) saveBadgeDates(dates);
 }
 
-function createBadgeElement(icon, name, tooltip, earned, imageUrl, date) {
+function createBadgeElement(badgeId, icon, name, tooltip, earned, imageUrl, date) {
     var el = document.createElement('div');
     el.className = 'badge-card' + (earned ? ' earned' : ' locked');
     el.style.cursor = 'pointer';
@@ -643,13 +643,13 @@ function createBadgeElement(icon, name, tooltip, earned, imageUrl, date) {
     }
 
     el.addEventListener('click', function() {
-        showBadgeModal(name, tooltip, earned, imageUrl, icon, date);
+        showBadgeModal(badgeId, name, tooltip, earned, imageUrl, icon, date);
     });
 
     return el;
 }
 
-function showBadgeModal(name, description, earned, imageUrl, icon, date) {
+function showBadgeModal(badgeId, name, description, earned, imageUrl, icon, date) {
     var wrap = document.getElementById('badge-modal-image-wrap');
     wrap.innerHTML = '';
     if (imageUrl) {
@@ -696,10 +696,11 @@ function showBadgeModal(name, description, earned, imageUrl, icon, date) {
     if (earned) {
         shareBtn.style.display = '';
         shareBtn.onclick = function() {
+            var badgeUrl = 'https://midhorde.com/badge/' + encodeURIComponent(badgeId);
             var text = '\uD83C\uDFC5 I earned the "' + name + '" badge on The Horde!\n';
             if (description) text += '\n' + description + '\n';
-            text += '\nmidhorde.com/my-horde\n@MidHorde @MidEvilsNFT';
-            var url = 'https://x.com/intent/tweet?text=' + encodeURIComponent(text);
+            text += '\n@MidHorde @MidEvilsNFT';
+            var url = 'https://x.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(badgeUrl);
             window.open(url, '_blank', 'noopener');
         };
     } else {
