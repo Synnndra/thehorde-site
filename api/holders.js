@@ -228,30 +228,14 @@ export default async function handler(req, res) {
             }
         }
 
-        // Fetch orc floor price from Magic Eden listings (parallel)
+        // Fetch orc floor price from Magic Eden collection stats (single call)
         let floorPrice = null;
         try {
-            const listedMints = listedOrcs.map(o => o.mint);
-            if (listedMints.length > 0) {
-                const listingResults = await Promise.all(
-                    listedMints.map(mint =>
-                        fetch(`https://api-mainnet.magiceden.dev/v2/tokens/${mint}/listings`)
-                            .then(r => r.ok ? r.json() : [])
-                            .catch(() => [])
-                    )
-                );
-                let lowestPrice = Infinity;
-                for (const listings of listingResults) {
-                    if (Array.isArray(listings)) {
-                        for (const listing of listings) {
-                            if (listing.price && listing.price < lowestPrice) {
-                                lowestPrice = listing.price;
-                            }
-                        }
-                    }
-                }
-                if (lowestPrice < Infinity) {
-                    floorPrice = lowestPrice;
+            const statsRes = await fetch('https://api-mainnet.magiceden.dev/v2/collections/midevils/stats');
+            if (statsRes.ok) {
+                const stats = await statsRes.json();
+                if (stats.floorPrice != null) {
+                    floorPrice = stats.floorPrice / 1e9; // Convert lamports to SOL
                 }
             }
         } catch (e) {
