@@ -227,6 +227,25 @@ export default async function handler(req, res) {
         const isOrcHolder = await ownsOrc(initiatorWallet, HELIUS_API_KEY);
         const fee = isOrcHolder ? HOLDER_FEE : PLATFORM_FEE;
 
+        // Helper to save an orphan record when offer creation fails after escrow exists
+        async function saveOrphanIfEscrowed(reason) {
+            if (escrowTxSignature) {
+                try {
+                    await kvSet(`orphan:${escrowTxSignature}`, {
+                        initiatorWallet,
+                        nfts: initNfts,
+                        nftDetails: [],
+                        sol: initSol,
+                        escrowTxSignature,
+                        createdAt: Date.now(),
+                        reason
+                    }, KV_REST_API_URL, KV_REST_API_TOKEN);
+                } catch (e) {
+                    console.error('Failed to save orphan record:', e.message);
+                }
+            }
+        }
+
         // Verify escrow transaction content
         if (initNfts.length > 0 || initSol > 0) {
             if (!escrowTxSignature) {
@@ -240,6 +259,7 @@ export default async function handler(req, res) {
             escrowTxClaimed = true;
             if (!HELIUS_API_KEY) {
                 await releaseEscrowTxClaim(escrowTxSignature, KV_REST_API_URL, KV_REST_API_TOKEN);
+                await saveOrphanIfEscrowed('offer creation failed: NFT verification service unavailable');
                 return res.status(500).json({ error: 'NFT verification service unavailable' });
             }
             const txCheck = await verifyEscrowTransactionContent(
@@ -247,6 +267,7 @@ export default async function handler(req, res) {
             );
             if (!txCheck.valid) {
                 await releaseEscrowTxClaim(escrowTxSignature, KV_REST_API_URL, KV_REST_API_TOKEN);
+                await saveOrphanIfEscrowed('offer creation failed: ' + (txCheck.error || 'Escrow tx verification failed'));
                 return res.status(400).json({ error: txCheck.error || 'Escrow transaction verification failed' });
             }
 
@@ -254,6 +275,7 @@ export default async function handler(req, res) {
             const isFinalized = await verifyTransactionConfirmed(escrowTxSignature, HELIUS_API_KEY);
             if (!isFinalized) {
                 await releaseEscrowTxClaim(escrowTxSignature, KV_REST_API_URL, KV_REST_API_TOKEN);
+                await saveOrphanIfEscrowed('offer creation failed: escrow tx not finalized');
                 return res.status(400).json({ error: 'Escrow transaction not yet finalized on-chain. Please wait a moment and try again.' });
             }
         }
@@ -327,9 +349,26 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Create offer error:', error);
+        const escrowSig = req.body?.escrowTxSignature;
         // Release escrow tx claim if we claimed it but failed before saving the offer
-        if (escrowTxClaimed && req.body?.escrowTxSignature) {
-            await releaseEscrowTxClaim(req.body.escrowTxSignature, KV_REST_API_URL, KV_REST_API_TOKEN).catch(() => {});
+        if (escrowTxClaimed && escrowSig) {
+            await releaseEscrowTxClaim(escrowSig, KV_REST_API_URL, KV_REST_API_TOKEN).catch(() => {});
+        }
+        // Save orphan record so cleanup can return the escrowed assets
+        if (escrowSig) {
+            try {
+                await kvSet(`orphan:${escrowSig}`, {
+                    initiatorWallet: req.body?.initiatorWallet,
+                    nfts: Array.isArray(req.body?.initiatorNfts) ? req.body.initiatorNfts : [],
+                    nftDetails: [],
+                    sol: typeof req.body?.initiatorSol === 'number' ? req.body.initiatorSol : 0,
+                    escrowTxSignature: escrowSig,
+                    createdAt: Date.now(),
+                    reason: 'offer creation failed: ' + (error.message || 'unknown error')
+                }, KV_REST_API_URL, KV_REST_API_TOKEN);
+            } catch (e) {
+                console.error('Failed to save orphan record:', e.message);
+            }
         }
         return res.status(500).json({ error: 'Failed to create offer. Please try again.' });
     }

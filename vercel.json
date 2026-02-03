@@ -14,6 +14,7 @@
     { "source": "/api/swap/cancel", "destination": "/api/swap/cancel.js" },
     { "source": "/api/swap/accept", "destination": "/api/swap/accept.js" },
     { "source": "/api/swap/admin-release", "destination": "/api/swap/admin-release.js" },
+    { "source": "/api/swap/admin-return-orphan", "destination": "/api/swap/admin-return-orphan.js" },
     { "source": "/api/swap/retry-release", "destination": "/api/swap/retry-release.js" },
     { "source": "/api/swap/cleanup-expired", "destination": "/api/swap/cleanup-expired.js" },
     { "source": "/api/rpc", "destination": "/api/rpc.js" },

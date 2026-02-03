@@ -12,6 +12,7 @@ import {
     releaseLock,
     cleanApiKey,
     appendTxLog,
+    getAsset,
     ESCROW_WALLET
 } from '../../lib/swap-utils.js';
 
@@ -398,6 +399,115 @@ export default async function handler(req, res) {
             }
         }
 
+        // === Process orphaned escrow records ===
+        let orphansProcessed = 0;
+        let orphansReturned = 0;
+        let orphanErrors = [];
+        try {
+            const orphanScanRes = await fetch(`${KV_REST_API_URL}/keys/orphan:*`, {
+                headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+            });
+            const orphanScanData = await orphanScanRes.json();
+            const orphanKeys = orphanScanData.result || [];
+            console.log(`Found ${orphanKeys.length} orphan records to check`);
+
+            for (const orphanKey of orphanKeys) {
+                try {
+                    orphansProcessed++;
+                    const orphan = await kvGet(orphanKey, KV_REST_API_URL, KV_REST_API_TOKEN);
+                    if (!orphan) {
+                        // Stale key, clean up
+                        await fetch(`${KV_REST_API_URL}/del/${orphanKey}`, {
+                            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+                        });
+                        continue;
+                    }
+
+                    const retryCount = orphan.retryCount || 0;
+                    if (retryCount >= 10) {
+                        console.error(`Orphan ${orphanKey} permanently failed after ${retryCount} retries`);
+                        orphan.permanentlyFailed = true;
+                        await kvSet(orphanKey, orphan, KV_REST_API_URL, KV_REST_API_TOKEN);
+                        continue;
+                    }
+                    if (orphan.permanentlyFailed) continue;
+
+                    if (!ESCROW_PRIVATE_KEY || !HELIUS_API_KEY) continue;
+
+                    // Verify at least some NFTs are still in escrow
+                    const nftIds = orphan.nfts || [];
+                    if (nftIds.length === 0 && (!orphan.sol || orphan.sol <= 0)) {
+                        // Nothing to return, clean up the record
+                        await fetch(`${KV_REST_API_URL}/del/${orphanKey}`, {
+                            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+                        });
+                        continue;
+                    }
+
+                    // Check which NFTs are still in escrow
+                    const nftsInEscrow = [];
+                    for (const nftId of nftIds) {
+                        try {
+                            const asset = await getAsset(nftId, HELIUS_API_KEY);
+                            if (asset?.ownership?.owner === ESCROW_WALLET) {
+                                nftsInEscrow.push({
+                                    id: nftId,
+                                    assetType: asset.interface || null,
+                                    collection: (asset.grouping || []).find(g => g.group_key === 'collection')?.group_value || null
+                                });
+                            }
+                        } catch (err) {
+                            console.error(`Failed to check orphan NFT ${nftId}:`, err.message);
+                        }
+                    }
+
+                    if (nftsInEscrow.length === 0 && (!orphan.sol || orphan.sol <= 0)) {
+                        // All NFTs already returned, clean up
+                        console.log(`Orphan ${orphanKey}: no assets in escrow, deleting record`);
+                        await fetch(`${KV_REST_API_URL}/del/${orphanKey}`, {
+                            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+                        });
+                        continue;
+                    }
+
+                    // Build a minimal offer-like object for returnEscrowToInitiator
+                    const pseudoOffer = {
+                        initiator: {
+                            wallet: orphan.initiatorWallet,
+                            nfts: nftsInEscrow.map(n => n.id),
+                            nftDetails: nftsInEscrow,
+                            sol: orphan.sol || 0
+                        }
+                    };
+
+                    try {
+                        const tx = await returnEscrowToInitiator(pseudoOffer, ESCROW_PRIVATE_KEY, HELIUS_API_KEY);
+                        if (tx) {
+                            console.log(`Returned orphan escrow ${orphanKey}: ${tx}`);
+                            orphansReturned++;
+                            // Delete the orphan record on success
+                            await fetch(`${KV_REST_API_URL}/del/${orphanKey}`, {
+                                headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+                            });
+                        }
+                    } catch (err) {
+                        console.error(`Orphan return failed for ${orphanKey}:`, err.message);
+                        orphan.retryCount = retryCount + 1;
+                        orphan.lastRetryError = err.message;
+                        orphan.lastRetryAt = now;
+                        await kvSet(orphanKey, orphan, KV_REST_API_URL, KV_REST_API_TOKEN);
+                        orphanErrors.push({ key: orphanKey, error: err.message });
+                    }
+
+                } catch (orphanErr) {
+                    console.error(`Error processing orphan ${orphanKey}:`, orphanErr.message);
+                    orphanErrors.push({ key: orphanKey, error: orphanErr.message });
+                }
+            }
+        } catch (orphanScanErr) {
+            console.error('Orphan scan failed:', orphanScanErr.message);
+        }
+
         // Check escrow wallet balance
         let escrowBalance = null;
         if (HELIUS_API_KEY) {
@@ -423,8 +533,9 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
             success: true,
-            message: `Processed ${results.processed}, expired ${results.expired}, escrow returned ${results.escrowReturned}, escrow retried ${results.escrowRetried}, escrow completed ${results.escrowCompleted}, escrow failed ${results.escrowFailed}`,
+            message: `Processed ${results.processed}, expired ${results.expired}, escrow returned ${results.escrowReturned}, escrow retried ${results.escrowRetried}, escrow completed ${results.escrowCompleted}, escrow failed ${results.escrowFailed}, orphans processed ${orphansProcessed}, orphans returned ${orphansReturned}`,
             results,
+            orphans: { processed: orphansProcessed, returned: orphansReturned, errors: orphanErrors },
             escrowBalance: escrowBalance !== null ? { lamports: escrowBalance, sol: escrowBalance / 1e9, low: escrowBalance < LOW_BALANCE_LAMPORTS } : undefined
         });
 
