@@ -124,7 +124,14 @@ async function signMessageForAuth(message) {
     const signedMessage = await provider.signMessage(encodedMessage, 'utf8');
 
     const bs58Alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-    let signature = signedMessage.signature;
+    // Some wallets (Phantom) return { signature: Uint8Array }
+    // Others (Backpack) return the Uint8Array directly
+    let signature = signedMessage.signature || signedMessage;
+
+    // If already a string (some wallets return base58), return as-is
+    if (typeof signature === 'string') {
+        return signature;
+    }
 
     function toBase58(bytes) {
         const digits = [0];
