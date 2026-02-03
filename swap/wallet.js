@@ -105,7 +105,7 @@ async function connectWithProvider(provider) {
     try {
         var response = await provider.connect();
         selectedProvider = provider;
-        connectedWallet = response.publicKey.toString();
+        connectedWallet = (response?.publicKey || provider.publicKey).toString();
         updateWalletUI(true);
         onWalletConnected();
     } catch (err) {
@@ -158,7 +158,7 @@ async function checkWalletConnection() {
     if (provider) {
         try {
             const response = await provider.connect({ onlyIfTrusted: true });
-            connectedWallet = response.publicKey.toString();
+            connectedWallet = (response?.publicKey || provider.publicKey).toString();
             updateWalletUI(true);
             onWalletConnected();
         } catch (err) {

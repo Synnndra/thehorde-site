@@ -99,7 +99,7 @@ async function connectWithProvider(provider) {
     try {
         var response = await provider.connect();
         selectedProvider = provider;
-        connectedWallet = response.publicKey.toString();
+        connectedWallet = (response?.publicKey || provider.publicKey).toString();
         updateWalletUI();
         highlightMyRow();
     } catch (err) {
@@ -738,7 +738,7 @@ async function tryAutoConnect() {
     if (provider) {
         try {
             const response = await provider.connect({ onlyIfTrusted: true });
-            connectedWallet = response.publicKey.toString();
+            connectedWallet = (response?.publicKey || provider.publicKey).toString();
             updateWalletUI();
             highlightMyRow();
         } catch (e) {

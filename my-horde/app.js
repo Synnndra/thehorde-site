@@ -142,7 +142,7 @@ async function connectWithProvider(provider) {
     try {
         var response = await provider.connect();
         selectedProvider = provider;
-        connectedWallet = response.publicKey.toString();
+        connectedWallet = (response?.publicKey || provider.publicKey).toString();
         onWalletConnected();
     } catch (err) {
         console.error('Wallet connection failed:', err);
@@ -1073,7 +1073,7 @@ async function tryAutoConnect() {
     if (provider) {
         try {
             var response = await provider.connect({ onlyIfTrusted: true });
-            connectedWallet = response.publicKey.toString();
+            connectedWallet = (response?.publicKey || provider.publicKey).toString();
             onWalletConnected();
         } catch (e) {
             // Not auto-trusted
