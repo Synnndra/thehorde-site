@@ -692,6 +692,20 @@ function showBadgeModal(name, description, earned, imageUrl, icon, date) {
         dateEl.textContent = '';
     }
 
+    var shareBtn = document.getElementById('badge-modal-share');
+    if (earned) {
+        shareBtn.style.display = '';
+        shareBtn.onclick = function() {
+            var text = '\uD83C\uDFC5 I earned the "' + name + '" badge on The Horde!\n';
+            if (description) text += '\n' + description + '\n';
+            text += '\nmidhorde.com/my-horde\n@MidHorde @MidEvilsNFT';
+            var url = 'https://x.com/intent/tweet?text=' + encodeURIComponent(text);
+            window.open(url, '_blank', 'noopener');
+        };
+    } else {
+        shareBtn.style.display = 'none';
+    }
+
     document.getElementById('badge-modal').style.display = 'flex';
 }
 
