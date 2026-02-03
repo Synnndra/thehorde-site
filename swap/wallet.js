@@ -121,7 +121,7 @@ async function signMessageForAuth(message) {
     }
 
     const encodedMessage = new TextEncoder().encode(message);
-    const signedMessage = await provider.signMessage(encodedMessage, 'utf8');
+    const signedMessage = await provider.signMessage(encodedMessage);
 
     const bs58Alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
     // Some wallets (Phantom) return { signature: Uint8Array }
