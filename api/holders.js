@@ -228,15 +228,25 @@ export default async function handler(req, res) {
             }
         }
 
-        // Fetch orc floor price from Magic Eden collection stats (single call)
+        // Fetch orc floor price from Magic Eden collection listings
+        // Page through listings (sorted by price) until we find the first orc
         let floorPrice = null;
         try {
-            const statsRes = await fetch('https://api-mainnet.magiceden.dev/v2/collections/midevils/stats');
-            if (statsRes.ok) {
-                const stats = await statsRes.json();
-                if (stats.floorPrice != null) {
-                    floorPrice = stats.floorPrice / 1e9; // Convert lamports to SOL
+            let offset = 0;
+            const LIMIT = 20;
+            while (floorPrice === null && offset < 200) {
+                const listRes = await fetch(`https://api-mainnet.magiceden.dev/v2/collections/midevils/listings?offset=${offset}&limit=${LIMIT}`);
+                if (!listRes.ok) break;
+                const listings = await listRes.json();
+                if (!Array.isArray(listings) || listings.length === 0) break;
+                for (const listing of listings) {
+                    const name = listing.token?.name || '';
+                    if (name.toLowerCase().includes('orc')) {
+                        floorPrice = listing.price;
+                        break;
+                    }
                 }
+                offset += LIMIT;
             }
         } catch (e) {
             console.error('Floor price fetch failed:', e);
