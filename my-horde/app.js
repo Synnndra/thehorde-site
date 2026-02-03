@@ -468,27 +468,56 @@ async function fetchBadgeData(wallet) {
     }
 }
 
+function getBadgeDates() {
+    try {
+        return JSON.parse(localStorage.getItem('badge-dates') || '{}');
+    } catch (e) {
+        return {};
+    }
+}
+
+function saveBadgeDates(dates) {
+    localStorage.setItem('badge-dates', JSON.stringify(dates));
+}
+
 function renderBadges() {
     var grid = document.getElementById('badges-grid');
     if (!grid || !myHolder) return;
     grid.innerHTML = '';
 
+    var dates = getBadgeDates();
+    var changed = false;
+
     // Stat-based badges
     STAT_BADGES.forEach(function(badge) {
         var earned = badge.check(myHolder, badgeData);
-        grid.appendChild(createBadgeElement(badge.icon, badge.name, badge.description, earned, badge.image));
+        if (earned && !dates[badge.id]) {
+            dates[badge.id] = Date.now();
+            changed = true;
+        }
+        var date = earned ? (dates[badge.id] || null) : null;
+        grid.appendChild(createBadgeElement(badge.icon, badge.name, badge.description, earned, badge.image, date));
     });
 
     // Event-based badges
     var eventBadges = badgeData.eventBadges || [];
     eventBadges.forEach(function(badge) {
-        grid.appendChild(createBadgeElement(badge.icon || '⭐', badge.name, badge.description || '', true, badge.imageUrl || null));
+        var id = 'event_' + (badge.id || badge.name);
+        if (!dates[id]) {
+            dates[id] = Date.now();
+            changed = true;
+        }
+        var date = dates[id] || null;
+        grid.appendChild(createBadgeElement(badge.icon || '⭐', badge.name, badge.description || '', true, badge.imageUrl || null, date));
     });
+
+    if (changed) saveBadgeDates(dates);
 }
 
-function createBadgeElement(icon, name, tooltip, earned, imageUrl) {
+function createBadgeElement(icon, name, tooltip, earned, imageUrl, date) {
     var el = document.createElement('div');
     el.className = 'badge-card' + (earned ? ' earned' : ' locked');
+    el.style.cursor = 'pointer';
 
     var iconEl = document.createElement('div');
     iconEl.className = 'badge-card-icon';
@@ -516,7 +545,61 @@ function createBadgeElement(icon, name, tooltip, earned, imageUrl) {
         el.appendChild(tipEl);
     }
 
+    el.addEventListener('click', function() {
+        showBadgeModal(name, tooltip, earned, imageUrl, icon, date);
+    });
+
     return el;
+}
+
+function showBadgeModal(name, description, earned, imageUrl, icon, date) {
+    var wrap = document.getElementById('badge-modal-image-wrap');
+    wrap.innerHTML = '';
+    if (imageUrl) {
+        var img = document.createElement('img');
+        img.src = imageUrl;
+        img.alt = name;
+        img.className = 'badge-modal-img';
+        if (!earned) img.classList.add('locked');
+        img.onerror = function() {
+            this.remove();
+            var fallback = document.createElement('div');
+            fallback.className = 'badge-modal-icon';
+            if (!earned) fallback.classList.add('locked');
+            fallback.textContent = icon;
+            wrap.appendChild(fallback);
+        };
+        wrap.appendChild(img);
+    } else {
+        var iconEl = document.createElement('div');
+        iconEl.className = 'badge-modal-icon';
+        if (!earned) iconEl.classList.add('locked');
+        iconEl.textContent = icon;
+        wrap.appendChild(iconEl);
+    }
+
+    document.getElementById('badge-modal-name').textContent = name;
+    document.getElementById('badge-modal-desc').textContent = description || '';
+
+    var statusEl = document.getElementById('badge-modal-status');
+    if (earned) {
+        statusEl.innerHTML = '<span class="badge-status-pill earned">Earned</span>';
+    } else {
+        statusEl.innerHTML = '<span class="badge-status-pill locked">Locked</span>';
+    }
+
+    var dateEl = document.getElementById('badge-modal-date');
+    if (earned && date) {
+        dateEl.textContent = 'Achieved ' + new Date(date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    } else {
+        dateEl.textContent = '';
+    }
+
+    document.getElementById('badge-modal').style.display = 'flex';
+}
+
+function closeBadgeModal() {
+    document.getElementById('badge-modal').style.display = 'none';
 }
 
 // --- Stats ---
@@ -897,6 +980,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('unlink-x-btn').addEventListener('click', unlinkX);
     document.getElementById('share-x-btn').addEventListener('click', shareToX);
     document.getElementById('modal-close').addEventListener('click', closeOrcModal);
+    document.getElementById('badge-modal-close').addEventListener('click', closeBadgeModal);
+    document.getElementById('badge-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeBadgeModal();
+    });
     document.getElementById('sort-select').addEventListener('change', function(e) {
         currentSort = e.target.value;
         renderGallery();
@@ -912,10 +999,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target === this) closeOrcModal();
     });
 
-    // Escape key to close modal
+    // Escape key to close modals
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && document.getElementById('orc-modal').style.display === 'flex') {
-            closeOrcModal();
+        if (e.key === 'Escape') {
+            if (document.getElementById('badge-modal').style.display === 'flex') {
+                closeBadgeModal();
+            } else if (document.getElementById('orc-modal').style.display === 'flex') {
+                closeOrcModal();
+            }
         }
     });
 

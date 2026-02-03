@@ -727,6 +727,91 @@ body::before {
     font-size: 0.8rem;
 }
 
+/* Badge Detail Modal */
+.badge-modal-content {
+    background: rgba(10, 10, 10, 0.98);
+    border: 2px solid var(--color-primary);
+    border-radius: 8px;
+    max-width: 360px;
+    width: 100%;
+    position: relative;
+    padding: 2rem 1.5rem 1.5rem;
+    text-align: center;
+}
+
+.badge-modal-image {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.badge-modal-img {
+    width: 200px;
+    height: 200px;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.badge-modal-img.locked {
+    opacity: 0.35;
+    filter: grayscale(100%);
+}
+
+.badge-modal-icon {
+    font-size: 6rem;
+    line-height: 1;
+    width: 200px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.badge-modal-icon.locked {
+    opacity: 0.35;
+    filter: grayscale(100%);
+}
+
+.badge-modal-desc {
+    font-size: 0.95rem;
+    color: var(--color-text-dim);
+    margin-bottom: 1rem;
+    line-height: 1.4;
+}
+
+.badge-modal-status {
+    margin-bottom: 0.5rem;
+}
+
+.badge-status-pill {
+    display: inline-block;
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 14px;
+    border-radius: 12px;
+}
+
+.badge-status-pill.earned {
+    background: rgba(255, 215, 0, 0.2);
+    color: var(--color-gold);
+    border: 1px solid rgba(255, 215, 0, 0.4);
+}
+
+.badge-status-pill.locked {
+    background: rgba(154, 148, 132, 0.15);
+    color: var(--color-text-dim);
+    border: 1px solid rgba(154, 148, 132, 0.3);
+}
+
+.badge-modal-date {
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    margin-top: 0.25rem;
+}
+
 /* Orc Detail Modal */
 .orc-modal {
     position: fixed;
