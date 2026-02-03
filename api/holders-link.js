@@ -2,7 +2,6 @@
 import nacl from 'tweetnacl';
 
 const DISCORD_MAP_KEY = 'holders:discord_map';
-const CACHE_KEY = 'holders:leaderboard';
 
 // Rate limiting
 const rateLimitMap = new Map();
@@ -133,8 +132,6 @@ export default async function handler(req, res) {
             delete discordMap[wallet];
             await kvSet(DISCORD_MAP_KEY, discordMap);
             await kvDel(`holder_discord:${wallet}`);
-            // Invalidate leaderboard cache
-            await kvDel(CACHE_KEY);
 
             return res.status(200).json({ success: true, action: 'unlinked' });
         }
@@ -165,8 +162,6 @@ export default async function handler(req, res) {
         discordMap[wallet] = discordInfo;
         await kvSet(DISCORD_MAP_KEY, discordMap);
         await kvSet(`holder_discord:${wallet}`, discordInfo);
-        // Invalidate leaderboard cache
-        await kvDel(CACHE_KEY);
 
         return res.status(200).json({ success: true, action: 'linked', discord: discordInfo });
 

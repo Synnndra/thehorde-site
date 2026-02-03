@@ -2,7 +2,6 @@
 import nacl from 'tweetnacl';
 
 const X_MAP_KEY = 'holders:x_map';
-const CACHE_KEY = 'holders:leaderboard';
 
 // Rate limiting
 const rateLimitMap = new Map();
@@ -81,14 +80,6 @@ export default async function handler(req, res) {
         return response.json();
     }
 
-    async function kvDel(key) {
-        const response = await fetch(`${KV_REST_API_URL}/del/${key}`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-        });
-        return response.json();
-    }
-
     try {
         const { wallet, signature, x } = req.body;
 
@@ -126,7 +117,6 @@ export default async function handler(req, res) {
         if (req.method === 'DELETE') {
             delete xMap[wallet];
             await kvSet(X_MAP_KEY, xMap);
-            await kvDel(CACHE_KEY);
             return res.status(200).json({ success: true, action: 'unlinked' });
         }
 
@@ -153,7 +143,6 @@ export default async function handler(req, res) {
 
         xMap[wallet] = xInfo;
         await kvSet(X_MAP_KEY, xMap);
-        await kvDel(CACHE_KEY);
 
         return res.status(200).json({ success: true, action: 'linked', x: xInfo });
 

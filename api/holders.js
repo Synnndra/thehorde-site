@@ -49,12 +49,44 @@ export default async function handler(req, res) {
         return response.json();
     }
 
+    // Read fresh social maps (cheap KV reads, always current)
+    async function readSocialMaps() {
+        let discordMap = {}, xMap = {}, walletLinkMap = {};
+        try {
+            const rawMap = await kvGet(DISCORD_MAP_KEY);
+            if (rawMap) discordMap = typeof rawMap === 'string' ? JSON.parse(rawMap) : rawMap;
+        } catch (e) { console.error('Failed to read Discord map:', e); }
+        try {
+            const rawXMap = await kvGet('holders:x_map');
+            if (rawXMap) xMap = typeof rawXMap === 'string' ? JSON.parse(rawXMap) : rawXMap;
+        } catch (e) { console.error('Failed to read X map:', e); }
+        try {
+            const rawWalletMap = await kvGet('holders:wallet_map');
+            if (rawWalletMap) walletLinkMap = typeof rawWalletMap === 'string' ? JSON.parse(rawWalletMap) : rawWalletMap;
+        } catch (e) { console.error('Failed to read wallet map:', e); }
+        return { discordMap, xMap, walletLinkMap };
+    }
+
+    // Merge social data into cached base holders
+    function mergeSocialData(baseData, discordMap, xMap, walletLinkMap) {
+        const result = { ...baseData };
+        result.holders = baseData.holders.map(h => ({
+            ...h,
+            discord: discordMap[h.wallet] || null,
+            x: xMap[h.wallet] || null,
+            linkedWallet: walletLinkMap[h.wallet]?.linkedWallet || null,
+        }));
+        return result;
+    }
+
     try {
-        // Check cache first
+        // Check cache for base data (expensive Helius + rarity + floor price)
         const cached = await kvGet(CACHE_KEY);
         if (cached) {
-            const data = typeof cached === 'string' ? JSON.parse(cached) : cached;
-            return res.status(200).json(data);
+            const baseData = typeof cached === 'string' ? JSON.parse(cached) : cached;
+            // Always merge fresh social data
+            const { discordMap, xMap, walletLinkMap } = await readSocialMaps();
+            return res.status(200).json(mergeSocialData(baseData, discordMap, xMap, walletLinkMap));
         }
 
         // Fetch all items from Helius (paginated, same as orc-viewer)
@@ -188,43 +220,13 @@ export default async function handler(req, res) {
             walletMap[owner].orcs.push({ name, imageUrl, mint, rarityRank, isDelegated, isFrozen, delegate, traits });
         }
 
-        // Read Discord and X mappings
-        let discordMap = {};
-        let xMap = {};
-        try {
-            const rawMap = await kvGet(DISCORD_MAP_KEY);
-            if (rawMap) {
-                discordMap = typeof rawMap === 'string' ? JSON.parse(rawMap) : rawMap;
-            }
-        } catch (e) {
-            console.error('Failed to read Discord map:', e);
-        }
-        try {
-            const rawXMap = await kvGet('holders:x_map');
-            if (rawXMap) {
-                xMap = typeof rawXMap === 'string' ? JSON.parse(rawXMap) : rawXMap;
-            }
-        } catch (e) {
-            console.error('Failed to read X map:', e);
-        }
-
-        // Read wallet link map
-        let walletLinkMap = {};
-        try {
-            const rawWalletMap = await kvGet('holders:wallet_map');
-            if (rawWalletMap) walletLinkMap = typeof rawWalletMap === 'string' ? JSON.parse(rawWalletMap) : rawWalletMap;
-        } catch (e) { console.error('Failed to read wallet map:', e); }
-
-        // Build sorted leaderboard
+        // Build sorted leaderboard (base data without social fields)
         const holders = Object.values(walletMap)
             .sort((a, b) => b.orcs.length - a.orcs.length)
             .map((holder, index) => ({
                 rank: index + 1,
                 wallet: holder.wallet,
                 count: holder.orcs.length,
-                discord: discordMap[holder.wallet] || null,
-                x: xMap[holder.wallet] || null,
-                linkedWallet: walletLinkMap[holder.wallet]?.linkedWallet || null,
                 orcs: holder.orcs.sort((a, b) => a.rarityRank - b.rarityRank)
             }));
 
@@ -261,7 +263,7 @@ export default async function handler(req, res) {
         }
 
         const totalHeldOrcs = orcItems.length - listedOrcs.length;
-        const result = {
+        const baseResult = {
             holders,
             totalOrcs: orcItems.length,
             totalHolders: holders.length,
@@ -272,10 +274,12 @@ export default async function handler(req, res) {
             updatedAt: new Date().toISOString()
         };
 
-        // Cache result
-        await kvSetEx(CACHE_KEY, CACHE_TTL, result);
+        // Cache base data (without social fields — those are merged fresh each request)
+        await kvSetEx(CACHE_KEY, CACHE_TTL, baseResult);
 
-        return res.status(200).json(result);
+        // Merge fresh social data for this response
+        const { discordMap, xMap, walletLinkMap } = await readSocialMaps();
+        return res.status(200).json(mergeSocialData(baseResult, discordMap, xMap, walletLinkMap));
 
     } catch (error) {
         console.error('Holders API error:', error);

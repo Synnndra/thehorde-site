@@ -2,7 +2,6 @@
 import nacl from 'tweetnacl';
 
 const WALLET_MAP_KEY = 'holders:wallet_map';
-const CACHE_KEY = 'holders:leaderboard';
 
 // Rate limiting
 const rateLimitMap = new Map();
@@ -114,14 +113,6 @@ export default async function handler(req, res) {
         return response.json();
     }
 
-    async function kvDel(key) {
-        const response = await fetch(`${KV_REST_API_URL}/del/${key}`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-        });
-        return response.json();
-    }
-
     try {
         // Read current wallet map
         let walletMap = {};
@@ -159,7 +150,6 @@ export default async function handler(req, res) {
                     delete walletMap[otherWallet];
                 }
                 await kvSet(WALLET_MAP_KEY, walletMap);
-                await kvDel(CACHE_KEY);
             }
 
             return res.status(200).json({ success: true, action: 'unlinked' });
@@ -205,7 +195,6 @@ export default async function handler(req, res) {
         walletMap[walletB] = { linkedWallet: walletA, linkedAt };
 
         await kvSet(WALLET_MAP_KEY, walletMap);
-        await kvDel(CACHE_KEY);
 
         return res.status(200).json({ success: true, action: 'linked', linkedWallet: walletB });
 
