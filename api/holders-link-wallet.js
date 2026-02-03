@@ -50,10 +50,31 @@ function isValidWallet(wallet) {
 }
 
 function verifySignature(message, signature, wallet) {
-    const messageBytes = new TextEncoder().encode(message);
-    const signatureBytes = base58Decode(signature);
-    const publicKeyBytes = base58Decode(wallet);
-    return nacl.sign.detached.verify(messageBytes, signatureBytes, publicKeyBytes);
+    try {
+        const messageBytes = new TextEncoder().encode(message);
+        const signatureBytes = base58Decode(signature);
+        const publicKeyBytes = base58Decode(wallet);
+        console.log('verifySignature:', {
+            messageLen: messageBytes.length,
+            sigLen: signatureBytes.length,
+            pubKeyLen: publicKeyBytes.length,
+            message,
+            sigPrefix: signature.slice(0, 10),
+            wallet: wallet.slice(0, 8)
+        });
+        if (signatureBytes.length !== 64) {
+            console.error('Bad signature length:', signatureBytes.length);
+            return false;
+        }
+        if (publicKeyBytes.length !== 32) {
+            console.error('Bad public key length:', publicKeyBytes.length);
+            return false;
+        }
+        return nacl.sign.detached.verify(messageBytes, signatureBytes, publicKeyBytes);
+    } catch (e) {
+        console.error('verifySignature error:', e);
+        return false;
+    }
 }
 
 export default async function handler(req, res) {

@@ -575,15 +575,24 @@ async function completeWalletLink() {
         var signed = await provider.signMessage(encodedMsg, 'utf8');
         var signatureB = toBase58(signed.signature);
 
+        var payload = {
+            walletA: pending.walletA,
+            signatureA: pending.signatureA,
+            walletB: connectedWallet,
+            signatureB: signatureB
+        };
+        console.log('Wallet link payload:', {
+            walletA: payload.walletA,
+            sigALen: payload.signatureA.length,
+            sigAPrefix: payload.signatureA.slice(0, 10),
+            walletB: payload.walletB,
+            sigBLen: payload.signatureB.length
+        });
+
         var res = await fetch('/api/holders-link-wallet', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                walletA: pending.walletA,
-                signatureA: pending.signatureA,
-                walletB: connectedWallet,
-                signatureB: signatureB
-            })
+            body: JSON.stringify(payload)
         });
 
         var data = await res.json();
