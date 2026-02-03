@@ -2071,6 +2071,110 @@ body {
     }
 }
 
+/* Escrow Recovery Banner */
+.escrow-recovery-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    background: #2a2a3e;
+    border: 2px solid #e6a817;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.escrow-recovery-text {
+    flex: 1;
+    min-width: 200px;
+}
+
+.escrow-recovery-text strong {
+    display: block;
+    color: #e6a817;
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.escrow-recovery-text span {
+    color: #9a9484;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.escrow-recovery-error {
+    width: 100%;
+    color: #ef5350;
+    font-size: 13px;
+    padding: 8px 12px;
+    background: #3d1f1f;
+    border-radius: 5px;
+}
+
+.escrow-recovery-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.escrow-recovery-retry {
+    font-family: 'Cinzel', serif;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.escrow-recovery-retry:hover:not(:disabled) {
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+    transform: translateY(-1px);
+}
+
+.escrow-recovery-retry:disabled {
+    background: #555;
+    cursor: not-allowed;
+}
+
+.escrow-recovery-dismiss {
+    font-family: 'Cinzel', serif;
+    padding: 10px 20px;
+    background: transparent;
+    color: #9a9484;
+    border: 2px solid #555;
+    border-radius: 5px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.escrow-recovery-dismiss:hover {
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+@media (max-width: 768px) {
+    .escrow-recovery-banner {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .escrow-recovery-actions {
+        justify-content: stretch;
+    }
+
+    .escrow-recovery-retry,
+    .escrow-recovery-dismiss {
+        flex: 1;
+        text-align: center;
+    }
+}
+
 /* Wallet Selection Modal */
 .wallet-modal-overlay {
     position: fixed;

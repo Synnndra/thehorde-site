@@ -96,6 +96,8 @@ async function createOffer() {
     showSteppedLoading(createSteps, 0);
     elements.createOfferBtn.disabled = true;
 
+    let pendingEscrow = null;
+
     try {
         showSteppedLoading(createSteps, 0);
         const escrowResult = await escrowInitiatorAssets(selectedYourNFTs, yourSol);
@@ -103,6 +105,23 @@ async function createOffer() {
         if (!escrowResult.success) {
             throw new Error(escrowResult.error || 'Failed to escrow assets');
         }
+
+        // Save pending escrow to localStorage immediately after on-chain success
+        // so we can recover if signing or the API call fails
+        pendingEscrow = {
+            initiatorWallet: connectedWallet,
+            receiverWallet: partnerWallet,
+            initiatorNfts: selectedYourNFTs.map(n => n.id),
+            receiverNfts: selectedTheirNFTs.map(n => n.id),
+            initiatorSol: yourSol,
+            receiverSol: theirSol,
+            initiatorNftDetails: selectedYourNFTs,
+            receiverNftDetails: selectedTheirNFTs,
+            escrowTxSignature: escrowResult.signature,
+            isOrcHolder: isOrcHolder,
+            savedAt: Date.now()
+        };
+        localStorage.setItem(`pendingEscrow:${connectedWallet}`, JSON.stringify(pendingEscrow));
 
         showSteppedLoading(createSteps, 1);
         await new Promise(r => setTimeout(r, 400));
@@ -142,6 +161,7 @@ async function createOffer() {
             throw new Error(data.error);
         }
 
+        localStorage.removeItem(`pendingEscrow:${connectedWallet}`);
         hideLoading();
 
         const offerUrl = `${window.location.origin}/swap/offer.html?id=${data.offerId}`;
@@ -153,6 +173,19 @@ async function createOffer() {
         console.error('Error creating offer:', err);
         showError('Failed to create offer: ' + err.message);
         elements.createOfferBtn.disabled = false;
+
+        // Fire-and-forget: notify server so it can track the orphaned escrow
+        if (pendingEscrow) {
+            fetch('/api/swap/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...pendingEscrow,
+                    signature: 'recovery-orphan',
+                    message: 'orphan-escrow-report'
+                })
+            }).catch(() => {});
+        }
     }
 }
 
@@ -243,6 +276,144 @@ function copyOfferLink() {
             elements.copyLinkBtn.textContent = 'Copy';
         }, 2000);
     });
+}
+
+function checkPendingEscrowRecovery() {
+    if (!connectedWallet) return;
+
+    const key = `pendingEscrow:${connectedWallet}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
+
+    let pending;
+    try {
+        pending = JSON.parse(raw);
+    } catch (e) {
+        localStorage.removeItem(key);
+        return;
+    }
+
+    // Discard if older than 24 hours
+    if (Date.now() - pending.savedAt > 24 * 60 * 60 * 1000) {
+        localStorage.removeItem(key);
+        return;
+    }
+
+    showEscrowRecoveryBanner(pending);
+}
+
+function showEscrowRecoveryBanner(pending) {
+    // Remove any existing banner
+    const existing = document.getElementById('escrow-recovery-banner');
+    if (existing) existing.remove();
+
+    const banner = document.createElement('div');
+    banner.id = 'escrow-recovery-banner';
+    banner.className = 'escrow-recovery-banner';
+
+    const nftCount = (pending.initiatorNfts || []).length;
+    const solPart = pending.initiatorSol > 0 ? `${pending.initiatorSol} SOL` : '';
+    const nftPart = nftCount > 0 ? `${nftCount} NFT${nftCount > 1 ? 's' : ''}` : '';
+    const assetDesc = [nftPart, solPart].filter(Boolean).join(' + ') || 'assets';
+    const shortReceiver = pending.receiverWallet
+        ? pending.receiverWallet.slice(0, 4) + '...' + pending.receiverWallet.slice(-4)
+        : 'unknown';
+
+    banner.innerHTML = `
+        <div class="escrow-recovery-text">
+            <strong>Pending Escrow Found</strong>
+            <span>You have ${assetDesc} in escrow for a trade with ${shortReceiver} that wasn't completed. You can retry creating the offer or dismiss this notice.</span>
+        </div>
+        <div class="escrow-recovery-error" style="display:none;"></div>
+        <div class="escrow-recovery-actions">
+            <button class="escrow-recovery-retry">Retry</button>
+            <button class="escrow-recovery-dismiss">Dismiss</button>
+        </div>
+    `;
+
+    banner.querySelector('.escrow-recovery-retry').addEventListener('click', function() {
+        retryPendingEscrow(pending);
+    });
+
+    banner.querySelector('.escrow-recovery-dismiss').addEventListener('click', function() {
+        localStorage.removeItem(`pendingEscrow:${connectedWallet}`);
+        banner.remove();
+    });
+
+    // Insert at top of container
+    const container = document.querySelector('.container');
+    if (container) {
+        const firstChild = container.firstChild;
+        container.insertBefore(banner, firstChild);
+    } else {
+        document.body.prepend(banner);
+    }
+}
+
+async function retryPendingEscrow(pending) {
+    const banner = document.getElementById('escrow-recovery-banner');
+    const retryBtn = banner?.querySelector('.escrow-recovery-retry');
+    const errorDiv = banner?.querySelector('.escrow-recovery-error');
+
+    if (retryBtn) {
+        retryBtn.disabled = true;
+        retryBtn.textContent = 'Signing...';
+    }
+    if (errorDiv) errorDiv.style.display = 'none';
+
+    try {
+        const timestamp = Date.now();
+        const message = `Midswap create offer from ${pending.initiatorWallet} to ${pending.receiverWallet} at ${timestamp}`;
+        const signature = await signMessageForAuth(message);
+
+        if (retryBtn) retryBtn.textContent = 'Saving...';
+
+        const response = await fetch('/api/swap/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                initiatorWallet: pending.initiatorWallet,
+                receiverWallet: pending.receiverWallet,
+                initiatorNfts: pending.initiatorNfts,
+                receiverNfts: pending.receiverNfts,
+                initiatorSol: pending.initiatorSol,
+                receiverSol: pending.receiverSol,
+                initiatorNftDetails: pending.initiatorNftDetails,
+                receiverNftDetails: pending.receiverNftDetails,
+                escrowTxSignature: pending.escrowTxSignature,
+                isOrcHolder: pending.isOrcHolder,
+                signature: signature,
+                message: message
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        // Success — clean up and show result
+        localStorage.removeItem(`pendingEscrow:${connectedWallet}`);
+        if (banner) banner.remove();
+
+        const offerUrl = `${window.location.origin}/swap/offer.html?id=${data.offerId}`;
+        if (elements.offerLinkInput) elements.offerLinkInput.value = offerUrl;
+        if (elements.successModal) {
+            elements.successModal.style.display = 'flex';
+            elements.successModal.dataset.offerUrl = offerUrl;
+        }
+    } catch (err) {
+        console.error('Escrow recovery retry failed:', err);
+        if (retryBtn) {
+            retryBtn.disabled = false;
+            retryBtn.textContent = 'Retry';
+        }
+        if (errorDiv) {
+            errorDiv.textContent = 'Retry failed: ' + err.message;
+            errorDiv.style.display = 'block';
+        }
+    }
 }
 
 function resetCreateOfferPage() {

@@ -301,6 +301,7 @@ function onWalletConnected() {
             elements.tradePartnerSection.style.display = 'block';
         }
         loadYourNFTs();
+        checkPendingEscrowRecovery();
     }
 
     checkUnseenOffers();
