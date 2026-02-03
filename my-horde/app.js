@@ -390,11 +390,16 @@ async function loadData() {
         renderStats();
         updateWalletUI();
 
-        // Fetch badge data and trait data in parallel
-        await Promise.all([
-            fetchBadgeData(connectedWallet),
-            fetchTraitData(myHolder.orcs)
-        ]);
+        // Populate trait data from holders API response (no extra fetching needed)
+        traitData = {};
+        myHolder.orcs.forEach(function(orc) {
+            if (orc.traits) {
+                traitData[orc.mint] = orc.traits;
+            }
+        });
+
+        // Fetch badge data
+        await fetchBadgeData(connectedWallet);
 
         renderBadges();
         renderGallery();

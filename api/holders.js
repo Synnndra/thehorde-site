@@ -3,7 +3,7 @@
 const ORC_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
 const CACHE_KEY = 'holders:leaderboard';
 const DISCORD_MAP_KEY = 'holders:discord_map';
-const CACHE_TTL = 300; // 5 minutes in seconds
+const CACHE_TTL = 1800; // 30 minutes in seconds
 
 // Marketplace escrow wallets — NFTs listed for sale are held here
 const EXCLUDED_WALLETS = new Set([
@@ -104,33 +104,6 @@ export default async function handler(req, res) {
             return name.toLowerCase().includes('orc');
         });
 
-        // Refresh ownership data via getAssetBatch for accuracy.
-        // getAssetsByGroup can return stale ownership for staked/delegated NFTs.
-        const orcMints = orcItems.map(item => item.id);
-        const freshOwnership = {};
-        const BATCH_SIZE = 1000;
-        for (let i = 0; i < orcMints.length; i += BATCH_SIZE) {
-            const batch = orcMints.slice(i, i + BATCH_SIZE);
-            const batchRes = await fetch(`https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    jsonrpc: '2.0',
-                    id: 'holders-batch',
-                    method: 'getAssetBatch',
-                    params: { ids: batch }
-                })
-            });
-            const batchData = await batchRes.json();
-            if (batchData.result && Array.isArray(batchData.result)) {
-                for (const asset of batchData.result) {
-                    if (asset && asset.id && asset.ownership) {
-                        freshOwnership[asset.id] = asset.ownership;
-                    }
-                }
-            }
-        }
-
         // Extract traits and calculate rarity (same logic as orc-viewer)
         const RANK_OVERRIDES = [328, 265, 212, 233];
 
@@ -179,17 +152,19 @@ export default async function handler(req, res) {
         const sorted = [...overrides, ...rest];
         sorted.forEach((orc, i) => { orc.rarityRank = i + 1; });
 
-        // Build rank lookup
+        // Build rank and traits lookups
         const rarityByMint = {};
+        const traitsByMint = {};
         orcsWithTraits.forEach(orc => {
             rarityByMint[orc.item.id] = orc.rarityRank;
+            traitsByMint[orc.item.id] = orc.traits;
         });
 
-        // Aggregate by wallet — use fresh ownership from getAssetBatch
+        // Aggregate by wallet
         const walletMap = {};
         const listedOrcs = [];
         for (const item of orcItems) {
-            const ownership = freshOwnership[item.id] || item.ownership;
+            const ownership = item.ownership;
             const owner = ownership?.owner;
             if (!owner) continue;
 
@@ -209,7 +184,8 @@ export default async function handler(req, res) {
             if (!walletMap[owner]) {
                 walletMap[owner] = { wallet: owner, orcs: [] };
             }
-            walletMap[owner].orcs.push({ name, imageUrl, mint, rarityRank, isDelegated, isFrozen, delegate });
+            const traits = traitsByMint[mint] || {};
+            walletMap[owner].orcs.push({ name, imageUrl, mint, rarityRank, isDelegated, isFrozen, delegate, traits });
         }
 
         // Read Discord and X mappings
@@ -252,26 +228,15 @@ export default async function handler(req, res) {
             }
         }
 
-        // Fetch orc floor price from Magic Eden listings
+        // Fetch orc floor price from Magic Eden collection stats (single call)
         let floorPrice = null;
         try {
-            const listedMints = listedOrcs.map(o => o.mint);
-            let lowestPrice = Infinity;
-            for (const mint of listedMints) {
-                const listingRes = await fetch(`https://api-mainnet.magiceden.dev/v2/tokens/${mint}/listings`);
-                if (listingRes.ok) {
-                    const listings = await listingRes.json();
-                    if (Array.isArray(listings)) {
-                        for (const listing of listings) {
-                            if (listing.price && listing.price < lowestPrice) {
-                                lowestPrice = listing.price;
-                            }
-                        }
-                    }
+            const statsRes = await fetch('https://api-mainnet.magiceden.dev/v2/collections/midevil_orcs/stats');
+            if (statsRes.ok) {
+                const stats = await statsRes.json();
+                if (stats.floorPrice != null) {
+                    floorPrice = stats.floorPrice / 1e9; // Convert lamports to SOL
                 }
-            }
-            if (lowestPrice < Infinity) {
-                floorPrice = lowestPrice;
             }
         } catch (e) {
             console.error('Floor price fetch failed:', e);
