@@ -48,20 +48,111 @@ var STAT_BADGES = [
 
 // --- Wallet ---
 
+var selectedProvider = null;
+
 function isMobileBrowser() {
     return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
+function getAvailableWallets() {
+    var wallets = [];
+    if (window.phantom?.solana?.isPhantom) {
+        wallets.push({ name: 'Phantom', icon: 'https://phantom.app/img/phantom-icon-purple-rounded.png', provider: window.phantom.solana });
+    }
+    if (window.solflare?.isSolflare) {
+        wallets.push({ name: 'Solflare', icon: 'https://solflare.com/favicon.ico', provider: window.solflare });
+    }
+    if (window.backpack?.isBackpack) {
+        wallets.push({ name: 'Backpack', icon: 'https://backpack.app/favicon.ico', provider: window.backpack });
+    }
+    if (window.solana && !wallets.some(function(w) { return w.provider === window.solana; })) {
+        wallets.push({ name: 'Solana Wallet', icon: '', provider: window.solana });
+    }
+    return wallets;
+}
+
 function getWalletProvider() {
+    if (selectedProvider) return selectedProvider;
     if (window.phantom?.solana?.isPhantom) return window.phantom.solana;
     if (window.solflare?.isSolflare) return window.solflare;
     if (window.solana) return window.solana;
     return null;
 }
 
+function showWalletModal(wallets) {
+    hideWalletModal();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'wallet-modal-overlay';
+    overlay.id = 'wallet-modal-overlay';
+
+    var card = document.createElement('div');
+    card.className = 'wallet-modal-card';
+
+    var header = document.createElement('div');
+    header.className = 'wallet-modal-header';
+    header.innerHTML = '<span>Select Wallet</span>';
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'wallet-modal-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', hideWalletModal);
+    header.appendChild(closeBtn);
+    card.appendChild(header);
+
+    var list = document.createElement('div');
+    list.className = 'wallet-modal-list';
+
+    wallets.forEach(function(w) {
+        var btn = document.createElement('button');
+        btn.className = 'wallet-modal-option';
+        if (w.icon) {
+            var img = document.createElement('img');
+            img.src = w.icon;
+            img.alt = w.name;
+            img.className = 'wallet-modal-icon';
+            img.onerror = function() { this.style.display = 'none'; };
+            btn.appendChild(img);
+        }
+        var nameSpan = document.createElement('span');
+        nameSpan.textContent = w.name;
+        btn.appendChild(nameSpan);
+        btn.addEventListener('click', function() {
+            hideWalletModal();
+            connectWithProvider(w.provider);
+        });
+        list.appendChild(btn);
+    });
+
+    card.appendChild(list);
+    overlay.appendChild(card);
+
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) hideWalletModal();
+    });
+
+    document.body.appendChild(overlay);
+}
+
+function hideWalletModal() {
+    var existing = document.getElementById('wallet-modal-overlay');
+    if (existing) existing.remove();
+}
+
+async function connectWithProvider(provider) {
+    try {
+        var response = await provider.connect();
+        selectedProvider = provider;
+        connectedWallet = response.publicKey.toString();
+        onWalletConnected();
+    } catch (err) {
+        console.error('Wallet connection failed:', err);
+    }
+}
+
 async function connectWallet() {
-    const provider = getWalletProvider();
-    if (!provider) {
+    var wallets = getAvailableWallets();
+
+    if (wallets.length === 0) {
         if (isMobileBrowser()) {
             const currentUrl = encodeURIComponent(window.location.href);
             var frag = document.createDocumentFragment();
@@ -83,13 +174,13 @@ async function connectWallet() {
         }
         return;
     }
-    try {
-        const response = await provider.connect();
-        connectedWallet = response.publicKey.toString();
-        onWalletConnected();
-    } catch (err) {
-        console.error('Wallet connection failed:', err);
+
+    if (wallets.length === 1) {
+        connectWithProvider(wallets[0].provider);
+        return;
     }
+
+    showWalletModal(wallets);
 }
 
 async function disconnectWallet() {
@@ -97,6 +188,7 @@ async function disconnectWallet() {
     if (provider) {
         try { await provider.disconnect(); } catch (e) { /* ignore */ }
     }
+    selectedProvider = null;
     connectedWallet = null;
     myHolder = null;
     traitData = {};
