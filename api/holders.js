@@ -3,7 +3,7 @@
 const ORC_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
 const CACHE_KEY = 'holders:leaderboard';
 const DISCORD_MAP_KEY = 'holders:discord_map';
-const CACHE_TTL = 1800; // 30 minutes in seconds
+const CACHE_TTL = 7200; // 2 hours in seconds
 
 // Marketplace escrow wallets — NFTs listed for sale are held here
 const EXCLUDED_WALLETS = new Set([
