@@ -36,7 +36,8 @@
     { "source": "/my-horde", "destination": "/my-horde/index.html" },
     { "source": "/badge/:id", "destination": "/api/badge-share.js?id=:id" },
     { "source": "/orc-run", "destination": "/orc-run/index.html" },
-    { "source": "/api/leaderboard-orcrun", "destination": "/api/leaderboard-orcrun.js" }
+    { "source": "/api/leaderboard-orcrun", "destination": "/api/leaderboard-orcrun.js" },
+    { "source": "/create-orc", "destination": "/create-orc/index.html" }
   ],
   "headers": [
     {
