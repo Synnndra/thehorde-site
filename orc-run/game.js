@@ -45,29 +45,23 @@ class Game {
         // Parallax layers
         this.parallaxLayers = [];
 
-        // Background images
+        // Background images (only load what's actually used)
         this.bgImages = {
-            sky: new Image(),
             clouds: new Image(),
             mountains: new Image(),
             trees: new Image(),
-            bushes: new Image(),
             ground: new Image()
         };
-        this.bgImages.sky.src = '/orc-run/bg-sky.png';
         this.bgImages.clouds.src = '/orc-run/bg-clouds.png';
         this.bgImages.mountains.src = '/orc-run/bg-mountains.png';
         this.bgImages.trees.src = '/orc-run/bg-trees.png';
-        this.bgImages.bushes.src = '/orc-run/bg-bushes.png';
         this.bgImages.ground.src = '/orc-run/bg-ground.png';
 
         // Track scroll positions for each parallax layer
         this.bgScroll = {
-            sky: 0,
             clouds: 0,
             mountains: 0,
-            trees: 0,
-            bushes: 0
+            trees: 0
         };
 
         // Day/night cycle
@@ -105,10 +99,13 @@ class Game {
         // Touch tracking
         this.touchStartY = 0;
 
+        // Event listener references (for cleanup)
+        this._boundHandlers = {};
+
         // Initialize UI
         this.ui = new GameUI(this);
 
-        // Setup input
+        // Setup input (only once)
         this.setupInput();
 
         // Initial resize
@@ -218,11 +215,15 @@ class Game {
     }
 
     initParallaxLayers() {
+        // Only generate procedural layers if images aren't loaded
+        const cloudsLoaded = this.bgImages.clouds.complete && this.bgImages.clouds.naturalWidth > 0;
+        const mountainsLoaded = this.bgImages.mountains.complete && this.bgImages.mountains.naturalWidth > 0;
+        const treesLoaded = this.bgImages.trees.complete && this.bgImages.trees.naturalWidth > 0;
+
         this.parallaxLayers = [
-            { speed: 0.05, elements: this._generateClouds() },
-            { speed: 0.15, elements: this._generateMountains() },
-            { speed: 0.4, elements: this._generateTrees() },
-            { speed: 0.7, elements: this._generateBushes() }
+            { speed: 0.05, elements: cloudsLoaded ? [] : this._generateClouds() },
+            { speed: 0.15, elements: mountainsLoaded ? [] : this._generateMountains() },
+            { speed: 0.4, elements: treesLoaded ? [] : this._generateTrees() }
         ];
     }
 
@@ -270,23 +271,19 @@ class Game {
         return trees;
     }
 
-    _generateBushes() {
-        const bushes = [];
-        for (let i = 0; i < 20; i++) {
-            bushes.push({
-                x: i * (this.virtualWidth / 10) + Math.random() * 30,
-                size: 10 + Math.random() * 14,
-                lobes: 2 + Math.floor(Math.random() * 2), // 2-3 lobes
-                hasFlower: Math.random() > 0.7
-            });
-        }
-        return bushes;
-    }
-
     startGame() {
         soundManager.init();
 
         this.resizeCanvas();
+
+        // Clear previous game state to prevent memory leaks
+        if (this.obstacleSpawner) {
+            this.obstacleSpawner.obstacles.length = 0;
+        }
+        if (this.collectibleManager) {
+            this.collectibleManager.coins.length = 0;
+            this.collectibleManager.powerUps.length = 0;
+        }
 
         this.distance = 0;
         this.coins = 0;
@@ -298,15 +295,20 @@ class Game {
         this.dayNightCycle = 0;
         this.lastMilestone = 0;
         this.activePowerUps = {};
-        this.particles = [];
+        this.particles.length = 0; // Clear array without creating new reference
         this.announcement = null;
         this.screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
         this.groundScrollX = 0;
 
+        // Reset scroll positions
+        this.bgScroll.clouds = 0;
+        this.bgScroll.mountains = 0;
+        this.bgScroll.trees = 0;
+
         // Create player
         this.player = new Player(80, this.groundY);
 
-        // Create spawners (use virtual coordinates)
+        // Create/reset spawners (use virtual coordinates)
         this.obstacleSpawner = new ObstacleSpawner(this.groundY, this.virtualWidth);
         this.collectibleManager = new CollectibleManager(this.groundY, this.virtualWidth);
 
