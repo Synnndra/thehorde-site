@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orc Run - Endless Runner</title>
+    <meta name="description" content="Orc Run — endless runner minigame. Run, jump, and duck through obstacles as a mighty orc!">
+    <meta property="og:title" content="Orc Run | The Horde">
+    <meta property="og:description" content="Orc Run — endless runner minigame. Run, jump, and duck through obstacles as a mighty orc!">
+    <meta property="og:image" content="https://midhorde.com/orclogo.jpg">
+    <meta property="og:url" content="https://midhorde.com/orc-run">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Orc Run | The Horde">
+    <meta name="twitter:description" content="Orc Run — endless runner minigame. Run, jump, and duck through obstacles as a mighty orc!">
+    <meta name="twitter:image" content="https://midhorde.com/orclogo.jpg">
+    <link rel="icon" href="/orclogo.jpg" type="image/jpeg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/orc-run/style.css">
+    <link rel="stylesheet" href="/shared/nav.css">
+</head>
+<body>
+    <a href="#game-wrapper" class="skip-link">Skip to content</a>
+    <nav class="site-nav">
+        <a href="/">Home</a>
+        <div class="nav-group">
+            <span class="nav-group-label">Explore</span>
+            <div class="nav-dropdown">
+                <a href="/orc-viewer">Viewer</a>
+                <a href="/holders">Leaderboard</a>
+                <a href="/my-horde">My Horde</a>
+            </div>
+        </div>
+        <div class="nav-group">
+            <span class="nav-group-label">Tools</span>
+            <div class="nav-dropdown">
+                <a href="/collage-maker">Collage Viewer</a>
+                <a href="/create-orc">Create an Orc</a>
+                <a href="/swap">MidSwap</a>
+            </div>
+        </div>
+        <div class="nav-group">
+            <span class="nav-group-label">Arcade</span>
+            <div class="nav-dropdown">
+                <a href="/minigame">Horde Tower Defense</a>
+                <a href="/orc-run">Orc Run</a>
+            </div>
+        </div>
+        <button id="nav-link-discord" class="nav-link-discord" title="Link Discord">Link Discord</button>
+        <button id="nav-link-x" class="nav-link-x" title="Link X">Link X</button>
+    </nav>
+    <div id="game-wrapper" role="main">
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen">
+        <div class="screen-content">
+            <h1 class="game-title">ORC RUN</h1>
+            <p class="subtitle">Run. Jump. Smash.</p>
+
+            <div class="tutorial-section">
+                <h3>How to Play</h3>
+                <div class="tutorial-content">
+                    <div class="tutorial-step">
+                        <span class="step-icon">🏃</span>
+                        <div class="step-text">
+                            <strong>Run</strong>
+                            <p>Your orc auto-runs. Survive as long as you can and collect coins!</p>
+                        </div>
+                    </div>
+                    <div class="tutorial-step">
+                        <span class="step-icon">⬆️</span>
+                        <div class="step-text">
+                            <strong>Jump</strong>
+                            <p>Press <span class="highlight">Spacebar</span> or <span class="highlight">tap</span> to jump over obstacles like logs, rocks, and pits.</p>
+                        </div>
+                    </div>
+                    <div class="tutorial-step">
+                        <span class="step-icon">⬇️</span>
+                        <div class="step-text">
+                            <strong>Duck</strong>
+                            <p>Press <span class="highlight">Down Arrow</span> or <span class="highlight">swipe down</span> to duck under branches and banners.</p>
+                        </div>
+                    </div>
+                    <div class="tutorial-step">
+                        <span class="step-icon">💰</span>
+                        <div class="step-text">
+                            <strong>Collect</strong>
+                            <p>Grab coins for bonus points and power-ups for special abilities: shield, speed boost, magnet, and double points!</p>
+                        </div>
+                    </div>
+                    <div class="tutorial-step nft-bonus">
+                        <span class="step-icon">🎴</span>
+                        <div class="step-text">
+                            <strong>MidEvil Orc Bonus</strong>
+                            <p>Connect your wallet below! Each MidEvil Orc NFT you own gives <span class="highlight">+5% score bonus</span> (up to 25% max).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="start-game-btn" class="primary-btn">Start Running</button>
+
+            <div class="high-scores">
+                <h3>Leaderboard</h3>
+                <div id="high-score-list" class="leaderboard"></div>
+            </div>
+
+            <div class="nft-section">
+                <button id="connect-wallet-btn" class="wallet-btn">Connect Wallet</button>
+                <div id="wallet-status"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen hidden">
+        <div id="hud-bar">
+            <div class="hud-left">
+                <div class="hud-stat">
+                    <span class="label">DIST</span>
+                    <span class="value" id="distance-display">0m</span>
+                </div>
+                <div class="hud-stat">
+                    <span class="label">COINS</span>
+                    <span class="value" id="coins-display">0</span>
+                </div>
+                <div class="hud-stat">
+                    <span class="label">SCORE</span>
+                    <span class="value" id="score-display">0</span>
+                </div>
+            </div>
+            <div class="hud-right">
+                <div class="hud-controls">
+                    <button id="sound-btn" class="control-btn" title="Toggle Sound">🔊</button>
+                    <button id="pause-btn" class="control-btn" title="Pause">⏸</button>
+                </div>
+            </div>
+        </div>
+        <canvas id="game-canvas"></canvas>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="screen hidden">
+        <div class="screen-content">
+            <h1 id="gameover-title">WASTED</h1>
+            <p id="gameover-message">The orc has fallen!</p>
+            <div class="final-stats">
+                <div class="final-stat highlight">
+                    <span class="label">Final Score</span>
+                    <span id="final-score">0</span>
+                </div>
+                <div class="final-stat">
+                    <span class="label">Distance</span>
+                    <span id="final-distance">0m</span>
+                </div>
+                <div class="final-stat">
+                    <span class="label">Coins</span>
+                    <span id="final-coins">0</span>
+                </div>
+            </div>
+            <div id="highscore-entry" class="highscore-entry hidden">
+                <p class="new-highscore">New High Score!</p>
+                <input type="text" id="player-name" placeholder="Enter your name" maxlength="12">
+                <button id="save-score-btn" class="primary-btn">Save Score</button>
+            </div>
+            <div class="gameover-buttons">
+                <button id="retry-btn" class="primary-btn">Run Again</button>
+                <button id="main-menu-btn" class="secondary-btn">Main Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause Overlay -->
+    <div id="pause-overlay" class="overlay hidden">
+        <div class="overlay-content">
+            <h2>PAUSED</h2>
+            <button id="resume-btn" class="primary-btn">Resume</button>
+            <button id="restart-btn" class="secondary-btn">Restart</button>
+            <button id="quit-btn" class="secondary-btn">Quit to Menu</button>
+        </div>
+    </div>
+
+    </div><!-- End game-wrapper -->
+
+    <!-- Scripts -->
+    <script src="/shared/nav.js"></script>
+    <script src="/orc-run/sounds.js"></script>
+    <script src="/orc-run/sprites.js"></script>
+    <script src="/orc-run/player.js"></script>
+    <script src="/orc-run/obstacles.js"></script>
+    <script src="/orc-run/collectibles.js"></script>
+    <script src="/orc-run/ui.js"></script>
+    <script src="/orc-run/game.js"></script>
+    <script defer src="/ambient-player.js"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>
