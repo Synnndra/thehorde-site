@@ -41,7 +41,7 @@ OBSTACLE_IMAGES.jonny.src = '/orc-run/obstacle-jonny.png';
 const OBSTACLE_TYPES = {
     log: {
         action: 'jump', width: 55, height: 28,
-        unlockDistance: 0, // original: 0
+        unlockDistance: 0,
         draw(ctx, x, y, w, h) {
             ctx.save();
             ctx.lineWidth = OUTLINE_W;
@@ -97,7 +97,7 @@ const OBSTACLE_TYPES = {
     },
     fence: {
         action: 'jump', width: 24, height: 44,
-        unlockDistance: 0, // original: 300
+        unlockDistance: 300,
         draw(ctx, x, y, w, h) {
             ctx.save();
             ctx.lineWidth = OUTLINE_W;
@@ -171,7 +171,7 @@ const OBSTACLE_TYPES = {
     },
     rock: {
         action: 'jump', width: 44, height: 38,
-        unlockDistance: 0, // original: 500
+        unlockDistance: 500,
         draw(ctx, x, y, w, h) {
             ctx.save();
             ctx.lineWidth = OUTLINE_W;
@@ -229,7 +229,7 @@ const OBSTACLE_TYPES = {
     },
     barrel: {
         action: 'jump', width: 32, height: 38,
-        unlockDistance: 0, // original: 1000
+        unlockDistance: 1000,
         draw(ctx, x, y, w, h) {
             ctx.save();
             ctx.lineWidth = OUTLINE_W;
@@ -320,7 +320,7 @@ const OBSTACLE_TYPES = {
     },
     prime: {
         action: 'jump', width: 50, height: 60,
-        unlockDistance: 0, // TEST: unlock immediately
+        unlockDistance: 1200,
         draw(ctx, x, y, w, h) {
             // Fallback procedural - yellow monster placeholder
             ctx.save();
@@ -336,7 +336,7 @@ const OBSTACLE_TYPES = {
     },
     pizza: {
         action: 'jump', width: 55, height: 50,
-        unlockDistance: 0, // TEST: unlock immediately
+        unlockDistance: 1500,
         draw(ctx, x, y, w, h) {
             // Fallback procedural - pizza placeholder
             ctx.save();
@@ -353,7 +353,7 @@ const OBSTACLE_TYPES = {
     jonny: {
         action: 'duck', width: 100, height: 25,
         yOffset: -95,
-        unlockDistance: 0, // TEST: unlock immediately
+        unlockDistance: 1800,
         draw(ctx, x, y, w, h) {
             // Fallback procedural - flying knight placeholder
             ctx.save();
@@ -370,7 +370,7 @@ const OBSTACLE_TYPES = {
     branch: {
         action: 'duck', width: 100, height: 25,
         yOffset: -95,
-        unlockDistance: 0, // original: 800
+        unlockDistance: 800,
         draw(ctx, x, y, w, h) {
             ctx.save();
             ctx.lineWidth = OUTLINE_W;
@@ -591,7 +591,7 @@ class ObstacleSpawner {
         this.obstacles = this.obstacles.filter(o => o.active);
 
         // Spawn new obstacles
-        const gap = 50; // TEST MODE: was Math.max(this.minGap, 500 - distance * 0.05);
+        const gap = Math.max(this.minGap, 500 - distance * 0.05);
         if (distance - this.lastSpawnDistance > gap) {
             const types = this.getAvailableTypes(distance);
             if (types.length > 0) {
