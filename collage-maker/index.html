@@ -24,14 +24,30 @@
 <body>
     <a href="#main-content" class="skip-link">Skip to content</a>
     <nav class="site-nav">
-        <a href="/">Home</a><span class="nav-sep">|</span>
-        <a href="/orc-viewer">Viewer</a><span class="nav-sep">|</span>
-        <a href="/collage-maker">Collage</a><span class="nav-sep">|</span>
-        <a href="/minigame">Game</a><span class="nav-sep">|</span>
-        <a href="/swap">Swap</a><span class="nav-sep">|</span>
-        <a href="/holders">Leaderboard</a><span class="nav-sep">|</span>
-        <a href="/my-horde">My Horde</a>
-        <span class="nav-sep">|</span>
+        <a href="/">Home</a>
+        <div class="nav-group">
+            <span class="nav-group-label">Explore</span>
+            <div class="nav-dropdown">
+                <a href="/orc-viewer">Viewer</a>
+                <a href="/holders">Leaderboard</a>
+                <a href="/my-horde">My Horde</a>
+            </div>
+        </div>
+        <div class="nav-group">
+            <span class="nav-group-label">Tools</span>
+            <div class="nav-dropdown">
+                <a href="/collage-maker">Collage Viewer</a>
+                <a href="/create-orc">Create an Orc</a>
+                <a href="/swap">MidSwap</a>
+            </div>
+        </div>
+        <div class="nav-group">
+            <span class="nav-group-label">Arcade</span>
+            <div class="nav-dropdown">
+                <a href="/minigame">Horde Tower Defense</a>
+                <a href="/orc-run">Orc Run</a>
+            </div>
+        </div>
         <button id="nav-link-discord" class="nav-link-discord" title="Link Discord">Link Discord</button>
         <button id="nav-link-x" class="nav-link-x" title="Link X">Link X</button>
     </nav>

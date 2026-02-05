@@ -14,13 +14,32 @@
 <body>
     <a href="#main-content" class="skip-link">Skip to content</a>
     <nav class="site-nav">
-        <a href="/">Home</a><span class="nav-sep">|</span>
-        <a href="/orc-viewer">Viewer</a><span class="nav-sep">|</span>
-        <a href="/collage-maker">Collage</a><span class="nav-sep">|</span>
-        <a href="/minigame">Game</a><span class="nav-sep">|</span>
-        <a href="/swap">Swap</a><span class="nav-sep">|</span>
-        <a href="/holders">Leaderboard</a><span class="nav-sep">|</span>
-        <a href="/my-horde">My Horde</a>
+        <a href="/">Home</a>
+        <div class="nav-group">
+            <span class="nav-group-label">Explore</span>
+            <div class="nav-dropdown">
+                <a href="/orc-viewer">Viewer</a>
+                <a href="/holders">Leaderboard</a>
+                <a href="/my-horde">My Horde</a>
+            </div>
+        </div>
+        <div class="nav-group">
+            <span class="nav-group-label">Tools</span>
+            <div class="nav-dropdown">
+                <a href="/collage-maker">Collage Viewer</a>
+                <a href="/create-orc">Create an Orc</a>
+                <a href="/swap">MidSwap</a>
+            </div>
+        </div>
+        <div class="nav-group">
+            <span class="nav-group-label">Arcade</span>
+            <div class="nav-dropdown">
+                <a href="/minigame">Horde Tower Defense</a>
+                <a href="/orc-run">Orc Run</a>
+            </div>
+        </div>
+        <button id="nav-link-discord" class="nav-link-discord" title="Link Discord">Link Discord</button>
+        <button id="nav-link-x" class="nav-link-x" title="Link X">Link X</button>
     </nav>
     <div class="container">
         <!-- Header -->
@@ -137,6 +156,7 @@
     </div>
 
     <!-- Solana Web3.js for blockchain transactions -->
+    <script src="/shared/nav.js"></script>
     <script defer src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js" integrity="sha384-xo1g+ODR6i1cxIVZeALc/apXFHeaJHO1j1whMO3dhtdBChWeaihnDs7UnXs9ch78" crossorigin="anonymous"></script>
     <!-- Extract Buffer from web3.js bundle for wallets that expect it globally (e.g. Solflare) -->
     <script defer src="/swap/buffer-polyfill.js"></script>
