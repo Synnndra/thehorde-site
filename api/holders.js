@@ -245,7 +245,7 @@ export default async function handler(req, res) {
         try {
             let offset = 0;
             const LIMIT = 20;
-            while (floorPrice === null && offset < 200) {
+            while (floorPrice === null && offset < 500) {
                 const listRes = await fetch(`https://api-mainnet.magiceden.dev/v2/collections/midevils/listings?offset=${offset}&limit=${LIMIT}`);
                 if (!listRes.ok) break;
                 const listings = await listRes.json();
