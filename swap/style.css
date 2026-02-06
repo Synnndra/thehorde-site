@@ -1231,6 +1231,7 @@ body {
     background: #1a1a2e;
     border-radius: 8px;
     width: 100px;
+    flex-shrink: 1;
 }
 
 .offer-item img {
@@ -1707,10 +1708,24 @@ body {
         padding: 10px 12px;
         font-size: 12px;
     }
+
+    .offer-item {
+        width: 70px;
+        padding: 6px;
+    }
+
+    .offer-item img {
+        width: 50px;
+        height: 50px;
+    }
 }
 
 /* Touch-friendly improvements */
 @media (hover: none) and (pointer: coarse) {
+    body {
+        background-attachment: scroll;
+    }
+
     /* Remove hover effects that don't work well on touch */
     .nft-card:hover {
         transform: none;

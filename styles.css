@@ -56,7 +56,7 @@ body {
     max-width: 1000px;
     margin: 0 auto;
     padding: 2rem;
-    padding-top: 2.5rem;
+    padding-top: 4rem;
 }
 
 /* Top Bar */
@@ -88,6 +88,10 @@ body {
     font-size: 1rem;
     justify-content: flex-start !important;
     width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
 }
 
 .site-nav-home .nav-group-label {
@@ -112,8 +116,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border: 2px solid var(--color-accent);
     border-radius: 50%;
     overflow: hidden;
@@ -404,7 +408,7 @@ header {
 
 .origin-poster {
     flex-shrink: 0;
-    width: 220px;
+    width: clamp(160px, 22vw, 220px);
     display: flex;
     padding: 1rem;
 }
@@ -445,7 +449,7 @@ header {
 
 .dao-poster {
     flex-shrink: 0;
-    width: 231px;
+    width: clamp(160px, 23vw, 231px);
     display: flex;
     padding: 1rem;
 }
@@ -700,4 +704,25 @@ footer {
     top: -0.75rem;
     left: 50%;
     transform: translateX(-50%);
+}
+
+/* Touch-device: disable fixed background to prevent jank */
+@media (hover: none) and (pointer: coarse) {
+    body {
+        background-attachment: scroll;
+    }
+}
+
+/* Nav home padding on small screens */
+@media (max-width: 480px) {
+    .site-nav-home {
+        padding: 0.5rem 1rem !important;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .content {
+        padding-top: 3.5rem;
+    }
 }

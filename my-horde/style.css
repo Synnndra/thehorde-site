@@ -31,6 +31,13 @@ body {
     background-attachment: fixed;
 }
 
+/* Touch-device: disable fixed background to prevent jank */
+@media (hover: none) and (pointer: coarse) {
+    body {
+        background-attachment: scroll;
+    }
+}
+
 .site-nav {
     position: relative;
 }
@@ -153,6 +160,7 @@ body::before {
     font-weight: 700;
     letter-spacing: 0.05em;
     padding: 0.5rem 1rem;
+    min-height: 44px;
     border: 2px solid var(--color-primary);
     border-radius: 4px;
     cursor: pointer;
@@ -262,6 +270,7 @@ body::before {
     left: 50%;
     transform: translateX(-50%);
     width: 260px;
+    max-width: 80vw;
     padding: 1rem;
     background: rgba(10, 10, 10, 0.95);
     border: 1px solid var(--color-primary);
@@ -1115,6 +1124,31 @@ body::before {
     }
 }
 
+@media (max-width: 360px) {
+    .badges-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+
+    .gallery-card {
+        width: 58px;
+    }
+
+    .gallery-card img {
+        width: 58px;
+        height: 58px;
+    }
+
+    .badge-card-icon {
+        font-size: 1.2rem;
+    }
+
+    .badge-card-img {
+        width: 32px;
+        height: 32px;
+    }
+}
+
 /* Wallet Link Buttons */
 .wallet-link-btn {
     background: transparent;
@@ -1168,7 +1202,7 @@ body::before {
     border: 1px solid rgba(201, 162, 39, 0.3);
     border-radius: 12px;
     width: 340px;
-    max-width: 90vw;
+    max-width: calc(100vw - 32px);
     overflow: hidden;
 }
 

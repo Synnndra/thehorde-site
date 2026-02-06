@@ -34,6 +34,13 @@ body {
     overflow: hidden;
 }
 
+/* Touch-device: disable fixed background to prevent jank */
+@media (hover: none) and (pointer: coarse) {
+    body {
+        background-attachment: scroll;
+    }
+}
+
 /* Site nav override for game page */
 .site-nav {
     position: fixed;
@@ -380,8 +387,8 @@ h2, h3 {
 }
 
 .control-btn {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     color: var(--text-primary);
@@ -519,6 +526,12 @@ h2, h3 {
 ::-webkit-scrollbar-thumb:hover { background: var(--accent-gold-dim); }
 
 /* Responsive */
+@media (max-width: 900px) {
+    .screen-content {
+        padding: 30px 20px;
+    }
+}
+
 @media (max-width: 600px) {
     .game-title {
         font-size: 2rem;
@@ -539,6 +552,44 @@ h2, h3 {
 
     .hud-stat {
         font-size: 0.9rem;
+    }
+
+    .hud-left, .hud-right {
+        gap: 10px;
+    }
+
+    .primary-btn,
+    .secondary-btn {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .control-btn {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+@media (max-width: 400px) {
+    .game-title {
+        font-size: 1.6rem;
+        letter-spacing: 2px;
+    }
+
+    .subtitle {
+        font-size: 1rem;
+    }
+
+    .hud-stat .label {
+        display: none;
+    }
+
+    .hud-stat {
+        font-size: 0.85rem;
+    }
+
+    .hud-left, .hud-right {
+        gap: 6px;
     }
 }
 
