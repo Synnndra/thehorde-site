@@ -239,7 +239,8 @@ export default async function handler(req, res) {
         }
 
         // Fetch orc floor price from Magic Eden collection listings
-        // Page through listings (sorted by price) until we find the first orc
+        // Build set of orc mints from Helius data, then find cheapest listed orc
+        const orcMints = new Set(orcItems.map(item => item.id));
         let floorPrice = null;
         try {
             let offset = 0;
@@ -250,8 +251,8 @@ export default async function handler(req, res) {
                 const listings = await listRes.json();
                 if (!Array.isArray(listings) || listings.length === 0) break;
                 for (const listing of listings) {
-                    const name = listing.token?.name || '';
-                    if (name.toLowerCase().includes('orc')) {
+                    const mint = listing.tokenMint || listing.token?.mintAddress || '';
+                    if (orcMints.has(mint)) {
                         floorPrice = listing.price;
                         break;
                     }
