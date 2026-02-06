@@ -630,6 +630,16 @@ footer {
     font-size: 0.9rem;
 }
 
+.subdao-disclaimer {
+    margin-top: 0.75rem;
+    font-size: 0.78rem;
+    color: #6b6560;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.5;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
     .content {
