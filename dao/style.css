@@ -168,8 +168,8 @@ body {
 
 .treasury-label {
     font-family: 'Cinzel', serif;
-    font-size: 0.7rem;
-    color: var(--text-dim);
+    font-size: 0.75rem;
+    color: var(--text);
     letter-spacing: 0.05em;
 }
 
