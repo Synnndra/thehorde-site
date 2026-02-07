@@ -63,6 +63,41 @@
             </nav>
         </header>
 
+        <section class="dao-rules" id="daoRules">
+            <button class="dao-rules-toggle" id="daoRulesToggle">
+                How does DAO voting work? <span class="toggle-icon">+</span>
+            </button>
+            <div class="dao-rules-content" id="daoRulesContent" style="display: none;">
+                <div class="rules-grid">
+                    <div class="rule-item">
+                        <strong>Voting Power</strong>
+                        <p>1 Orc = 1 vote. The more Orcs you hold, the more votes you have. Transfer protection prevents the same Orc from voting twice, even if moved to another wallet.</p>
+                    </div>
+                    <div class="rule-item">
+                        <strong>Creating Proposals</strong>
+                        <p>You must hold at least 3 Orcs to create a proposal, and you can only create one proposal per week. Choose your proposals wisely.</p>
+                    </div>
+                    <div class="rule-item">
+                        <strong>Voting Period</strong>
+                        <p>Proposals run for 24, 48, or 72 hours. A quorum of 33 votes (~10% of all Orcs) is required for a valid result.</p>
+                    </div>
+                    <div class="rule-item">
+                        <strong>Results</strong>
+                        <p>If quorum is met, the majority wins (Passed or Rejected). If quorum is not met, the proposal expires. All results are advisory — they do not auto-execute.</p>
+                    </div>
+                    <div class="rule-item">
+                        <strong>What Can Be Proposed</strong>
+                        <p>Community initiatives, treasury spending, partnerships, new tools or features, marketing ideas, and changes to DAO rules.</p>
+                    </div>
+                    <div class="rule-item">
+                        <strong>What Cannot Be Proposed</strong>
+                        <p>Anything illegal, proposals that override the main MidEvils project, personal attacks or doxxing, or proposals designed to benefit a single holder at the expense of others.</p>
+                    </div>
+                </div>
+                <p class="rules-note">This is a SubDAO. Passed proposals serve as a signal of community consensus and are carried out by the multisig treasury at its discretion.</p>
+            </div>
+        </section>
+
         <section class="wallet-section">
             <div class="wallet-status" id="walletStatus">
                 <span class="status-text">Not Connected</span>

@@ -696,6 +696,85 @@ body {
     color: var(--text);
 }
 
+/* DAO Rules */
+.dao-rules {
+    margin-bottom: 25px;
+}
+
+.dao-rules-toggle {
+    width: 100%;
+    background: rgba(20, 20, 35, 0.6);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 14px 20px;
+    color: var(--gold);
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: border-color 0.2s;
+}
+
+.dao-rules-toggle:hover {
+    border-color: var(--gold);
+}
+
+.dao-rules-toggle .toggle-icon {
+    font-size: 1.2rem;
+}
+
+.dao-rules-content {
+    background: rgba(20, 20, 35, 0.6);
+    border: 1px solid #333;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 20px;
+}
+
+.rules-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.rule-item {
+    padding: 12px;
+    background: rgba(10, 10, 20, 0.5);
+    border-radius: 6px;
+}
+
+.rule-item strong {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: var(--gold);
+    display: block;
+    margin-bottom: 6px;
+}
+
+.rule-item p {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+}
+
+.rules-note {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    font-style: italic;
+    text-align: center;
+    padding-top: 8px;
+    border-top: 1px solid #333;
+}
+
+@media (max-width: 600px) {
+    .rules-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Footer */
 .dao-footer {
     text-align: center;

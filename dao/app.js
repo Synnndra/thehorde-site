@@ -25,6 +25,22 @@ document.addEventListener('DOMContentLoaded', function() {
     if (connectBtn) connectBtn.addEventListener('click', connectWallet);
     if (disconnectBtn) disconnectBtn.addEventListener('click', disconnectWallet);
 
+    // Rules toggle
+    var rulesToggle = document.getElementById('daoRulesToggle');
+    var rulesContent = document.getElementById('daoRulesContent');
+    if (rulesToggle && rulesContent) {
+        rulesToggle.addEventListener('click', function() {
+            var isOpen = rulesContent.style.display !== 'none';
+            rulesContent.style.display = isOpen ? 'none' : 'block';
+            rulesToggle.querySelector('.toggle-icon').textContent = isOpen ? '+' : '-';
+            if (!isOpen) {
+                rulesToggle.style.borderRadius = '8px 8px 0 0';
+            } else {
+                rulesToggle.style.borderRadius = '8px';
+            }
+        });
+    }
+
     var page = getPageType();
 
     if (page === 'list') {
