@@ -775,6 +775,36 @@ body {
     }
 }
 
+/* Detail Top Bar */
+.detail-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.copy-link-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    padding: 6px 14px;
+    border: 1px solid var(--gold);
+    background: transparent;
+    color: var(--gold);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.copy-link-btn:hover {
+    background: var(--gold);
+    color: var(--bg-dark);
+}
+
+.copy-link-btn.copied {
+    border-color: var(--green);
+    color: var(--green);
+}
+
 /* Footer */
 .dao-footer {
     text-align: center;

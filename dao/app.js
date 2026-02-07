@@ -359,6 +359,20 @@ function initProposalPage() {
     } else {
         showError('No proposal ID specified');
     }
+
+    var copyBtn = document.getElementById('copyLinkBtn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+            navigator.clipboard.writeText(window.location.href).then(function() {
+                copyBtn.textContent = 'Copied!';
+                copyBtn.classList.add('copied');
+                setTimeout(function() {
+                    copyBtn.textContent = 'Copy Link';
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            });
+        });
+    }
 }
 
 async function loadProposal(proposalId) {
