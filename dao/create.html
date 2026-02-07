@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Proposal | DAO Voting | The Horde</title>
+    <meta name="description" content="Create a new DAO proposal for The Horde governance.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/dao/style.css">
+    <link rel="stylesheet" href="/shared/nav.css">
+    <link rel="icon" href="/orclogo.jpg" type="image/jpeg">
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to content</a>
+    <nav class="site-nav">
+        <a href="/">Home</a>
+        <div class="nav-group">
+            <span class="nav-group-label">Explore</span>
+            <div class="nav-dropdown">
+                <a href="/orc-viewer">Viewer</a>
+                <a href="/holders">Leaderboard</a>
+                <a href="/my-horde">My Horde</a>
+                <a href="/collage-maker">Collage Maker</a>
+                <a href="/create-orc">Create an Orc</a>
+            </div>
+        </div>
+        <div class="nav-group">
+            <span class="nav-group-label">Utility</span>
+            <div class="nav-dropdown">
+                <a href="/swap">MidSwap</a>
+                <a href="/dao">DAO</a>
+            </div>
+        </div>
+        <div class="nav-group">
+            <span class="nav-group-label">Arcade</span>
+            <div class="nav-dropdown">
+                <a href="/minigame">Horde Tower Defense</a>
+                <a href="/orc-run">Orc Run</a>
+            </div>
+        </div>
+        <button id="nav-link-discord" class="nav-link-discord" title="Link Discord">Link Discord</button>
+        <button id="nav-link-x" class="nav-link-x" title="Link X">Link X</button>
+    </nav>
+
+    <div class="container" id="main-content">
+        <a href="/dao" class="back-link">&larr; Back to Proposals</a>
+
+        <header class="dao-header">
+            <h1>Create Proposal</h1>
+            <p>Requires 3+ Orcs to create a proposal</p>
+        </header>
+
+        <section class="wallet-section">
+            <div class="wallet-status" id="walletStatus">
+                <span class="status-text">Not Connected</span>
+            </div>
+            <button id="connectWalletBtn" class="connect-btn">Connect Wallet</button>
+            <button id="disconnectWalletBtn" class="disconnect-btn" style="display: none;">Disconnect</button>
+            <span class="voting-power" id="votingPower" style="display: none;"></span>
+        </section>
+
+        <div class="empty-state">Proposal creation is not yet enabled. Stay tuned!</div>
+
+        <div id="errorMsg" class="error-msg" style="display: none;"></div>
+        <div id="successMsg" class="success-msg" style="display: none;"></div>
+
+        <div id="createFormSection" style="display: none;">
+            <form class="create-form" id="createForm">
+                <div class="form-group">
+                    <label for="proposalTitle">Title</label>
+                    <input type="text" id="proposalTitle" maxlength="100" placeholder="Brief proposal title..." required>
+                    <span class="char-count" id="titleCharCount">0 / 100</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="proposalDescription">Description</label>
+                    <textarea id="proposalDescription" maxlength="2000" placeholder="Describe your proposal in detail. What do you want to accomplish and why?" required></textarea>
+                    <span class="char-count" id="descCharCount">0 / 2000</span>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="proposalDuration">Duration (hours)</label>
+                        <select id="proposalDuration">
+                            <option value="24">24 hours (1 day)</option>
+                            <option value="48">48 hours (2 days)</option>
+                            <option value="72" selected>72 hours (3 days)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="proposalQuorum">Quorum (votes needed)</label>
+                        <input type="number" id="proposalQuorum" min="5" max="100" value="33" required>
+                    </div>
+                </div>
+
+                <div class="preview-section" id="previewSection" style="display: none;">
+                    <h3>Preview</h3>
+                    <div id="previewContent"></div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn" disabled>Create Proposal</button>
+            </form>
+        </div>
+
+        <div id="needOrcsMsg" class="empty-state" style="display: none;">
+            You need at least 3 Orcs to create a proposal. Connect your wallet to check your holdings.
+        </div>
+
+        <footer class="dao-footer">
+            <p>The Horde DAO &copy; 2026 | <a href="/">Back to Home</a></p>
+        </footer>
+    </div>
+
+    <script src="/shared/nav.js"></script>
+    <script src="/dao/wallet.js"></script>
+    <script src="/dao/app.js"></script>
+    <script defer src="/ambient-player.js"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

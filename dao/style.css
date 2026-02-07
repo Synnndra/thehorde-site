@@ -1,0 +1,841 @@
+/* DAO Voting - Styles */
+
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* CSS Variables */
+:root {
+    --gold: #c9a227;
+    --gold-dim: rgba(201, 162, 39, 0.3);
+    --brown: #8b4513;
+    --bg-dark: #0a0a0a;
+    --bg-card: rgba(26, 26, 46, 0.95);
+    --bg-section: #2a2a3e;
+    --text: #e8e4d9;
+    --text-dim: #9a9484;
+    --green: #4caf50;
+    --green-dim: rgba(76, 175, 80, 0.15);
+    --red: #e74c3c;
+    --red-dim: rgba(231, 76, 60, 0.15);
+    --blue: #667eea;
+}
+
+/* Page */
+body {
+    font-family: 'Crimson Text', serif;
+    background: #000 url('/background.jpg') no-repeat center center fixed;
+    background-size: cover;
+    min-height: 100vh;
+    padding: 20px;
+    color: var(--text);
+}
+
+/* Main Container */
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: var(--bg-card);
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Header */
+.dao-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.dao-header h1 {
+    font-family: 'Cinzel', serif;
+    color: var(--gold);
+    font-size: 36px;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+}
+
+.dao-header p {
+    color: var(--text-dim);
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.dao-nav {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.dao-nav .nav-link {
+    font-family: 'Cinzel', serif;
+    color: var(--text);
+    text-decoration: none;
+    padding: 8px 20px;
+    border: 2px solid #333;
+    border-radius: 5px;
+    transition: all 0.3s;
+    font-size: 0.9rem;
+}
+
+.dao-nav .nav-link:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+}
+
+.dao-nav .nav-link.active {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--bg-dark);
+}
+
+/* Wallet Section */
+.wallet-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+    padding: 12px;
+    background: var(--bg-section);
+    border-radius: 8px;
+    flex-wrap: wrap;
+}
+
+.wallet-status {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+}
+
+.wallet-status.connected .status-text {
+    color: var(--gold);
+}
+
+.connect-btn, .disconnect-btn {
+    font-family: 'Cinzel', serif;
+    padding: 8px 20px;
+    border: 2px solid var(--gold);
+    background: transparent;
+    color: var(--gold);
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    transition: all 0.3s;
+}
+
+.connect-btn:hover {
+    background: var(--gold);
+    color: var(--bg-dark);
+}
+
+.disconnect-btn {
+    border-color: var(--red);
+    color: var(--red);
+    font-size: 0.75rem;
+    padding: 6px 12px;
+}
+
+.disconnect-btn:hover {
+    background: var(--red);
+    color: #fff;
+}
+
+.voting-power {
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    color: var(--gold);
+    background: var(--gold-dim);
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+
+/* Stats Bar */
+.stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    font-family: 'Cinzel', serif;
+    font-size: 1.5rem;
+    color: var(--gold);
+    display: block;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Filter Tabs */
+.filter-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.filter-tab {
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    padding: 6px 16px;
+    border: 1px solid #333;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.filter-tab:hover {
+    border-color: var(--gold);
+    color: var(--text);
+}
+
+.filter-tab.active {
+    background: var(--gold-dim);
+    border-color: var(--gold);
+    color: var(--gold);
+}
+
+/* Proposal Cards */
+.proposals-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.proposal-card {
+    background: rgba(20, 20, 35, 0.8);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+}
+
+.proposal-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-1px);
+}
+
+.proposal-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.proposal-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    color: var(--text);
+    flex: 1;
+}
+
+.proposal-status {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+
+.proposal-status.active {
+    background: var(--green-dim);
+    color: var(--green);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.proposal-status.passed {
+    background: var(--green-dim);
+    color: var(--green);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.proposal-status.rejected {
+    background: var(--red-dim);
+    color: var(--red);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.proposal-status.expired {
+    background: rgba(150, 150, 150, 0.1);
+    color: #888;
+    border: 1px solid rgba(150, 150, 150, 0.2);
+}
+
+/* Vote Bar (mini) */
+.vote-bar-mini {
+    height: 6px;
+    background: #1a1a2e;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    display: flex;
+}
+
+.vote-bar-for {
+    background: var(--green);
+    transition: width 0.3s;
+}
+
+.vote-bar-against {
+    background: var(--red);
+    transition: width 0.3s;
+}
+
+.proposal-card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.proposal-votes-summary {
+    display: flex;
+    gap: 12px;
+}
+
+.votes-for {
+    color: var(--green);
+}
+
+.votes-against {
+    color: var(--red);
+}
+
+.proposal-countdown {
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    color: var(--gold);
+}
+
+/* Proposal Detail Page */
+.proposal-detail {
+    margin-bottom: 30px;
+}
+
+.proposal-detail-header {
+    margin-bottom: 20px;
+}
+
+.proposal-detail-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.6rem;
+    color: var(--gold);
+    margin-bottom: 8px;
+}
+
+.proposal-detail-meta {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.proposal-detail-description {
+    background: rgba(20, 20, 35, 0.6);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Vote Bar (large) */
+.vote-section {
+    margin-bottom: 25px;
+}
+
+.vote-section h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 12px;
+}
+
+.vote-bar-large {
+    height: 32px;
+    background: #1a1a2e;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    margin-bottom: 10px;
+    position: relative;
+}
+
+.vote-bar-large .vote-bar-for,
+.vote-bar-large .vote-bar-against {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    color: #fff;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.vote-tally {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.vote-tally-for {
+    color: var(--green);
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+}
+
+.vote-tally-against {
+    color: var(--red);
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+}
+
+.vote-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+/* Vote Buttons */
+.vote-actions {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.vote-btn {
+    flex: 1;
+    min-width: 140px;
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    padding: 12px 20px;
+    border: 2px solid;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.3s;
+    letter-spacing: 0.05em;
+}
+
+.vote-btn-for {
+    border-color: var(--green);
+    color: var(--green);
+}
+
+.vote-btn-for:hover:not(:disabled) {
+    background: var(--green);
+    color: #fff;
+}
+
+.vote-btn-against {
+    border-color: var(--red);
+    color: var(--red);
+}
+
+.vote-btn-against:hover:not(:disabled) {
+    background: var(--red);
+    color: #fff;
+}
+
+.vote-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.vote-btn.voted {
+    opacity: 1;
+}
+
+.vote-btn-for.voted {
+    background: var(--green);
+    color: #fff;
+}
+
+.vote-btn-against.voted {
+    background: var(--red);
+    color: #fff;
+}
+
+/* Voter List */
+.voters-section {
+    margin-top: 25px;
+}
+
+.voters-section h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 12px;
+}
+
+.voter-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.voter-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(20, 20, 35, 0.6);
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.voter-wallet {
+    color: var(--text-dim);
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+
+.voter-choice {
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 3px;
+}
+
+.voter-choice.for {
+    color: var(--green);
+    background: var(--green-dim);
+}
+
+.voter-choice.against {
+    color: var(--red);
+    background: var(--red-dim);
+}
+
+.voter-weight {
+    color: var(--gold);
+    font-size: 0.8rem;
+}
+
+/* Create Proposal Form */
+.create-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: var(--gold);
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    font-family: 'Crimson Text', serif;
+    font-size: 1rem;
+    padding: 10px 14px;
+    background: rgba(20, 20, 35, 0.8);
+    border: 1px solid #333;
+    border-radius: 6px;
+    color: var(--text);
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--gold);
+}
+
+.form-group textarea {
+    min-height: 150px;
+    resize: vertical;
+    line-height: 1.6;
+}
+
+.form-group .char-count {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-align: right;
+}
+
+.form-group .char-count.over {
+    color: var(--red);
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+/* Preview */
+.preview-section {
+    background: rgba(20, 20, 35, 0.6);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.preview-section h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+}
+
+.submit-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    padding: 14px 30px;
+    border: 2px solid var(--gold);
+    background: transparent;
+    color: var(--gold);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.3s;
+    letter-spacing: 0.05em;
+}
+
+.submit-btn:hover:not(:disabled) {
+    background: var(--gold);
+    color: var(--bg-dark);
+}
+
+.submit-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Messages */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-dim);
+    font-size: 1.1rem;
+}
+
+.error-msg {
+    text-align: center;
+    padding: 15px;
+    background: var(--red-dim);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    border-radius: 6px;
+    color: var(--red);
+    margin-bottom: 15px;
+}
+
+.success-msg {
+    text-align: center;
+    padding: 15px;
+    background: var(--green-dim);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    border-radius: 6px;
+    color: var(--green);
+    margin-bottom: 15px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-dim);
+    font-style: italic;
+}
+
+/* Back Link */
+.back-link {
+    display: inline-block;
+    color: var(--gold);
+    text-decoration: none;
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    margin-bottom: 15px;
+    transition: color 0.2s;
+}
+
+.back-link:hover {
+    color: var(--text);
+}
+
+/* Footer */
+.dao-footer {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #333;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+}
+
+.dao-footer a {
+    color: var(--gold);
+    text-decoration: none;
+}
+
+.dao-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Wallet Modal (from swap) */
+.wallet-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wallet-modal-card {
+    background: var(--bg-card);
+    border: 1px solid var(--brown);
+    border-radius: 10px;
+    padding: 20px;
+    min-width: 280px;
+    max-width: 380px;
+}
+
+.wallet-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    font-family: 'Cinzel', serif;
+    color: var(--gold);
+}
+
+.wallet-modal-close {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.wallet-modal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.wallet-modal-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: rgba(20, 20, 35, 0.8);
+    border: 1px solid #333;
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'Crimson Text', serif;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.wallet-modal-option:hover {
+    border-color: var(--gold);
+}
+
+.wallet-modal-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+}
+
+/* Mobile Wallet Prompt */
+.mobile-wallet-prompt {
+    text-align: center;
+}
+
+.mobile-wallet-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.mobile-wallet-btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: #fff;
+}
+
+.phantom-btn { background: #ab9ff2; }
+.solflare-btn { background: #fc8c03; }
+
+/* Responsive */
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        padding: 20px 15px;
+    }
+
+    .dao-header h1 {
+        font-size: 28px;
+    }
+
+    .vote-actions {
+        flex-direction: column;
+    }
+
+    .form-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .proposal-card-header {
+        flex-direction: column;
+    }
+
+    .stats-bar {
+        gap: 15px;
+    }
+}

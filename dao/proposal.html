@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proposal | DAO Voting | The Horde</title>
+    <meta name="description" content="View and vote on a DAO proposal.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/dao/style.css">
+    <link rel="stylesheet" href="/shared/nav.css">
+    <link rel="icon" href="/orclogo.jpg" type="image/jpeg">
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to content</a>
+    <nav class="site-nav">
+        <a href="/">Home</a>
+        <div class="nav-group">
+            <span class="nav-group-label">Explore</span>
+            <div class="nav-dropdown">
+                <a href="/orc-viewer">Viewer</a>
+                <a href="/holders">Leaderboard</a>
+                <a href="/my-horde">My Horde</a>
+                <a href="/collage-maker">Collage Maker</a>
+                <a href="/create-orc">Create an Orc</a>
+            </div>
+        </div>
+        <div class="nav-group">
+            <span class="nav-group-label">Utility</span>
+            <div class="nav-dropdown">
+                <a href="/swap">MidSwap</a>
+                <a href="/dao">DAO</a>
+            </div>
+        </div>
+        <div class="nav-group">
+            <span class="nav-group-label">Arcade</span>
+            <div class="nav-dropdown">
+                <a href="/minigame">Horde Tower Defense</a>
+                <a href="/orc-run">Orc Run</a>
+            </div>
+        </div>
+        <button id="nav-link-discord" class="nav-link-discord" title="Link Discord">Link Discord</button>
+        <button id="nav-link-x" class="nav-link-x" title="Link X">Link X</button>
+    </nav>
+
+    <div class="container" id="main-content">
+        <a href="/dao" class="back-link">&larr; Back to Proposals</a>
+
+        <section class="wallet-section">
+            <div class="wallet-status" id="walletStatus">
+                <span class="status-text">Not Connected</span>
+            </div>
+            <button id="connectWalletBtn" class="connect-btn">Connect Wallet</button>
+            <button id="disconnectWalletBtn" class="disconnect-btn" style="display: none;">Disconnect</button>
+            <span class="voting-power" id="votingPower" style="display: none;"></span>
+        </section>
+
+        <div id="errorMsg" class="error-msg" style="display: none;"></div>
+        <div id="successMsg" class="success-msg" style="display: none;"></div>
+        <div id="loadingMsg" class="loading" style="display: none;">Loading proposal...</div>
+
+        <div id="proposalDetail"></div>
+
+        <footer class="dao-footer">
+            <p>The Horde DAO &copy; 2026 | <a href="/">Back to Home</a></p>
+        </footer>
+    </div>
+
+    <script src="/shared/nav.js"></script>
+    <script src="/dao/wallet.js"></script>
+    <script src="/dao/app.js"></script>
+    <script defer src="/ambient-player.js"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

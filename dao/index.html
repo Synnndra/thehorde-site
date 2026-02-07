@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAO Voting | The Horde</title>
+    <meta name="description" content="The Horde DAO — Orc NFT holders govern through on-chain proposals and voting.">
+    <meta property="og:title" content="DAO Voting | The Horde">
+    <meta property="og:description" content="The Horde DAO — Orc NFT holders govern through on-chain proposals and voting.">
+    <meta property="og:image" content="https://midhorde.com/orclogo.jpg">
+    <meta property="og:url" content="https://midhorde.com/dao">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="DAO Voting | The Horde">
+    <meta name="twitter:description" content="The Horde DAO — Orc NFT holders govern through on-chain proposals and voting.">
+    <meta name="twitter:image" content="https://midhorde.com/orclogo.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/dao/style.css">
+    <link rel="stylesheet" href="/shared/nav.css">
+    <link rel="icon" href="/orclogo.jpg" type="image/jpeg">
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to content</a>
+    <nav class="site-nav">
+        <a href="/">Home</a>
+        <div class="nav-group">
+            <span class="nav-group-label">Explore</span>
+            <div class="nav-dropdown">
+                <a href="/orc-viewer">Viewer</a>
+                <a href="/holders">Leaderboard</a>
+                <a href="/my-horde">My Horde</a>
+                <a href="/collage-maker">Collage Maker</a>
+                <a href="/create-orc">Create an Orc</a>
+            </div>
+        </div>
+        <div class="nav-group">
+            <span class="nav-group-label">Utility</span>
+            <div class="nav-dropdown">
+                <a href="/swap">MidSwap</a>
+                <a href="/dao">DAO</a>
+            </div>
+        </div>
+        <div class="nav-group">
+            <span class="nav-group-label">Arcade</span>
+            <div class="nav-dropdown">
+                <a href="/minigame">Horde Tower Defense</a>
+                <a href="/orc-run">Orc Run</a>
+            </div>
+        </div>
+        <button id="nav-link-discord" class="nav-link-discord" title="Link Discord">Link Discord</button>
+        <button id="nav-link-x" class="nav-link-x" title="Link X">Link X</button>
+    </nav>
+
+    <div class="container" id="main-content">
+        <header class="dao-header">
+            <h1>DAO Voting</h1>
+            <p>Orc holders govern The Horde through proposals and voting</p>
+            <nav class="dao-nav">
+                <a href="/dao" class="nav-link active">Proposals</a>
+                <span class="nav-link" style="opacity:0.4;cursor:default;" title="Coming soon">Create Proposal</span>
+            </nav>
+        </header>
+
+        <section class="wallet-section">
+            <div class="wallet-status" id="walletStatus">
+                <span class="status-text">Not Connected</span>
+            </div>
+            <button id="connectWalletBtn" class="connect-btn">Connect Wallet</button>
+            <button id="disconnectWalletBtn" class="disconnect-btn" style="display: none;">Disconnect</button>
+            <span class="voting-power" id="votingPower" style="display: none;"></span>
+        </section>
+
+        <div class="stats-bar" id="statsBar">
+            <div class="stat-item">
+                <span class="stat-value" id="statActive">-</span>
+                <span class="stat-label">Active</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="statClosed">-</span>
+                <span class="stat-label">Closed</span>
+            </div>
+        </div>
+
+        <div class="filter-tabs">
+            <button class="filter-tab active" data-filter="all">All</button>
+            <button class="filter-tab" data-filter="active">Active</button>
+            <button class="filter-tab" data-filter="closed">Closed</button>
+        </div>
+
+        <div id="errorMsg" class="error-msg" style="display: none;"></div>
+        <div id="loadingMsg" class="loading" style="display: none;">Loading proposals...</div>
+
+        <div class="proposals-list" id="proposalsList">
+            <div class="empty-state">Loading...</div>
+        </div>
+
+        <footer class="dao-footer">
+            <p>The Horde DAO &copy; 2026 | <a href="/">Back to Home</a></p>
+        </footer>
+    </div>
+
+    <script src="/shared/nav.js"></script>
+    <script src="/dao/wallet.js"></script>
+    <script src="/dao/app.js"></script>
+    <script defer src="/ambient-player.js"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

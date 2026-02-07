@@ -37,7 +37,12 @@
     { "source": "/badge/:id", "destination": "/api/badge-share.js?id=:id" },
     { "source": "/orc-run", "destination": "/orc-run/index.html" },
     { "source": "/api/leaderboard-orcrun", "destination": "/api/leaderboard-orcrun.js" },
-    { "source": "/create-orc", "destination": "/create-orc/index.html" }
+    { "source": "/create-orc", "destination": "/create-orc/index.html" },
+    { "source": "/dao", "destination": "/dao/index.html" },
+    { "source": "/api/dao/proposals", "destination": "/api/dao/proposals.js" },
+    { "source": "/api/dao/proposal", "destination": "/api/dao/proposal.js" },
+    { "source": "/api/dao/create", "destination": "/api/dao/create.js" },
+    { "source": "/api/dao/vote", "destination": "/api/dao/vote.js" }
   ],
   "headers": [
     {
