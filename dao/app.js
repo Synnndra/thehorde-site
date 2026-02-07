@@ -217,6 +217,8 @@ function escapeHtml(str) {
 
 // ========== List Page ==========
 
+var DAO_TREASURY_WALLET = '6zLek4SZSKNhvzDZP4AZWyUYYLzEYCYBaYeqvdZgXpZq';
+
 function initListPage() {
     // Filter tabs
     document.querySelectorAll('.filter-tab').forEach(function(tab) {
@@ -229,6 +231,36 @@ function initListPage() {
     });
 
     loadProposals();
+    loadTreasuryBalance();
+}
+
+async function loadTreasuryBalance() {
+    var balanceEl = document.getElementById('treasuryBalance');
+    if (!balanceEl) return;
+
+    try {
+        var response = await fetch('/api/helius', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                id: 'treasury-balance',
+                method: 'getBalance',
+                params: [DAO_TREASURY_WALLET]
+            })
+        });
+        var data = await response.json();
+
+        if (data.result && data.result.value !== undefined) {
+            var sol = data.result.value / 1000000000;
+            balanceEl.textContent = sol.toFixed(2) + ' SOL';
+        } else {
+            balanceEl.textContent = 'Unavailable';
+        }
+    } catch (err) {
+        console.error('Error fetching treasury balance:', err);
+        balanceEl.textContent = 'Unavailable';
+    }
 }
 
 async function loadProposals() {
