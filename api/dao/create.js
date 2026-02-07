@@ -26,9 +26,6 @@ import {
 } from '../../lib/dao-utils.js';
 
 export default async function handler(req, res) {
-    // Proposals are disabled for now
-    return res.status(403).json({ error: 'Proposal creation is not yet enabled. Stay tuned!' });
-
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }

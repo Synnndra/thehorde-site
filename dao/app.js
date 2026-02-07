@@ -469,10 +469,6 @@ function renderProposalVoteButtons() {
 
     var p = currentProposal;
 
-    // Voting is disabled for now
-    actionsEl.innerHTML = '<p style="color:var(--text-dim);font-style:italic;">Voting is not yet enabled. Stay tuned!</p>';
-    return;
-
     if (p.status !== 'active') {
         actionsEl.innerHTML = '';
         return;
