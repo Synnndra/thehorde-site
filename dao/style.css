@@ -154,31 +154,28 @@ body {
     border-radius: 4px;
 }
 
-/* Treasury Box */
+/* Treasury Box (inline in dao-nav) */
 .treasury-box {
-    display: flex;
-    justify-content: center;
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 25px;
-    padding: 16px 24px;
+    gap: 6px;
+    padding: 6px 14px;
     background: rgba(20, 20, 35, 0.6);
     border: 1px solid var(--gold-dim);
-    border-radius: 8px;
-    text-align: center;
+    border-radius: 5px;
+    font-size: 0.8rem;
 }
 
 .treasury-label {
     font-family: 'Cinzel', serif;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.05em;
 }
 
 .treasury-balance {
     font-family: 'Cinzel', serif;
-    font-size: 1.3rem;
+    font-size: 0.85rem;
     color: var(--gold);
     font-weight: 700;
 }

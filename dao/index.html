@@ -60,6 +60,10 @@
             <nav class="dao-nav">
                 <a href="/dao" class="nav-link active">Proposals</a>
                 <a href="/dao/create.html" class="nav-link" id="createLink">Create Proposal</a>
+                <span class="treasury-box" id="treasuryBox">
+                    <span class="treasury-label">Treasury:</span>
+                    <span class="treasury-balance" id="treasuryBalance">...</span>
+                </span>
             </nav>
         </header>
 
@@ -106,11 +110,6 @@
             <button id="disconnectWalletBtn" class="disconnect-btn" style="display: none;">Disconnect</button>
             <span class="voting-power" id="votingPower" style="display: none;"></span>
         </section>
-
-        <div class="treasury-box" id="treasuryBox">
-            <span class="treasury-label">DAO Treasury</span>
-            <span class="treasury-balance" id="treasuryBalance">Loading...</span>
-        </div>
 
         <div class="stats-bar" id="statsBar">
             <div class="stat-item">
