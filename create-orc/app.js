@@ -21,7 +21,7 @@
     }
 
     function getImagePath(layerId, filename) {
-        return 'layers/' + layerId + '/' + filename;
+        return '/create-orc/layers/' + layerId + '/' + filename;
     }
 
     function findOption(layerId, optionId) {
