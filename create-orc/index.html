@@ -4,122 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create an Orc | The Horde</title>
-    <meta name="description" content="Create your own Orc PFP with layered traits. Coming soon!">
+    <meta name="description" content="Create your own Orc PFP with layered traits.">
     <meta property="og:title" content="Create an Orc | The Horde">
-    <meta property="og:description" content="Create your own Orc PFP with layered traits. Coming soon!">
+    <meta property="og:description" content="Create your own Orc PFP with layered traits.">
     <meta property="og:image" content="https://midhorde.com/orclogo.jpg">
     <meta property="og:url" content="https://midhorde.com/create-orc">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="Create an Orc | The Horde">
-    <meta name="twitter:description" content="Create your own Orc PFP with layered traits. Coming soon!">
+    <meta name="twitter:description" content="Create your own Orc PFP with layered traits.">
     <meta name="twitter:image" content="https://midhorde.com/orclogo.jpg">
     <link rel="icon" href="/orclogo.jpg" type="image/jpeg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=MedievalSharp&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/shared/nav.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Crimson Text', serif;
-            background: linear-gradient(135deg, #1a0a0a 0%, #2d1810 50%, #1a0a0a 100%);
-            min-height: 100vh;
-            color: #e8e4dd;
-        }
-        .skip-link {
-            position: absolute;
-            top: -40px;
-            left: 0;
-            background: #c9a227;
-            color: #1a0a0a;
-            padding: 8px;
-            z-index: 100;
-        }
-        .skip-link:focus {
-            top: 0;
-        }
-        .coming-soon-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: calc(100vh - 50px);
-            padding: 40px 20px;
-            text-align: center;
-        }
-        .coming-soon-title {
-            font-family: 'Cinzel', serif;
-            font-size: clamp(2.5rem, 8vw, 4rem);
-            font-weight: 700;
-            color: #c9a227;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            margin-bottom: 20px;
-        }
-        .coming-soon-subtitle {
-            font-size: clamp(1.2rem, 4vw, 1.5rem);
-            color: #a89a8a;
-            margin-bottom: 40px;
-            max-width: 500px;
-        }
-        .orc-icon {
-            width: 150px;
-            height: 150px;
-            border-radius: 50%;
-            border: 4px solid #c9a227;
-            margin-bottom: 40px;
-            box-shadow: 0 0 30px rgba(201, 162, 39, 0.3);
-        }
-        .feature-preview {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid #3a2a1a;
-            border-radius: 12px;
-            padding: 30px;
-            max-width: 400px;
-            margin-top: 20px;
-        }
-        .feature-preview h3 {
-            font-family: 'Cinzel', serif;
-            color: #c9a227;
-            margin-bottom: 15px;
-        }
-        .feature-list {
-            list-style: none;
-            text-align: left;
-        }
-        .feature-list li {
-            padding: 8px 0;
-            color: #a89a8a;
-            border-bottom: 1px solid #2a1a0a;
-        }
-        .feature-list li:last-child {
-            border-bottom: none;
-        }
-        .feature-list li::before {
-            content: ">";
-            color: #c9a227;
-            margin-right: 10px;
-        }
-        .back-link {
-            display: inline-block;
-            margin-top: 40px;
-            padding: 12px 30px;
-            background: #c9a227;
-            color: #1a0a0a;
-            text-decoration: none;
-            font-family: 'Cinzel', serif;
-            font-weight: 700;
-            border-radius: 6px;
-            transition: background 0.3s;
-        }
-        .back-link:hover {
-            background: #d4af37;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <a href="#main-content" class="skip-link">Skip to content</a>
@@ -153,25 +53,49 @@
         <button id="nav-link-x" class="nav-link-x" title="Link X">Link X</button>
     </nav>
 
-    <main class="coming-soon-container" id="main-content">
-        <img src="/orclogo.jpg" alt="The Horde" class="orc-icon">
-        <h1 class="coming-soon-title">Coming Soon</h1>
-        <p class="coming-soon-subtitle">Create your own custom Orc PFP with layered traits</p>
+    <div class="background-overlay"></div>
 
-        <div class="feature-preview">
-            <h3>Features in Development</h3>
-            <ul class="feature-list">
-                <li>Layer-based trait selection</li>
-                <li>Randomize your Orc</li>
-                <li>Export as PNG (square, circle, bordered)</li>
-                <li>Save and share your creations</li>
-            </ul>
+    <main class="page-content" id="main-content">
+        <header class="page-header">
+            <h1 class="page-title">Create an Orc</h1>
+            <p class="page-subtitle">Build your custom Orc PFP with layered traits</p>
+        </header>
+
+        <div class="creator-layout">
+            <div class="preview-column">
+                <div class="canvas-wrapper">
+                    <canvas id="orcCanvas" width="500" height="500"></canvas>
+                </div>
+                <div class="action-buttons">
+                    <button class="action-btn primary" id="btn-randomize">Randomize</button>
+                    <button class="action-btn" id="btn-clear">Clear All</button>
+                </div>
+                <div class="export-section">
+                    <button class="action-btn" id="btn-export-square">Export Square</button>
+                    <button class="action-btn" id="btn-export-circle">Export Circle</button>
+                    <button class="action-btn" id="btn-export-border">Export Border</button>
+                    <button class="action-btn" id="btn-export-card">Orc Battle Card</button>
+                </div>
+            </div>
+
+            <div class="traits-column" id="traits-column">
+            </div>
         </div>
-
-        <a href="/" class="back-link">Back to Home</a>
     </main>
 
+    <div class="export-modal" id="export-modal">
+        <div class="export-modal-content">
+            <img id="export-modal-img" alt="Export preview">
+            <div class="export-modal-actions">
+                <button class="action-btn primary" id="export-modal-download">Download</button>
+                <button class="action-btn" id="export-modal-close">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/shared/nav.js"></script>
+    <script src="traits.js"></script>
+    <script src="app.js"></script>
     <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
