@@ -1,30 +1,22 @@
 /* MidEvils NFT Swap - Styles */
 
-/* Reset */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-/* Page */
+/* Page-specific override */
 body {
-    font-family: 'Crimson Text', serif;
-    background: #000 url('/background.jpg') no-repeat center center fixed;
-    background-size: cover;
-    min-height: 100vh;
     padding: 20px;
-    color: #e8e4d9;
 }
 
-/* Main Container */
+/* Main Container — glass-morphism */
 .container {
     max-width: 1400px;
     margin: 0 auto;
-    background: rgba(26, 26, 46, 0.95);
-    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(139,69,19,0.08) 0%, transparent 50%), rgba(15,12,20,0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(139,69,19,0.35);
+    border-radius: 2px;
     padding: 30px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 2;
+    position: relative;
 }
 
 /* Header */
@@ -1723,10 +1715,6 @@ body {
 
 /* Touch-friendly improvements */
 @media (hover: none) and (pointer: coarse) {
-    body {
-        background-attachment: scroll;
-    }
-
     /* Remove hover effects that don't work well on touch */
     .nft-card:hover {
         transform: none;

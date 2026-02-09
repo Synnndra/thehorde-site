@@ -1,22 +1,5 @@
-/* Reset */
-*, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
+/* Orc-viewer-specific variables (aliases + extras) */
 :root {
-    /* Horde Theme Colors */
-    --color-bg: #0a0a0a;
-    --color-bg-dark: #050505;
-    --color-primary: #8b4513;
-    --color-primary-light: #a0522d;
-    --color-accent: #c9a227;
-    --color-text: #e8e4d9;
-    --color-text-dim: #9a9484;
-    --color-blood: #6b1c1c;
-
-    /* Mapped for compatibility */
     --bg-primary: var(--color-bg);
     --bg-secondary: var(--color-bg-dark);
     --bg-card: #111;
@@ -32,27 +15,6 @@
     --error: #ef4444;
     --radius: 4px;
     --radius-sm: 4px;
-
-    /* Fonts */
-    --font-display: 'Cinzel', serif;
-    --font-body: 'Crimson Text', serif;
-}
-
-html {
-    scroll-behavior: smooth;
-}
-
-body {
-    font-family: var(--font-body);
-    background-color: var(--color-bg);
-    color: var(--text-primary);
-    min-height: 100vh;
-    line-height: 1.6;
-    position: relative;
-}
-
-.background-overlay {
-    display: none;
 }
 
 /* App Layout */
@@ -60,6 +22,8 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    position: relative;
+    z-index: 2;
 }
 
 /* Header */

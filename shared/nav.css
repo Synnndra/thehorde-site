@@ -26,6 +26,7 @@
     font-family: 'Cinzel', serif;
     font-size: 0.85rem;
     letter-spacing: 0.05em;
+    position: relative;
     z-index: 100;
 }
 

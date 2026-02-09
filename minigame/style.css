@@ -1,11 +1,6 @@
 /* Horde Defense - Tower Defense Game Styles */
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
+/* Game-specific variables */
 :root {
     --bg-primary: #0a0a0a;
     --bg-secondary: #1a1a1a;
@@ -25,23 +20,14 @@
     --mana-blue: #1976D2;
 }
 
+/* Game-specific body overrides */
 body {
-    font-family: 'Crimson Text', Georgia, serif;
-    background-color: var(--bg-primary);
-    background-image: url('../background.jpg');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    color: var(--text-primary);
-    min-height: 100vh;
     overflow: hidden;
 }
 
-/* Touch-device: disable fixed background to prevent jank */
-@media (hover: none) and (pointer: coarse) {
-    body {
-        background-attachment: scroll;
-    }
+/* Hide noise texture over game canvas */
+body::before {
+    display: none;
 }
 
 /* Site nav override for game page */
