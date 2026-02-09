@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // X link integration
     initXLink();
 
-    // Add entrance animations
+    // Entrance animations via IntersectionObserver
     const observerOptions = {
         threshold: 0.1,
         rootMargin: '0px 0px -50px 0px'
@@ -46,15 +46,121 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, observerOptions);
 
-    // Observe elements for fade-in
-    document.querySelectorAll('.portal-btn').forEach(btn => {
+    // Observe fade-in sections
+    document.querySelectorAll('.fade-in-section').forEach(el => {
+        observer.observe(el);
+    });
+
+    // Observe individual portal buttons for staggered entrance
+    document.querySelectorAll('.portal-btn').forEach((btn, i) => {
         btn.style.opacity = '0';
         btn.style.transform = 'translateY(20px)';
+        btn.style.transitionDelay = `${i * 0.05}s`;
         observer.observe(btn);
     });
+
+    // Fetch and display stats
+    fetchStats();
 });
 
-// Discord Link functionality
+// ========================================
+// STATS FETCHING
+// ========================================
+const STATS_CACHE_KEY = 'horde_stats';
+const STATS_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function fetchStats() {
+    // Check sessionStorage cache
+    const cached = sessionStorage.getItem(STATS_CACHE_KEY);
+    if (cached) {
+        try {
+            const { data, timestamp } = JSON.parse(cached);
+            if (Date.now() - timestamp < STATS_TTL) {
+                renderStats(data);
+                return;
+            }
+        } catch (e) {
+            // Invalid cache, proceed to fetch
+        }
+    }
+
+    try {
+        const [holdersRes, proposalsRes] = await Promise.all([
+            fetch('/api/holders'),
+            fetch('/api/dao/proposals?filter=all')
+        ]);
+
+        const stats = {};
+
+        if (holdersRes.ok) {
+            const holdersData = await holdersRes.json();
+            stats.totalHolders = holdersData.totalHolders;
+            stats.floorPrice = holdersData.floorPrice;
+        }
+
+        if (proposalsRes.ok) {
+            const proposalsData = await proposalsRes.json();
+            stats.proposalCount = Array.isArray(proposalsData) ? proposalsData.length : 0;
+        }
+
+        // Cache results
+        sessionStorage.setItem(STATS_CACHE_KEY, JSON.stringify({
+            data: stats,
+            timestamp: Date.now()
+        }));
+
+        renderStats(stats);
+    } catch (e) {
+        // Silently fail — stats stay as "--"
+    }
+}
+
+function renderStats(stats) {
+    if (stats.totalHolders != null) {
+        animateCountUp('stat-holders', stats.totalHolders);
+    }
+    if (stats.proposalCount != null) {
+        animateCountUp('stat-proposals', stats.proposalCount);
+    }
+    if (stats.floorPrice != null) {
+        const floorEl = document.getElementById('stat-floor');
+        if (floorEl) {
+            const rounded = parseFloat(stats.floorPrice).toFixed(2);
+            floorEl.textContent = rounded;
+        }
+    }
+}
+
+function animateCountUp(elementId, target) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+
+    target = parseInt(target, 10);
+    if (isNaN(target)) {
+        el.textContent = '--';
+        return;
+    }
+
+    const duration = 1200;
+    const start = performance.now();
+
+    function step(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        // Ease-out cubic
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(eased * target);
+        if (progress < 1) {
+            requestAnimationFrame(step);
+        }
+    }
+
+    requestAnimationFrame(step);
+}
+
+// ========================================
+// DISCORD LINK
+// ========================================
 function initDiscordLink() {
     const btn = document.getElementById('link-discord-btn');
     if (!btn) return;
@@ -119,7 +225,9 @@ function renderDiscordBtn(btn) {
     }
 }
 
-// X Link functionality
+// ========================================
+// X LINK
+// ========================================
 function initXLink() {
     const btn = document.getElementById('link-x-btn');
     if (!btn) return;
@@ -188,7 +296,7 @@ function renderXBtn(btn) {
     }
 }
 
-// Add shake animation dynamically
+// Add shake animation + portal entrance styles dynamically
 const style = document.createElement('style');
 style.textContent = `
     @keyframes shake {
@@ -200,7 +308,7 @@ style.textContent = `
     }
 
     .portal-btn {
-        transition: opacity 0.6s ease, transform 0.6s ease;
+        transition: opacity 0.6s ease, transform 0.6s ease, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     }
 
     .portal-btn.visible {
@@ -209,7 +317,7 @@ style.textContent = `
     }
 
     .portal-btn.visible:hover {
-        transform: translateY(-3px) !important;
+        transform: translateY(-6px) !important;
     }
 
     .coming-soon.visible:hover {

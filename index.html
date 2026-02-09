@@ -66,106 +66,139 @@
     </nav>
 
     <div class="content" id="main-content">
+
+        <!-- 1. Header -->
         <header>
             <div class="title-row">
                 <img src="orclogo.jpg" alt="Orc Logo" class="orc-logo">
                 <h1 class="title">The Horde</h1>
             </div>
-            <p class="subtitle">A MidEvils NFT DAO</p>
+            <p class="subtitle">330 Survivors. One Horde.</p>
         </header>
 
-        <section class="summary origin-section">
-            <div class="origin-content">
-                <div class="origin-text">
-                    <h2>The Origin of The Horde</h2>
-                    <p>
-                        The Orc Wars, the second burn in the MidEvils universe, marked a violent turning point in the history of <strong>Midland</strong>. Ignited by the pillaging of the local watering hole, <strong>Merlin's Beard</strong>, the conflict began on November 14th as a brutal campaign of attrition.
-                    </p>
-                    <p>
-                        In response to the attack, 600 MidEvil warriors were sent into the fray to face bloodthirsty Orcs in 2-on-1 combat. The resulting war was devastatingly efficient: while a heroic few survived, the majority of the MidEvil combatants were "burned" in defeat, permanently reducing <strong>Midland's</strong> population.
-                    </p>
-                    <p>
-                        From the ashes of this war, 330 Orcs emerged to claim their place in society, coalescing into a new faction known as <strong>The Horde</strong>, the youngest and most battle-hardened group in <strong>Midland</strong>.
-                    </p>
-                </div>
-                <div class="origin-poster">
-                    <img src="orcwarsposter.jpg" alt="The Orc Wars Poster" loading="lazy" width="220" height="330">
-                </div>
-            </div>
-        </section>
+        <!-- 2. Dual Pathway -->
+        <div class="dual-pathway">
+            <a href="#lore" class="pathway-btn">New to The Horde?</a>
+            <a href="#stronghold" class="pathway-btn">Enter The Stronghold</a>
+        </div>
 
-        <section class="summary dao-section">
-            <div class="dao-content">
-                <div class="dao-poster">
-                    <img src="orcdao.jpg" alt="The Horde DAO" loading="lazy" width="231" height="300">
-                </div>
-                <div class="dao-text">
-                    <h2>What is The Horde DAO?</h2>
-                    <p>
-                        The Horde DAO is established with a dual mandate: to champion the interests of Orc NFT holders and to fortify the broader MidEvils ecosystem.
-                    </p>
-                    <p>
-                        Functioning as the organized voice of the 330 survivors, the DAO works to maximize the value and utility of the Orc collection while actively contributing to the growth and stability of the entire project.
-                    </p>
-                    <p>
-                        It stands as a unified force within Midland, ensuring that the youngest faction serves not just its own members, but acts as a cornerstone for the community's future.
-                    </p>
-                </div>
+        <!-- 3. Stats Bar -->
+        <div class="stats-bar fade-in-section">
+            <div class="stat-item">
+                <div class="stat-value" id="stat-orcs">330</div>
+                <div class="stat-label">Orcs</div>
             </div>
-        </section>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-holders">--</div>
+                <div class="stat-label">Holders</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-proposals">--</div>
+                <div class="stat-label">Proposals</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-floor">--</div>
+                <div class="stat-label">Floor (SOL)</div>
+            </div>
+        </div>
 
-        <section class="portals">
+        <!-- 4. Tool Portals -->
+        <section class="portals fade-in-section" id="stronghold">
             <h2>Enter The Stronghold</h2>
 
             <h3 class="portal-group-label">Explore</h3>
             <div class="button-grid">
-                <a href="/orc-viewer" class="portal-btn">
-                    <span class="btn-text">Orc Viewer</span>
+                <a href="/orc-viewer" class="portal-btn" data-tooltip="Browse all 330 Orcs by rarity">
+                    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg>
+                    <span class="btn-text">The Registry</span>
                     <span class="btn-desc">Browse all 330 Orcs by rarity</span>
                 </a>
-                <a href="/holders" class="portal-btn">
-                    <span class="btn-text">Leaderboard</span>
+                <a href="/holders" class="portal-btn" data-tooltip="Top holders and collection stats">
+                    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg>
+                    <span class="btn-text">The Ranks</span>
                     <span class="btn-desc">Top holders and collection stats</span>
                 </a>
-                <a href="/my-horde" class="portal-btn">
+                <a href="/my-horde" class="portal-btn" data-tooltip="View your Orc collection">
+                    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
                     <span class="btn-text">My Horde</span>
                     <span class="btn-desc">View your Orc collection</span>
                 </a>
-                <a href="/create-orc" class="portal-btn">
-                    <span class="btn-text">Create an Orc</span>
+                <a href="/create-orc" class="portal-btn" data-tooltip="Build a custom Orc PFP">
+                    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.048 8.287 8.287 0 0 0 9 9.6a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z"/><path d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z"/></svg>
+                    <span class="btn-text">The Forge</span>
                     <span class="btn-desc">Build a custom Orc PFP</span>
                 </a>
             </div>
 
             <h3 class="portal-group-label">Utility</h3>
             <div class="button-grid">
-                <a href="/swap" class="portal-btn">
-                    <span class="btn-text">MidSwap</span>
+                <a href="/swap" class="portal-btn" data-tooltip="Trade NFTs peer-to-peer">
+                    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
+                    <span class="btn-text">The Trading Post</span>
                     <span class="btn-desc">Trade NFTs peer-to-peer</span>
                 </a>
-                <a href="/dao" class="portal-btn">
-                    <span class="btn-text">DAO</span>
+                <a href="/dao" class="portal-btn" data-tooltip="Vote on proposals for The Horde">
+                    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0 0 12 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52 2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 0 1-2.031.352 5.989 5.989 0 0 1-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971ZM5.25 4.97 7.87 15.696c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 0 1-2.031.352 5.989 5.989 0 0 1-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971Z"/></svg>
+                    <span class="btn-text">The War Room</span>
                     <span class="btn-desc">Vote on proposals for The Horde</span>
                 </a>
-                <a href="/collage-maker" class="portal-btn">
-                    <span class="btn-text">Collage Maker</span>
+                <a href="/collage-maker" class="portal-btn" data-tooltip="Create NFT collages from your wallets">
+                    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg>
+                    <span class="btn-text">The Gallery</span>
                     <span class="btn-desc">Create NFT collages from your wallets</span>
                 </a>
             </div>
 
             <h3 class="portal-group-label">Arcade</h3>
             <div class="button-grid">
-                <a href="/minigame" class="portal-btn">
+                <a href="/minigame" class="portal-btn" data-tooltip="Defend Merlin's Beard from 20 waves">
+                    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>
                     <span class="btn-text">Horde Tower Defense</span>
                     <span class="btn-desc">Defend Merlin's Beard from 20 waves</span>
                 </a>
-                <a href="/orc-run" class="portal-btn">
+                <a href="/orc-run" class="portal-btn" data-tooltip="Endless runner through Midland">
+                    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061A1.125 1.125 0 0 1 3 16.811V8.69ZM12.75 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061a1.125 1.125 0 0 1-1.683-.977V8.69Z"/></svg>
                     <span class="btn-text">Orc Run</span>
                     <span class="btn-desc">Endless runner through Midland</span>
                 </a>
             </div>
         </section>
 
+        <!-- 5. Condensed Lore -->
+        <section class="summary fade-in-section" id="lore">
+            <h2>The Saga of The Horde</h2>
+            <div class="lore-section">
+                <div class="lore-text">
+                    <p>The Orcs are a 330-piece sub-collection within the <strong>MidEvils NFT</strong> project on Solana, born from the Orc Wars — a burn mechanic where 600 MidEvil warriors were sacrificed in 2-on-1 combat. The survivors now operate as <strong>The Horde</strong>, a DAO championing Orc holders and contributing to the broader MidEvils ecosystem.</p>
+                    <a href="/lore" class="lore-link">Read the full saga</a>
+                </div>
+                <div class="lore-poster">
+                    <img src="orcwarsposter.jpg" alt="The Orc Wars Poster" loading="lazy" width="220" height="330">
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Community CTA -->
+        <section class="community-cta fade-in-section">
+            <h2>Join The Horde</h2>
+            <p>Rally with the 330 survivors</p>
+            <div class="community-btns">
+                <a href="https://discord.gg/TTZ4rQTD" target="_blank" rel="noopener noreferrer" class="community-btn discord-cta">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                    </svg>
+                    Discord
+                </a>
+                <a href="https://x.com/midhorde" target="_blank" rel="noopener noreferrer" class="community-btn x-cta">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                    Follow on X
+                </a>
+            </div>
+        </section>
+
+        <!-- 7. Footer -->
         <footer>
             <p>&copy; 2026 The Horde DAO | MidEvils NFT</p>
             <p class="subdao-disclaimer">This is a SubDAO-led project and is not an official MidEvils main project. Funds raised and assets here are managed by the SubDAO via its multisig treasury.</p>

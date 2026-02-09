@@ -28,13 +28,29 @@ body {
     min-height: 100vh;
     line-height: 1.6;
     position: relative;
-    /* Add your background image here */
     background-image: url('background.jpg');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
 }
 
+/* Noise texture overlay for grit */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+}
+
+/* Dark overlay — lets background image breathe */
 .background-overlay {
     position: fixed;
     top: 0;
@@ -43,9 +59,10 @@ body {
     height: 100%;
     background: linear-gradient(
         to bottom,
-        rgba(10, 10, 10, 0.85) 0%,
-        rgba(10, 10, 10, 0.75) 50%,
-        rgba(10, 10, 10, 0.9) 100%
+        rgba(10, 10, 10, 0.70) 0%,
+        rgba(10, 10, 10, 0.55) 40%,
+        rgba(10, 10, 10, 0.65) 70%,
+        rgba(10, 10, 10, 0.80) 100%
     );
     z-index: 1;
 }
@@ -59,7 +76,7 @@ body {
     padding-top: 4rem;
 }
 
-/* Top Bar */
+/* Top Bar (legacy) */
 .top-bar {
     position: fixed;
     top: 0;
@@ -308,7 +325,9 @@ body {
     object-fit: contain;
     border-radius: 8px;
     border: 2px solid var(--color-primary);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(139, 69, 19, 0.3);
 }
 
 @media (max-width: 600px) {
@@ -317,14 +336,31 @@ body {
     }
 }
 
-/* Header */
+/* ========================================
+   HEADER
+   ======================================== */
 header {
     text-align: center;
-    padding: 4rem 0 3rem;
-    border-bottom: 2px solid var(--color-primary);
-    margin-bottom: 3rem;
+    padding: 4rem 0 2.5rem;
+    margin-bottom: 0;
+    position: relative;
 }
 
+/* Ornamental divider under header */
+header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    height: 12px;
+    opacity: 0.4;
+    background: radial-gradient(ellipse at center, var(--color-accent) 0%, transparent 70%);
+    filter: blur(2px);
+}
+
+/* Animated gold pulse glow on title */
 .title {
     font-family: var(--font-display);
     font-size: clamp(3rem, 10vw, 6rem);
@@ -337,30 +373,151 @@ header {
         0 4px 8px rgba(0, 0, 0, 0.8),
         2px 2px 0 var(--color-blood);
     margin-bottom: 0.5rem;
+    animation: titlePulse 4s ease-in-out infinite;
+}
+
+@keyframes titlePulse {
+    0%, 100% { text-shadow: 0 0 10px rgba(201, 162, 39, 0.5), 0 4px 8px rgba(0, 0, 0, 0.8), 2px 2px 0 var(--color-blood); }
+    50% { text-shadow: 0 0 20px rgba(201, 162, 39, 0.7), 0 0 40px rgba(201, 162, 39, 0.3), 0 4px 8px rgba(0, 0, 0, 0.8), 2px 2px 0 var(--color-blood); }
 }
 
 .subtitle {
     font-family: var(--font-display);
     font-size: clamp(1rem, 3vw, 1.5rem);
-    color: var(--color-text-dim);
+    color: var(--color-text);
     letter-spacing: 0.3em;
     text-transform: uppercase;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
 }
 
-/* Summary Section */
+/* ========================================
+   DUAL PATHWAY
+   ======================================== */
+.dual-pathway {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 2rem 0;
+    margin-bottom: 0;
+}
+
+.pathway-btn {
+    display: inline-block;
+    padding: 0.75rem 2rem;
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--color-text);
+    border: 1px solid rgba(201, 162, 39, 0.5);
+    border-radius: 2px;
+    background: rgba(139, 69, 19, 0.1);
+    backdrop-filter: blur(6px);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.pathway-btn:hover {
+    background: rgba(139, 69, 19, 0.25);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 20px rgba(201, 162, 39, 0.25), 0 4px 15px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+    color: #fff;
+}
+
+@media (max-width: 480px) {
+    .dual-pathway {
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+    .pathway-btn {
+        width: 80%;
+        text-align: center;
+    }
+}
+
+/* ========================================
+   STATS BAR — borderless, floating numbers
+   ======================================== */
+.stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    padding: 1.5rem 2rem;
+    margin-bottom: 2.5rem;
+    position: relative;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: var(--color-accent);
+    text-shadow: 0 0 12px rgba(201, 162, 39, 0.3);
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-family: var(--font-display);
+    font-size: 0.65rem;
+    color: var(--color-text);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+@media (max-width: 600px) {
+    .stats-bar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem 1rem;
+        padding: 1.25rem 1.5rem;
+    }
+}
+
+/* ========================================
+   SECTION DIVIDERS — rougher, ornamental
+   ======================================== */
+.section-divider {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 1.5rem 0;
+    color: var(--color-primary);
+    font-size: 1.2rem;
+    opacity: 0.4;
+    letter-spacing: 0.5em;
+    user-select: none;
+}
+
+/* ========================================
+   SUMMARY / GLASS CARD — base
+   ======================================== */
 .summary {
-    background: linear-gradient(
-        135deg,
-        rgba(139, 69, 19, 0.15) 0%,
-        rgba(10, 10, 10, 0.8) 100%
-    );
-    border: 1px solid var(--color-primary);
-    border-radius: 4px;
+    background:
+        linear-gradient(135deg, rgba(139, 69, 19, 0.08) 0%, transparent 50%),
+        rgba(15, 12, 20, 0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(139, 69, 19, 0.35);
+    border-radius: 2px;
     padding: 2.5rem;
-    margin-bottom: 3rem;
+    margin-bottom: 2.5rem;
     box-shadow:
         0 10px 40px rgba(0, 0, 0, 0.5),
-        inset 0 1px 0 rgba(201, 162, 39, 0.1);
+        inset 0 1px 0 rgba(201, 162, 39, 0.08);
+    position: relative;
+}
+
+.summary::before {
+    display: none;
 }
 
 .summary h2 {
@@ -381,7 +538,100 @@ header {
     margin-bottom: 0;
 }
 
-/* Origin Section with Poster */
+/* ========================================
+   LORE SECTION — warm tint, drop cap
+   ======================================== */
+#lore {
+    background:
+        linear-gradient(135deg, rgba(107, 28, 28, 0.12) 0%, rgba(139, 69, 19, 0.08) 50%, transparent 100%),
+        rgba(15, 12, 20, 0.6);
+    border-color: rgba(107, 28, 28, 0.35);
+}
+
+.lore-section {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.lore-text {
+    flex: 1;
+}
+
+.lore-text p {
+    text-align: left;
+    margin-bottom: 1rem;
+}
+
+/* Drop cap on lore paragraph */
+.lore-text p::first-letter {
+    float: left;
+    font-family: var(--font-display);
+    font-size: 3.2rem;
+    font-weight: 900;
+    line-height: 0.8;
+    color: var(--color-accent);
+    margin-right: 0.1em;
+    margin-top: 0.05em;
+    text-shadow: 0 0 10px rgba(201, 162, 39, 0.3);
+}
+
+.lore-poster {
+    flex-shrink: 0;
+    width: clamp(140px, 18vw, 200px);
+}
+
+.lore-poster img {
+    width: 100%;
+    height: auto;
+    border-radius: 2px;
+    border: 2px solid var(--color-primary);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.lore-link {
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    color: var(--color-accent);
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid transparent;
+}
+
+.lore-link:hover {
+    border-bottom-color: var(--color-accent);
+    text-shadow: 0 0 8px rgba(201, 162, 39, 0.4);
+}
+
+.lore-link::after {
+    content: ' \2192';
+}
+
+@media (max-width: 768px) {
+    .lore-section {
+        flex-direction: column;
+        text-align: center;
+    }
+    .lore-text p {
+        text-align: center;
+    }
+    .lore-text p::first-letter {
+        float: none;
+        font-size: 2.4rem;
+        margin-right: 0;
+    }
+    .lore-poster {
+        width: 60%;
+        max-width: 200px;
+    }
+}
+
+/* ========================================
+   ORIGIN / DAO SECTIONS (kept for lore page)
+   ======================================== */
 .origin-section {
     padding: 0;
     overflow: hidden;
@@ -417,12 +667,11 @@ header {
     width: 100%;
     height: auto;
     object-fit: contain;
-    border-radius: 8px;
+    border-radius: 2px;
     border: 2px solid var(--color-primary);
     align-self: center;
 }
 
-/* DAO Section with Poster */
 .dao-section {
     padding: 0;
     overflow: hidden;
@@ -458,15 +707,11 @@ header {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 8px;
+    border-radius: 2px;
     border: 2px solid var(--color-primary);
 }
 
 @media (max-width: 768px) {
-    .button-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
     .origin-content,
     .dao-content {
         flex-direction: column;
@@ -491,11 +736,11 @@ header {
     }
 
     .origin-poster img {
-        border-radius: 0 0 4px 4px;
+        border-radius: 0 0 2px 2px;
     }
 
     .dao-poster img {
-        border-radius: 4px 4px 0 0;
+        border-radius: 2px 2px 0 0;
     }
 
     .dao-content {
@@ -503,11 +748,13 @@ header {
     }
 }
 
-/* Portals Section */
+/* ========================================
+   PORTALS SECTION
+   ======================================== */
 .portals {
     text-align: center;
     padding: 0;
-    margin-bottom: 3rem;
+    margin-bottom: 2.5rem;
 }
 
 .portals h2 {
@@ -521,23 +768,22 @@ header {
 .button-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1.5rem;
+    gap: 1rem;
 }
 
+/* Portal cards — varied bg, icon-driven, rough edges */
 .portal-btn {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.4rem;
-    padding: 1.25rem 1rem;
-    background: linear-gradient(
-        180deg,
-        rgba(139, 69, 19, 0.4) 0%,
-        rgba(107, 28, 28, 0.4) 100%
-    );
-    border: 2px solid var(--color-primary);
-    border-radius: 4px;
+    gap: 0.5rem;
+    padding: 1.5rem 1rem 1.25rem;
+    background:
+        linear-gradient(180deg, rgba(139, 69, 19, 0.1) 0%, rgba(15, 12, 20, 0.5) 100%);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(139, 69, 19, 0.3);
+    border-radius: 2px;
     color: var(--color-text);
     text-decoration: none;
     font-family: var(--font-display);
@@ -547,26 +793,36 @@ header {
     transition: all 0.3s ease;
     cursor: pointer;
     box-shadow:
-        0 4px 15px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        0 4px 15px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .portal-btn:hover {
-    background: linear-gradient(
-        180deg,
-        rgba(160, 82, 45, 0.6) 0%,
-        rgba(139, 69, 19, 0.6) 100%
-    );
+    background:
+        linear-gradient(180deg, rgba(139, 69, 19, 0.2) 0%, rgba(107, 28, 28, 0.15) 100%);
     border-color: var(--color-accent);
-    transform: translateY(-3px);
+    transform: translateY(-6px);
     box-shadow:
-        0 8px 25px rgba(0, 0, 0, 0.5),
-        0 0 20px rgba(201, 162, 39, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        0 12px 30px rgba(0, 0, 0, 0.5),
+        0 0 25px rgba(201, 162, 39, 0.2),
+        inset 0 1px 0 rgba(201, 162, 39, 0.1);
 }
 
 .portal-btn:active {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+}
+
+/* Portal card icons */
+.btn-icon-svg {
+    width: 28px;
+    height: 28px;
+    color: var(--color-accent);
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.portal-btn:hover .btn-icon-svg {
+    opacity: 1;
 }
 
 .btn-icon {
@@ -586,16 +842,72 @@ header {
     text-transform: none;
 }
 
+/* Hide descriptions on desktop (use custom tooltip), show on mobile */
+@media (min-width: 769px) {
+    .btn-desc {
+        display: none;
+    }
+
+    /* Custom styled tooltips */
+    .portal-btn[data-tooltip] {
+        position: relative;
+    }
+
+    .portal-btn[data-tooltip]::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: calc(100% + 10px);
+        left: 50%;
+        transform: translateX(-50%) translateY(4px);
+        padding: 0.5rem 0.9rem;
+        background: rgba(10, 8, 16, 0.94);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(201, 162, 39, 0.3);
+        border-radius: 2px;
+        color: var(--color-text);
+        font-family: var(--font-body);
+        font-size: 0.85rem;
+        font-weight: 400;
+        letter-spacing: 0;
+        text-transform: none;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 8px rgba(201, 162, 39, 0.1);
+        z-index: 10;
+    }
+
+    .portal-btn[data-tooltip]:hover::after {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
 .portal-group-label {
     font-family: var(--font-display);
-    font-size: 0.85rem;
-    color: var(--color-text-dim);
+    font-size: 0.8rem;
+    color: var(--color-text);
     text-transform: uppercase;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.25em;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
     margin-top: 2rem;
     margin-bottom: 1rem;
-    border-bottom: 1px solid rgba(139, 69, 19, 0.3);
     padding-bottom: 0.5rem;
+    position: relative;
+}
+
+/* Subtle line under group label */
+.portal-group-label::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 1px;
+    background: var(--color-primary);
+    opacity: 0.5;
 }
 
 .coming-soon {
@@ -605,15 +917,11 @@ header {
 
 .coming-soon:hover {
     transform: none;
-    background: linear-gradient(
-        180deg,
-        rgba(139, 69, 19, 0.4) 0%,
-        rgba(107, 28, 28, 0.4) 100%
-    );
-    border-color: var(--color-primary);
+    background: linear-gradient(180deg, rgba(139, 69, 19, 0.1) 0%, rgba(15, 12, 20, 0.5) 100%);
+    border-color: rgba(139, 69, 19, 0.3);
     box-shadow:
-        0 4px 15px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        0 4px 15px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 /* Beta / Coming Soon watermark */
@@ -641,12 +949,98 @@ header {
     z-index: 10;
 }
 
-/* Footer */
+/* ========================================
+   COMMUNITY CTA — darker, more contrast
+   ======================================== */
+.community-cta {
+    text-align: center;
+    padding: 2.5rem;
+    margin-bottom: 2.5rem;
+    background:
+        linear-gradient(135deg, rgba(88, 101, 242, 0.05) 0%, transparent 50%),
+        rgba(10, 8, 16, 0.5);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(139, 69, 19, 0.25);
+    border-radius: 2px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+
+.community-cta h2 {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    color: var(--color-accent);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.1em;
+}
+
+.community-cta p {
+    font-size: 1.1rem;
+    color: var(--color-text-dim);
+    margin-bottom: 1.5rem;
+}
+
+.community-btns {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.community-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.8rem 2rem;
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.community-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+
+.community-btn.discord-cta {
+    color: #fff;
+    background: #5865F2;
+    border: 2px solid #5865F2;
+    box-shadow: 0 0 15px rgba(88, 101, 242, 0.2);
+}
+
+.community-btn.discord-cta:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 20px rgba(88, 101, 242, 0.5), 0 0 30px rgba(88, 101, 242, 0.25);
+}
+
+.community-btn.x-cta {
+    color: #fff;
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+.community-btn.x-cta:hover {
+    transform: translateY(-3px);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
+}
+
+/* ========================================
+   FOOTER
+   ======================================== */
 footer {
     text-align: center;
     padding: 3rem 0 2rem;
     margin-top: 3rem;
-    border-top: 1px solid var(--color-primary);
+    border-top: 1px solid rgba(139, 69, 19, 0.2);
     color: var(--color-text-dim);
     font-size: 0.9rem;
 }
@@ -661,10 +1055,33 @@ footer {
     line-height: 1.5;
 }
 
-/* Responsive */
+/* ========================================
+   ENTRANCE ANIMATIONS
+   ======================================== */
+.fade-in-section {
+    opacity: 0;
+    transform: translateY(25px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.fade-in-section.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+@media (max-width: 768px) {
+    .button-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 @media (max-width: 600px) {
     .content {
         padding: 1rem;
+        padding-top: 3.5rem;
     }
 
     header {
@@ -681,6 +1098,26 @@ footer {
 
     .portal-btn {
         padding: 1.2rem 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .button-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .portal-btn {
+        font-size: 0.95rem;
+        padding: 1rem 1.2rem;
+    }
+
+    .btn-icon-svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .portals h2 {
+        font-size: 1.5rem;
     }
 }
 
@@ -702,41 +1139,6 @@ footer {
     left: 0;
 }
 
-@media (max-width: 480px) {
-    .portal-btn {
-        font-size: 0.95rem;
-        padding: 1rem 1.2rem;
-    }
-
-    .btn-icon {
-        font-size: 1.4rem;
-    }
-
-    .portals h2 {
-        font-size: 1.5rem;
-    }
-}
-
-/* Decorative elements */
-.summary::before,
-.summary::after {
-    content: '⚔';
-    position: absolute;
-    font-size: 1.5rem;
-    color: var(--color-primary);
-    opacity: 0.5;
-}
-
-.summary {
-    position: relative;
-}
-
-.summary::before {
-    top: -0.75rem;
-    left: 50%;
-    transform: translateX(-50%);
-}
-
 /* Touch-device: disable fixed background to prevent jank */
 @media (hover: none) and (pointer: coarse) {
     body {
@@ -749,11 +1151,5 @@ footer {
     .site-nav-home {
         padding: 0.5rem 1rem !important;
         font-size: 0.85rem;
-    }
-}
-
-@media (max-width: 600px) {
-    .content {
-        padding-top: 3.5rem;
     }
 }
