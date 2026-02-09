@@ -68,6 +68,9 @@
             <button id="connect-wallet-btn" class="action-btn wallet-btn">Connect Wallet</button>
         </div>
 
+        <!-- Error (outside connected-content so it's visible before wallet connect) -->
+        <div id="error" class="error-state" style="display:none"></div>
+
         <!-- Connected State -->
         <div id="connected-content" style="display:none">
 
@@ -127,9 +130,6 @@
                 <div class="spinner"></div>
                 <p>Loading your Horde...</p>
             </div>
-
-            <!-- Error -->
-            <div id="error" class="error-state" style="display:none"></div>
 
             <!-- Not a Holder -->
             <div id="not-holder" class="not-holder" style="display:none">

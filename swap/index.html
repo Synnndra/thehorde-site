@@ -203,34 +203,34 @@
             <button id="createOfferBtn" class="create-offer-btn" disabled>Create Offer</button>
         </section>
 
-        <!-- Success Modal -->
-        <div class="modal" id="successModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="successModalTitle">
-            <div class="modal-content success-modal">
-                <div class="modal-header">
-                    <h2 id="successModalTitle">Offer Created!</h2>
-                    <button class="close-modal-btn" id="closeSuccessModal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p>Your trade offer has been created successfully.</p>
-                    <div class="offer-link-section">
-                        <label>Share this link with the receiver:</label>
-                        <div class="link-copy-row">
-                            <input type="text" id="offerLinkInput" class="offer-link-input" readonly>
-                            <button id="copyLinkBtn" class="copy-btn">Copy</button>
-                        </div>
-                    </div>
-                    <div class="modal-actions">
-                        <a href="/swap/offers.html" class="view-offers-btn">View My Offers</a>
-                        <button id="createAnotherBtn" class="create-another-btn">Create Another</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Footer -->
         <footer class="swap-footer">
             <p>MidEvils NFT Swap &copy; 2024 | <a href="/">Back to The Horde</a></p>
         </footer>
+    </div>
+
+    <!-- Success Modal (outside container to avoid backdrop-filter containing block) -->
+    <div class="modal" id="successModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="successModalTitle">
+        <div class="modal-content success-modal">
+            <div class="modal-header">
+                <h2 id="successModalTitle">Offer Created!</h2>
+                <button class="close-modal-btn" id="closeSuccessModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Your trade offer has been created successfully.</p>
+                <div class="offer-link-section">
+                    <label>Share this link with the receiver:</label>
+                    <div class="link-copy-row">
+                        <input type="text" id="offerLinkInput" class="offer-link-input" readonly>
+                        <button id="copyLinkBtn" class="copy-btn">Copy</button>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <a href="/swap/offers.html" class="view-offers-btn">View My Offers</a>
+                    <button id="createAnotherBtn" class="create-another-btn">Create Another</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Solana Web3.js for blockchain transactions -->

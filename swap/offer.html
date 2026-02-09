@@ -119,43 +119,42 @@
             </div>
         </section>
 
-        <!-- Confirmation Modal -->
-        <div class="modal" id="confirmModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
-            <div class="modal-content confirm-modal">
-                <div class="modal-header">
-                    <h2 id="confirmModalTitle">Confirm Action</h2>
-                    <button class="close-modal-btn" id="closeConfirmModal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p id="confirmModalMessage">Are you sure you want to proceed?</p>
-                    <div class="modal-actions">
-                        <button id="confirmActionBtn" class="confirm-btn">Confirm</button>
-                        <button id="cancelActionBtn" class="cancel-btn">Cancel</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Result Modal -->
-        <div class="modal" id="resultModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="resultModalTitle">
-            <div class="modal-content result-modal">
-                <div class="modal-header">
-                    <h2 id="resultModalTitle">Success!</h2>
-                    <button class="close-modal-btn" id="closeResultModal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p id="resultModalMessage">The action was completed successfully.</p>
-                    <div class="modal-actions">
-                        <a href="/swap/offers.html" class="view-offers-btn">Back to Offers</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Footer -->
         <footer class="swap-footer">
             <p>MidEvils NFT Swap &copy; 2024 | <a href="/">Back to The Horde</a></p>
         </footer>
+    </div>
+
+    <!-- Modals (outside container to avoid backdrop-filter containing block) -->
+    <div class="modal" id="confirmModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+        <div class="modal-content confirm-modal">
+            <div class="modal-header">
+                <h2 id="confirmModalTitle">Confirm Action</h2>
+                <button class="close-modal-btn" id="closeConfirmModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalMessage">Are you sure you want to proceed?</p>
+                <div class="modal-actions">
+                    <button id="confirmActionBtn" class="confirm-btn">Confirm</button>
+                    <button id="cancelActionBtn" class="cancel-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="resultModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="resultModalTitle">
+        <div class="modal-content result-modal">
+            <div class="modal-header">
+                <h2 id="resultModalTitle">Success!</h2>
+                <button class="close-modal-btn" id="closeResultModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="resultModalMessage">The action was completed successfully.</p>
+                <div class="modal-actions">
+                    <a href="/swap/offers.html" class="view-offers-btn">Back to Offers</a>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Solana Web3.js for blockchain transactions -->

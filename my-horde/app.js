@@ -146,6 +146,7 @@ async function connectWithProvider(provider) {
         onWalletConnected();
     } catch (err) {
         console.error('Wallet connection failed:', err);
+        showError('Failed to connect wallet: ' + err.message);
     }
 }
 
@@ -1294,7 +1295,7 @@ function escapeHtml(text) {
 function showError(msg) {
     var el = document.getElementById('error');
     el.textContent = '';
-    if (msg instanceof HTMLElement) {
+    if (msg instanceof Node) {
         el.appendChild(msg);
     } else {
         el.textContent = msg;
