@@ -560,7 +560,8 @@ class GameUI {
                     map: mapId,
                     wavesCompleted: this.game.stats?.wavesCompleted || 0,
                     enemiesKilled: this.game.stats?.enemiesKilled || 0,
-                    victory: this.pendingVictory || false
+                    victory: this.pendingVictory || false,
+                    gameToken: this.game.gameToken || null
                 })
             });
 

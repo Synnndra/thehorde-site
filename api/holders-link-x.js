@@ -1,24 +1,8 @@
 // Vercel Serverless Function for Wallet-X Linking
 import nacl from 'tweetnacl';
+import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed } from '../lib/swap-utils.js';
 
 const X_MAP_KEY = 'holders:x_map';
-
-// Rate limiting
-const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW = 60000;
-const RATE_LIMIT_MAX = 5;
-
-function isRateLimited(ip) {
-    const now = Date.now();
-    const record = rateLimitMap.get(ip);
-    if (!record || now - record.timestamp > RATE_LIMIT_WINDOW) {
-        rateLimitMap.set(ip, { timestamp: now, count: 1 });
-        return false;
-    }
-    if (record.count >= RATE_LIMIT_MAX) return true;
-    record.count++;
-    return false;
-}
 
 function base58Decode(str) {
     const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -55,8 +39,8 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'KV not configured' });
     }
 
-    const clientIp = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
-    if (isRateLimited(clientIp)) {
+    const clientIp = getClientIp(req);
+    if (await isRateLimitedKV(clientIp, 'holders-link-x', 5, 60000, KV_REST_API_URL, KV_REST_API_TOKEN)) {
         return res.status(429).json({ error: 'Too many requests. Try again later.' });
     }
 
@@ -81,7 +65,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { wallet, signature, x } = req.body;
+        const { wallet, signature, message, x } = req.body;
 
         if (!wallet || typeof wallet !== 'string' || wallet.length < 32 || wallet.length > 44) {
             return res.status(400).json({ error: 'Invalid wallet address' });
@@ -91,9 +75,28 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Signature required' });
         }
 
-        const message = req.method === 'DELETE'
-            ? `Unlink X from wallet ${wallet} on midhorde.com`
-            : `Link X to wallet ${wallet} on midhorde.com`;
+        // Validate message format and timestamp
+        if (!message || typeof message !== 'string') {
+            return res.status(400).json({ error: 'Message required' });
+        }
+
+        const expectedPrefix = req.method === 'DELETE'
+            ? `Unlink X from wallet ${wallet} on midhorde.com at `
+            : `Link X to wallet ${wallet} on midhorde.com at `;
+
+        if (!message.startsWith(expectedPrefix)) {
+            return res.status(400).json({ error: 'Invalid message format' });
+        }
+
+        const tsResult = validateTimestamp(message);
+        if (!tsResult.valid) {
+            return res.status(400).json({ error: tsResult.error });
+        }
+
+        // Check signature replay
+        if (await isSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN)) {
+            return res.status(400).json({ error: 'Signature already used' });
+        }
 
         const messageBytes = new TextEncoder().encode(message);
         const signatureBytes = base58Decode(signature);
@@ -103,6 +106,9 @@ export default async function handler(req, res) {
         if (!verified) {
             return res.status(401).json({ error: 'Invalid signature' });
         }
+
+        // Mark signature as used
+        await markSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         let xMap = {};
         try {

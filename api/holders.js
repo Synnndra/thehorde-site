@@ -1,4 +1,5 @@
 // Vercel Serverless Function for Holder Leaderboard
+import { isRateLimitedKV, getClientIp } from '../lib/swap-utils.js';
 
 const ORC_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
 const CACHE_KEY = 'holders:leaderboard';
@@ -27,7 +28,11 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Helius API key not configured' });
     }
 
-    // Debug endpoint removed for security
+    // Rate limiting (KV-based) — this endpoint is expensive (Helius + ME API calls)
+    const clientIp = getClientIp(req);
+    if (await isRateLimitedKV(clientIp, 'holders', 5, 60000, KV_REST_API_URL, KV_REST_API_TOKEN)) {
+        return res.status(429).json({ error: 'Too many requests. Try again later.' });
+    }
 
     async function kvGet(key) {
         const response = await fetch(`${KV_REST_API_URL}/get/${key}`, {

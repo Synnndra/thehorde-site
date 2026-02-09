@@ -285,7 +285,7 @@ async function linkDiscord() {
     if (!provider) return;
 
     try {
-        const message = `Link Discord to wallet ${connectedWallet} on midhorde.com`;
+        const message = `Link Discord to wallet ${connectedWallet} on midhorde.com at ${Date.now()}`;
         const encodedMsg = new TextEncoder().encode(message);
         const signed = await provider.signMessage(encodedMsg, 'utf8');
         const signature = toBase58(signed.signature);
@@ -293,7 +293,7 @@ async function linkDiscord() {
         const res = await fetch('/api/holders-link', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ wallet: connectedWallet, signature, discord })
+            body: JSON.stringify({ wallet: connectedWallet, signature, message, discord })
         });
 
         const data = await res.json();
@@ -318,7 +318,7 @@ async function unlinkDiscord() {
     if (!provider) return;
 
     try {
-        const message = `Unlink Discord from wallet ${connectedWallet} on midhorde.com`;
+        const message = `Unlink Discord from wallet ${connectedWallet} on midhorde.com at ${Date.now()}`;
         const encodedMsg = new TextEncoder().encode(message);
         const signed = await provider.signMessage(encodedMsg, 'utf8');
         const signature = toBase58(signed.signature);
@@ -326,7 +326,7 @@ async function unlinkDiscord() {
         const res = await fetch('/api/holders-link', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ wallet: connectedWallet, signature })
+            body: JSON.stringify({ wallet: connectedWallet, signature, message })
         });
 
         const data = await res.json();
@@ -358,7 +358,7 @@ async function linkX() {
     if (!provider) return;
 
     try {
-        const message = `Link X to wallet ${connectedWallet} on midhorde.com`;
+        const message = `Link X to wallet ${connectedWallet} on midhorde.com at ${Date.now()}`;
         const encodedMsg = new TextEncoder().encode(message);
         const signed = await provider.signMessage(encodedMsg, 'utf8');
         const signature = toBase58(signed.signature);
@@ -366,7 +366,7 @@ async function linkX() {
         const res = await fetch('/api/holders-link-x', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ wallet: connectedWallet, signature, x })
+            body: JSON.stringify({ wallet: connectedWallet, signature, message, x })
         });
 
         const data = await res.json();
@@ -390,7 +390,7 @@ async function unlinkX() {
     if (!provider) return;
 
     try {
-        const message = `Unlink X from wallet ${connectedWallet} on midhorde.com`;
+        const message = `Unlink X from wallet ${connectedWallet} on midhorde.com at ${Date.now()}`;
         const encodedMsg = new TextEncoder().encode(message);
         const signed = await provider.signMessage(encodedMsg, 'utf8');
         const signature = toBase58(signed.signature);
@@ -398,7 +398,7 @@ async function unlinkX() {
         const res = await fetch('/api/holders-link-x', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ wallet: connectedWallet, signature })
+            body: JSON.stringify({ wallet: connectedWallet, signature, message })
         });
 
         const data = await res.json();

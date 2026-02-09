@@ -200,7 +200,8 @@ class GameUI {
                     name: playerName || 'Anonymous',
                     score: score,
                     distance: Math.floor(stats.distance),
-                    coins: stats.coins
+                    coins: stats.coins,
+                    gameToken: this.game.gameToken || null
                 })
             });
         } catch (error) {

@@ -1,11 +1,5 @@
 // Vercel Serverless Function to proxy Helius API calls
-
-// Rate limiting (resets per function instance)
-const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW = 60000; // 1 minute
-const RATE_LIMIT_MAX = 30; // Max 30 requests per minute per IP
-let lastRateLimitCleanup = Date.now();
-const RATE_LIMIT_CLEANUP_INTERVAL = 5 * 60 * 1000; // Clean up every 5 minutes
+import { isRateLimitedKV, getClientIp } from '../lib/swap-utils.js';
 
 // Response cache for read-only RPC methods (short-lived)
 const responseCache = new Map();
@@ -36,16 +30,6 @@ const ALLOWED_METHODS = [
 function cleanupStaleEntries() {
     const now = Date.now();
 
-    // Clean rate limit map
-    if (now - lastRateLimitCleanup > RATE_LIMIT_CLEANUP_INTERVAL) {
-        for (const [ip, record] of rateLimitMap) {
-            if (now - record.timestamp > RATE_LIMIT_WINDOW) {
-                rateLimitMap.delete(ip);
-            }
-        }
-        lastRateLimitCleanup = now;
-    }
-
     // Clean response cache
     if (now - lastCacheCleanup > CACHE_TTL) {
         for (const [key, entry] of responseCache) {
@@ -55,23 +39,6 @@ function cleanupStaleEntries() {
         }
         lastCacheCleanup = now;
     }
-}
-
-function isRateLimited(ip) {
-    const now = Date.now();
-    const record = rateLimitMap.get(ip);
-
-    if (!record || now - record.timestamp > RATE_LIMIT_WINDOW) {
-        rateLimitMap.set(ip, { timestamp: now, count: 1 });
-        return false;
-    }
-
-    if (record.count >= RATE_LIMIT_MAX) {
-        return true;
-    }
-
-    record.count++;
-    return false;
 }
 
 export default async function handler(req, res) {
@@ -85,9 +52,9 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'API key not configured' });
     }
 
-    // Rate limiting
-    const clientIp = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
-    if (isRateLimited(clientIp)) {
+    // Rate limiting (KV-based)
+    const clientIp = getClientIp(req);
+    if (await isRateLimitedKV(clientIp, 'helius', 30, 60000, process.env.KV_REST_API_URL, process.env.KV_REST_API_TOKEN)) {
         return res.status(429).json({ error: 'Too many requests. Try again later.' });
     }
 

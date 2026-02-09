@@ -271,7 +271,21 @@ class Game {
         return trees;
     }
 
-    startGame() {
+    async startGame() {
+        // Request game session token for leaderboard validation
+        try {
+            const tokenRes = await fetch('/api/game-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ game: 'orcrun' })
+            });
+            const tokenData = await tokenRes.json();
+            this.gameToken = tokenData.token || null;
+        } catch (e) {
+            console.warn('Failed to get game token:', e);
+            this.gameToken = null;
+        }
+
         soundManager.init();
 
         this.resizeCanvas();

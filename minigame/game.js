@@ -483,6 +483,20 @@ class Game {
     }
 
     async startGame() {
+        // Request game session token for leaderboard validation
+        try {
+            const tokenRes = await fetch('/api/game-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ game: 'horde' })
+            });
+            const tokenData = await tokenRes.json();
+            this.gameToken = tokenData.token || null;
+        } catch (e) {
+            console.warn('Failed to get game token:', e);
+            this.gameToken = null;
+        }
+
         // Initialize sound system
         if (typeof soundManager !== 'undefined') {
             soundManager.init();

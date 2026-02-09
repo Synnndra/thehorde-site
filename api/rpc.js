@@ -1,4 +1,5 @@
 // Vercel Serverless Function - Solana RPC Proxy
+import { isRateLimitedKV, getClientIp } from '../lib/swap-utils.js';
 
 const ALLOWED_METHODS = new Set([
     'getLatestBlockhash',
@@ -7,35 +8,6 @@ const ALLOWED_METHODS = new Set([
     'getAccountInfo',
     'getTokenAccountsByOwner'
 ]);
-
-// In-memory rate limiting (per serverless instance)
-const rateLimitMap = new Map();
-const RATE_LIMIT_MAX = 30;
-const RATE_LIMIT_WINDOW_MS = 60000;
-
-function isRateLimited(ip) {
-    const now = Date.now();
-    const record = rateLimitMap.get(ip);
-
-    if (!record || now - record.timestamp > RATE_LIMIT_WINDOW_MS) {
-        rateLimitMap.set(ip, { timestamp: now, count: 1 });
-        return false;
-    }
-
-    if (record.count >= RATE_LIMIT_MAX) {
-        return true;
-    }
-
-    record.count++;
-    return false;
-}
-
-function getClientIp(req) {
-    return req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
-           req.headers['x-real-ip'] ||
-           req.socket?.remoteAddress ||
-           'unknown';
-}
 
 export default async function handler(req, res) {
     if (req.method === 'OPTIONS') {
@@ -46,9 +18,9 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Rate limiting
+    // Rate limiting (KV-based)
     const clientIp = getClientIp(req);
-    if (isRateLimited(clientIp)) {
+    if (await isRateLimitedKV(clientIp, 'rpc', 30, 60000, process.env.KV_REST_API_URL, process.env.KV_REST_API_TOKEN)) {
         return res.status(429).json({ error: 'Too many requests' });
     }
 

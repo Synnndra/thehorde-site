@@ -1,24 +1,8 @@
 // Vercel Serverless Function for Wallet-Wallet Linking
 import nacl from 'tweetnacl';
+import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed } from '../lib/swap-utils.js';
 
 const WALLET_MAP_KEY = 'holders:wallet_map';
-
-// Rate limiting
-const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW = 60000;
-const RATE_LIMIT_MAX = 5;
-
-function isRateLimited(ip) {
-    const now = Date.now();
-    const record = rateLimitMap.get(ip);
-    if (!record || now - record.timestamp > RATE_LIMIT_WINDOW) {
-        rateLimitMap.set(ip, { timestamp: now, count: 1 });
-        return false;
-    }
-    if (record.count >= RATE_LIMIT_MAX) return true;
-    record.count++;
-    return false;
-}
 
 function base58Decode(str) {
     const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -53,20 +37,10 @@ function verifySignature(message, signature, wallet) {
         const messageBytes = new TextEncoder().encode(message);
         const signatureBytes = base58Decode(signature);
         const publicKeyBytes = base58Decode(wallet);
-        console.log('verifySignature:', {
-            messageLen: messageBytes.length,
-            sigLen: signatureBytes.length,
-            pubKeyLen: publicKeyBytes.length,
-            message,
-            sigPrefix: signature.slice(0, 10),
-            wallet: wallet.slice(0, 8)
-        });
         if (signatureBytes.length !== 64) {
-            console.error('Bad signature length:', signatureBytes.length);
             return false;
         }
         if (publicKeyBytes.length !== 32) {
-            console.error('Bad public key length:', publicKeyBytes.length);
             return false;
         }
         return nacl.sign.detached.verify(messageBytes, signatureBytes, publicKeyBytes);
@@ -88,8 +62,8 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'KV not configured' });
     }
 
-    const clientIp = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
-    if (isRateLimited(clientIp)) {
+    const clientIp = getClientIp(req);
+    if (await isRateLimitedKV(clientIp, 'holders-link-wallet', 5, 60000, KV_REST_API_URL, KV_REST_API_TOKEN)) {
         return res.status(429).json({ error: 'Too many requests. Try again later.' });
     }
 
@@ -127,7 +101,7 @@ export default async function handler(req, res) {
 
         if (req.method === 'DELETE') {
             // Unlink wallet
-            const { wallet, signature } = req.body;
+            const { wallet, signature, message } = req.body;
 
             if (!isValidWallet(wallet)) {
                 return res.status(400).json({ error: 'Invalid wallet address' });
@@ -135,11 +109,29 @@ export default async function handler(req, res) {
             if (!signature || typeof signature !== 'string') {
                 return res.status(400).json({ error: 'Signature required' });
             }
+            if (!message || typeof message !== 'string') {
+                return res.status(400).json({ error: 'Message required' });
+            }
 
-            const message = `Unlink wallet ${wallet} on midhorde.com`;
+            const expectedPrefix = `Unlink wallet ${wallet} on midhorde.com at `;
+            if (!message.startsWith(expectedPrefix)) {
+                return res.status(400).json({ error: 'Invalid message format' });
+            }
+
+            const tsResult = validateTimestamp(message);
+            if (!tsResult.valid) {
+                return res.status(400).json({ error: tsResult.error });
+            }
+
+            if (await isSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN)) {
+                return res.status(400).json({ error: 'Signature already used' });
+            }
+
             if (!verifySignature(message, signature, wallet)) {
                 return res.status(401).json({ error: 'Invalid signature' });
             }
+
+            await markSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN);
 
             // Find and remove both directions
             const linked = walletMap[wallet];
@@ -156,7 +148,7 @@ export default async function handler(req, res) {
         }
 
         // POST - Link two wallets
-        const { walletA, signatureA, walletB, signatureB } = req.body;
+        const { walletA, signatureA, messageA, walletB, signatureB, messageB } = req.body;
 
         if (!isValidWallet(walletA) || !isValidWallet(walletB)) {
             return res.status(400).json({ error: 'Invalid wallet address' });
@@ -164,22 +156,55 @@ export default async function handler(req, res) {
         if (!signatureA || typeof signatureA !== 'string' || !signatureB || typeof signatureB !== 'string') {
             return res.status(400).json({ error: 'Both signatures required' });
         }
+        if (!messageA || typeof messageA !== 'string' || !messageB || typeof messageB !== 'string') {
+            return res.status(400).json({ error: 'Both messages required' });
+        }
 
         if (walletA === walletB) {
             return res.status(400).json({ error: 'Cannot link a wallet to itself' });
         }
 
+        // Validate message A format and timestamp
+        const expectedPrefixA = `Link wallet ${walletA} to another wallet on midhorde.com at `;
+        if (!messageA.startsWith(expectedPrefixA)) {
+            return res.status(400).json({ error: 'Invalid message format for wallet A' });
+        }
+        const tsResultA = validateTimestamp(messageA);
+        if (!tsResultA.valid) {
+            return res.status(400).json({ error: tsResultA.error });
+        }
+
+        // Validate message B format and timestamp
+        const expectedPrefixB = `Confirm link wallet ${walletB} to wallet ${walletA} on midhorde.com at `;
+        if (!messageB.startsWith(expectedPrefixB)) {
+            return res.status(400).json({ error: 'Invalid message format for wallet B' });
+        }
+        const tsResultB = validateTimestamp(messageB);
+        if (!tsResultB.valid) {
+            return res.status(400).json({ error: tsResultB.error });
+        }
+
+        // Check signature replay for both
+        if (await isSignatureUsed(signatureA, KV_REST_API_URL, KV_REST_API_TOKEN)) {
+            return res.status(400).json({ error: 'Signature A already used' });
+        }
+        if (await isSignatureUsed(signatureB, KV_REST_API_URL, KV_REST_API_TOKEN)) {
+            return res.status(400).json({ error: 'Signature B already used' });
+        }
+
         // Verify signature A
-        const messageA = `Link wallet ${walletA} to another wallet on midhorde.com`;
         if (!verifySignature(messageA, signatureA, walletA)) {
             return res.status(401).json({ error: 'Invalid signature for wallet A' });
         }
 
         // Verify signature B
-        const messageB = `Confirm link wallet ${walletB} to wallet ${walletA} on midhorde.com`;
         if (!verifySignature(messageB, signatureB, walletB)) {
             return res.status(401).json({ error: 'Invalid signature for wallet B' });
         }
+
+        // Mark both signatures as used
+        await markSignatureUsed(signatureA, KV_REST_API_URL, KV_REST_API_TOKEN);
+        await markSignatureUsed(signatureB, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         // Check if either wallet is already linked to a different wallet
         if (walletMap[walletA] && walletMap[walletA].linkedWallet !== walletB) {

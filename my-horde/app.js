@@ -347,7 +347,7 @@ async function linkDiscord() {
     if (!provider) return;
 
     try {
-        const message = 'Link Discord to wallet ' + connectedWallet + ' on midhorde.com';
+        const message = 'Link Discord to wallet ' + connectedWallet + ' on midhorde.com at ' + Date.now();
         const encodedMsg = new TextEncoder().encode(message);
         const signed = await provider.signMessage(encodedMsg, 'utf8');
         const signature = toBase58(signed.signature);
@@ -355,7 +355,7 @@ async function linkDiscord() {
         const res = await fetch('/api/holders-link', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ wallet: connectedWallet, signature: signature, discord: discord })
+            body: JSON.stringify({ wallet: connectedWallet, signature: signature, message: message, discord: discord })
         });
 
         const data = await res.json();
@@ -378,7 +378,7 @@ async function unlinkDiscord() {
     if (!provider) return;
 
     try {
-        const message = 'Unlink Discord from wallet ' + connectedWallet + ' on midhorde.com';
+        const message = 'Unlink Discord from wallet ' + connectedWallet + ' on midhorde.com at ' + Date.now();
         const encodedMsg = new TextEncoder().encode(message);
         const signed = await provider.signMessage(encodedMsg, 'utf8');
         const signature = toBase58(signed.signature);
@@ -386,7 +386,7 @@ async function unlinkDiscord() {
         const res = await fetch('/api/holders-link', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ wallet: connectedWallet, signature: signature })
+            body: JSON.stringify({ wallet: connectedWallet, signature: signature, message: message })
         });
 
         const data = await res.json();
@@ -417,7 +417,7 @@ async function linkX() {
     if (!provider) return;
 
     try {
-        const message = 'Link X to wallet ' + connectedWallet + ' on midhorde.com';
+        const message = 'Link X to wallet ' + connectedWallet + ' on midhorde.com at ' + Date.now();
         const encodedMsg = new TextEncoder().encode(message);
         const signed = await provider.signMessage(encodedMsg, 'utf8');
         const signature = toBase58(signed.signature);
@@ -425,7 +425,7 @@ async function linkX() {
         const res = await fetch('/api/holders-link-x', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ wallet: connectedWallet, signature: signature, x: x })
+            body: JSON.stringify({ wallet: connectedWallet, signature: signature, message: message, x: x })
         });
 
         const data = await res.json();
@@ -448,7 +448,7 @@ async function unlinkX() {
     if (!provider) return;
 
     try {
-        const message = 'Unlink X from wallet ' + connectedWallet + ' on midhorde.com';
+        const message = 'Unlink X from wallet ' + connectedWallet + ' on midhorde.com at ' + Date.now();
         const encodedMsg = new TextEncoder().encode(message);
         const signed = await provider.signMessage(encodedMsg, 'utf8');
         const signature = toBase58(signed.signature);
@@ -456,7 +456,7 @@ async function unlinkX() {
         const res = await fetch('/api/holders-link-x', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ wallet: connectedWallet, signature: signature })
+            body: JSON.stringify({ wallet: connectedWallet, signature: signature, message: message })
         });
 
         const data = await res.json();
@@ -484,7 +484,7 @@ function getLinkedWallet() {
     return null;
 }
 
-function showWalletPickerForLink(walletA, signatureA) {
+function showWalletPickerForLink(walletA, signatureA, messageA) {
     hideWalletModal();
 
     var wallets = getAvailableWallets();
@@ -534,7 +534,7 @@ function showWalletPickerForLink(walletA, signatureA) {
         btn.appendChild(nameSpan);
         btn.addEventListener('click', function() {
             hideWalletModal();
-            connectAndSignWalletB(w.provider, walletA, signatureA);
+            connectAndSignWalletB(w.provider, walletA, signatureA, messageA);
         });
         list.appendChild(btn);
     });
@@ -547,7 +547,7 @@ function showWalletPickerForLink(walletA, signatureA) {
     document.body.appendChild(overlay);
 }
 
-async function connectAndSignWalletB(provider, walletA, signatureA) {
+async function connectAndSignWalletB(provider, walletA, signatureA, messageA) {
     try {
         // Disconnect current provider first so Phantom shows account picker
         var originalProvider = getWalletProvider();
@@ -565,8 +565,8 @@ async function connectAndSignWalletB(provider, walletA, signatureA) {
             return;
         }
 
-        var message = 'Confirm link wallet ' + walletB + ' to wallet ' + walletA + ' on midhorde.com';
-        var encodedMsg = new TextEncoder().encode(message);
+        var messageB = 'Confirm link wallet ' + walletB + ' to wallet ' + walletA + ' on midhorde.com at ' + Date.now();
+        var encodedMsg = new TextEncoder().encode(messageB);
         var signed = await provider.signMessage(encodedMsg, 'utf8');
         var signatureB = toBase58(signed.signature);
 
@@ -579,8 +579,10 @@ async function connectAndSignWalletB(provider, walletA, signatureA) {
             body: JSON.stringify({
                 walletA: walletA,
                 signatureA: signatureA,
+                messageA: messageA,
                 walletB: walletB,
-                signatureB: signatureB
+                signatureB: signatureB,
+                messageB: messageB
             })
         });
 
@@ -631,13 +633,13 @@ async function linkWallet() {
 
     try {
         var walletA = connectedWallet;
-        var message = 'Link wallet ' + walletA + ' to another wallet on midhorde.com';
+        var message = 'Link wallet ' + walletA + ' to another wallet on midhorde.com at ' + Date.now();
         var encodedMsg = new TextEncoder().encode(message);
         var signed = await provider.signMessage(encodedMsg, 'utf8');
         var signatureA = toBase58(signed.signature);
 
         // Immediately show wallet picker for step 2
-        showWalletPickerForLink(walletA, signatureA);
+        showWalletPickerForLink(walletA, signatureA, message);
     } catch (err) {
         console.error('Link wallet failed:', err);
         if (err.message?.includes('User rejected')) return;
@@ -651,7 +653,7 @@ async function unlinkWallet() {
     if (!provider) return;
 
     try {
-        var message = 'Unlink wallet ' + connectedWallet + ' on midhorde.com';
+        var message = 'Unlink wallet ' + connectedWallet + ' on midhorde.com at ' + Date.now();
         var encodedMsg = new TextEncoder().encode(message);
         var signed = await provider.signMessage(encodedMsg, 'utf8');
         var signature = toBase58(signed.signature);
@@ -659,7 +661,7 @@ async function unlinkWallet() {
         var res = await fetch('/api/holders-link-wallet', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ wallet: connectedWallet, signature: signature })
+            body: JSON.stringify({ wallet: connectedWallet, signature: signature, message: message })
         });
 
         var data = await res.json();

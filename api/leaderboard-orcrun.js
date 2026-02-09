@@ -1,25 +1,5 @@
 // Vercel Serverless Function for Orc Run Leaderboard
-
-const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW = 60000;
-const RATE_LIMIT_MAX = 10;
-
-function isRateLimited(ip) {
-    const now = Date.now();
-    const record = rateLimitMap.get(ip);
-
-    if (!record || now - record.timestamp > RATE_LIMIT_WINDOW) {
-        rateLimitMap.set(ip, { timestamp: now, count: 1 });
-        return false;
-    }
-
-    if (record.count >= RATE_LIMIT_MAX) {
-        return true;
-    }
-
-    record.count++;
-    return false;
-}
+import { isRateLimitedKV, getClientIp } from '../lib/swap-utils.js';
 
 export default async function handler(req, res) {
     const KV_REST_API_URL = process.env.KV_REST_API_URL;
@@ -62,12 +42,40 @@ export default async function handler(req, res) {
         }
 
         if (req.method === 'POST') {
-            const clientIp = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
-            if (isRateLimited(clientIp)) {
+            const clientIp = getClientIp(req);
+            if (await isRateLimitedKV(clientIp, 'leaderboard-orcrun', 10, 60000, KV_REST_API_URL, KV_REST_API_TOKEN)) {
                 return res.status(429).json({ error: 'Too many requests. Try again later.' });
             }
 
-            const { name, score, distance, coins } = req.body;
+            const { name, score, distance, coins, gameToken } = req.body;
+
+            // Validate game session token
+            if (!gameToken || typeof gameToken !== 'string') {
+                return res.status(400).json({ error: 'Game token required' });
+            }
+
+            const sessionKey = `game_session:${gameToken}`;
+            const sessionRaw = await kvGet(sessionKey);
+            if (!sessionRaw) {
+                return res.status(400).json({ error: 'Invalid or expired game token' });
+            }
+
+            const session = typeof sessionRaw === 'string' ? JSON.parse(sessionRaw) : sessionRaw;
+            if (session.game !== 'orcrun') {
+                return res.status(400).json({ error: 'Token not valid for this game' });
+            }
+
+            // Check minimum game duration (10 seconds for endless runner)
+            const elapsed = Date.now() - session.startedAt;
+            if (elapsed < 10000) {
+                return res.status(400).json({ error: 'Game session too short' });
+            }
+
+            // Delete token so it can't be reused
+            await fetch(`${KV_REST_API_URL}/del/${sessionKey}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+            });
 
             if (!name || typeof name !== 'string') {
                 return res.status(400).json({ error: 'Invalid name' });
