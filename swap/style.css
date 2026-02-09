@@ -1000,7 +1000,8 @@ body {
     color: white;
 }
 
-.status-badge.escrowed {
+.status-badge.escrowed,
+.status-badge.release_failed {
     background: #1e3a5f;
     color: #64b5f6;
 }

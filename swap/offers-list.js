@@ -43,7 +43,7 @@ async function loadOffers() {
         );
 
         const history = data.offers.filter(o =>
-            ['accepted', 'completed', 'escrowed', 'failed', 'cancelled', 'expired'].includes(o.status)
+            ['accepted', 'completed', 'escrowed', 'release_failed', 'failed', 'cancelled', 'expired'].includes(o.status)
         );
 
         allOffers = {
@@ -240,7 +240,7 @@ function createHistoryCard(offer, type) {
         finalizedDate = new Date(offer.completedAt).toLocaleDateString();
     } else if (offer.status === 'accepted' && offer.acceptedAt) {
         finalizedDate = new Date(offer.acceptedAt).toLocaleDateString();
-    } else if (offer.status === 'escrowed' && offer.escrowedAt) {
+    } else if ((offer.status === 'escrowed' || offer.status === 'release_failed') && offer.escrowedAt) {
         finalizedDate = new Date(offer.escrowedAt).toLocaleDateString();
     } else if (offer.status === 'failed' && offer.failedAt) {
         finalizedDate = new Date(offer.failedAt).toLocaleDateString();
@@ -287,6 +287,7 @@ function createHistoryCard(offer, type) {
         completed: 'Completed',
         accepted: 'Completed',
         escrowed: 'Processing',
+        release_failed: 'Processing',
         failed: 'Failed',
         cancelled: 'Cancelled',
         expired: 'Expired'

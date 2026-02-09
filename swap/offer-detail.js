@@ -132,7 +132,7 @@ function displayOfferActions() {
         return;
     }
 
-    if (currentOffer.status === 'escrowed') {
+    if (currentOffer.status === 'escrowed' || currentOffer.status === 'release_failed') {
         const hasError = currentOffer.releaseToReceiverError || currentOffer.releaseToInitiatorError;
         if (hasError) {
             const errorMsg = currentOffer.releaseToReceiverError || currentOffer.releaseToInitiatorError;

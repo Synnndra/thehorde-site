@@ -69,12 +69,18 @@ export default async function handler(req, res) {
             errors: []
         };
 
-        // Scan for all offer keys
-        const scanRes = await fetch(`${KV_REST_API_URL}/keys/offer:*`, {
-            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-        });
-        const scanData = await scanRes.json();
-        const offerKeys = scanData.result || [];
+        // Scan for all offer keys using cursor-based pagination
+        let offerKeys = [];
+        let cursor = '0';
+        do {
+            const scanRes = await fetch(`${KV_REST_API_URL}/scan/${cursor}/match/offer:*/count/100`, {
+                headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+            });
+            const scanData = await scanRes.json();
+            cursor = scanData.result?.[0] || '0';
+            const batch = scanData.result?.[1] || [];
+            offerKeys = offerKeys.concat(batch);
+        } while (cursor !== '0');
 
         console.log(`Found ${offerKeys.length} offers to check`);
 
@@ -239,8 +245,8 @@ export default async function handler(req, res) {
                     continue;
                 }
 
-                // === Handle stuck escrowed offers ===
-                if (offer.status === 'escrowed' && offer.escrowedAt) {
+                // === Handle stuck escrowed or release_failed offers ===
+                if ((offer.status === 'escrowed' || offer.status === 'release_failed') && offer.escrowedAt) {
                     const lock = await acquireLock(offer.id, KV_REST_API_URL, KV_REST_API_TOKEN);
                     if (!lock.acquired) {
                         console.log(`Skipping escrowed offer ${offer.id} — locked by another process`);
@@ -404,11 +410,17 @@ export default async function handler(req, res) {
         let orphansReturned = 0;
         let orphanErrors = [];
         try {
-            const orphanScanRes = await fetch(`${KV_REST_API_URL}/keys/orphan:*`, {
-                headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-            });
-            const orphanScanData = await orphanScanRes.json();
-            const orphanKeys = orphanScanData.result || [];
+            let orphanKeys = [];
+            let orphanCursor = '0';
+            do {
+                const orphanScanRes = await fetch(`${KV_REST_API_URL}/scan/${orphanCursor}/match/orphan:*/count/100`, {
+                    headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
+                });
+                const orphanScanData = await orphanScanRes.json();
+                orphanCursor = orphanScanData.result?.[0] || '0';
+                const batch = orphanScanData.result?.[1] || [];
+                orphanKeys = orphanKeys.concat(batch);
+            } while (orphanCursor !== '0');
             console.log(`Found ${orphanKeys.length} orphan records to check`);
 
             for (const orphanKey of orphanKeys) {

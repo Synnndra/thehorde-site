@@ -220,6 +220,17 @@ export default async function handler(req, res) {
                 } catch (e) {
                     console.error('Badge swap counter increment failed:', e);
                 }
+            } else {
+                // One or both phases failed — mark as release_failed so cleanup can retry
+                offer.status = 'release_failed';
+                offer.releaseFailedAt = Date.now();
+                await appendTxLog(offerId, {
+                    action: 'release_failed',
+                    wallet: null,
+                    txSignature: null,
+                    error: releaseErrors.map(e => `${e.phase}: ${e.error}`).join('; '),
+                    details: `Phase1: ${offer.releaseToReceiverComplete ? 'ok' : 'failed'}, Phase2: ${offer.releaseToInitiatorComplete ? 'ok' : 'failed'}`
+                }, KV_REST_API_URL, KV_REST_API_TOKEN);
             }
         }
 
