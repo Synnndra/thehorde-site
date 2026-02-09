@@ -93,6 +93,18 @@ body::before {
     left: 0;
 }
 
+/* SubDAO disclaimer (shown on every page footer) */
+.subdao-disclaimer {
+    margin-top: 0.75rem;
+    font-size: 0.78rem;
+    color: #6b6560;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.5;
+    text-align: center;
+}
+
 /* Touch-device: disable fixed background to prevent jank */
 @media (hover: none) and (pointer: coarse) {
     body {
