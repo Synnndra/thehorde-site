@@ -91,7 +91,8 @@
 
 .stat-label {
     font-size: 0.8rem;
-    color: var(--color-text-dim);
+    color: var(--color-text-label);
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
 }
@@ -364,7 +365,7 @@
 }
 
 .badge-card.locked .badge-card-name {
-    color: var(--color-text-dim);
+    color: var(--color-text-label);
 }
 
 /* Badge tooltip */
@@ -436,7 +437,8 @@
 .sort-controls label {
     font-family: var(--font-display);
     font-size: 0.75rem;
-    color: var(--color-text-dim);
+    font-weight: 600;
+    color: var(--color-text-label);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -522,8 +524,9 @@
 
 .gallery-card-rank {
     font-family: var(--font-display);
-    font-size: 0.55rem;
-    color: var(--color-text-dim);
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--color-text-label);
 }
 
 /* Status badges on gallery cards */
@@ -589,7 +592,8 @@
 
 .rarity-tier-card .tier-range {
     font-size: 0.7rem;
-    color: var(--color-text-dim);
+    font-weight: 600;
+    color: var(--color-text-label);
 }
 
 .tier-legendary .tier-label { color: var(--color-gold); }
@@ -943,7 +947,8 @@
 
 .modal-trait-type {
     font-size: 0.8rem;
-    color: var(--color-text-dim);
+    font-weight: 600;
+    color: var(--color-text-label);
     text-transform: uppercase;
     font-family: var(--font-display);
     letter-spacing: 0.05em;
@@ -966,7 +971,8 @@
     display: block;
     font-family: var(--font-display);
     font-size: 0.7rem;
-    color: var(--color-text-dim);
+    font-weight: 600;
+    color: var(--color-text-label);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 0.3rem;
@@ -1124,7 +1130,8 @@
 .linked-wallet-info {
     font-family: var(--font-display);
     font-size: 0.7rem;
-    color: var(--color-text-dim);
+    font-weight: 600;
+    color: var(--color-text-label);
     letter-spacing: 0.03em;
 }
 

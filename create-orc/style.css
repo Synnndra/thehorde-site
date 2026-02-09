@@ -22,7 +22,7 @@
 .page-subtitle {
     font-family: 'Crimson Text', serif;
     font-size: 1.1rem;
-    color: #9a9484;
+    color: var(--color-text-dim);
     margin-top: 0.25rem;
 }
 
@@ -160,7 +160,8 @@
 
 .trait-group-tag {
     font-size: 0.65rem;
-    color: #9a9484;
+    font-weight: 600;
+    color: var(--color-text-label);
     text-transform: uppercase;
     letter-spacing: 0.08em;
 }
@@ -211,7 +212,8 @@
 
 .trait-label {
     font-size: 0.65rem;
-    color: #9a9484;
+    font-weight: 600;
+    color: var(--color-text-label);
     text-align: center;
     line-height: 1.2;
     font-family: 'Crimson Text', serif;
@@ -312,7 +314,7 @@
 
 .tier-common {
     background: rgba(154, 148, 132, 0.15);
-    color: #9a9484;
+    color: var(--color-text-dim);
     border: 1px solid #5a5a4a;
 }
 
@@ -354,7 +356,7 @@
 
 .rarity-badge.tier-common {
     background: rgba(154, 148, 132, 0.2);
-    color: #9a9484;
+    color: var(--color-text-dim);
     border: 1px solid #5a5a4a;
 }
 

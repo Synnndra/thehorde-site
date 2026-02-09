@@ -10,6 +10,7 @@
     --bg-section: #2a2a3e;
     --text: var(--color-text);
     --text-dim: var(--color-text-dim);
+    --text-label: var(--color-text-label);
     --green: #4caf50;
     --green-dim: rgba(76, 175, 80, 0.15);
     --red: #e74c3c;
@@ -101,7 +102,8 @@ body {
 .wallet-status {
     font-family: 'Cinzel', serif;
     font-size: 0.85rem;
-    color: var(--text-dim);
+    font-weight: 600;
+    color: var(--text-label);
 }
 
 .wallet-status.connected .status-text {
@@ -194,7 +196,8 @@ body {
 
 .stat-label {
     font-size: 0.8rem;
-    color: var(--text-dim);
+    font-weight: 600;
+    color: var(--text-label);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
