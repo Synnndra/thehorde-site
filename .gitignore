@@ -6,3 +6,8 @@ node_modules
 .env*.local
 SESSION-LOG.md
 plans/
+
+# Financial/tax data
+*.csv
+price-cache.json
+scripts/
