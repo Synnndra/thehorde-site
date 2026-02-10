@@ -3,6 +3,10 @@
     {
       "path": "/api/swap/cleanup-expired",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/discord-summary",
+      "schedule": "0 5 * * *"
     }
   ],
   "rewrites": [
@@ -42,7 +46,8 @@
     { "source": "/api/dao/proposals", "destination": "/api/dao/proposals.js" },
     { "source": "/api/dao/proposal", "destination": "/api/dao/proposal.js" },
     { "source": "/api/dao/create", "destination": "/api/dao/create.js" },
-    { "source": "/api/dao/vote", "destination": "/api/dao/vote.js" }
+    { "source": "/api/dao/vote", "destination": "/api/dao/vote.js" },
+    { "source": "/api/discord-summary", "destination": "/api/discord-summary.js" }
   ],
   "headers": [
     {
