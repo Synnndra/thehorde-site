@@ -98,8 +98,8 @@ export default async function handler(req, res) {
             // --- Summarize with Claude Haiku ---
             const aiRes = await anthropic.messages.create({
                 model: 'claude-haiku-4-5-20251001',
-                max_tokens: 512,
-                system: 'Summarize today\'s Discord chat concisely. Highlight key topics, decisions, questions, and notable moments. Keep it under 300 words. Be casual and match the community vibe. Do not use markdown headers — just plain text with line breaks between sections.',
+                max_tokens: 1024,
+                system: 'Summarize today\'s Discord chat concisely. Highlight key topics, decisions, questions, and notable moments. Keep it under 500 words. Be casual and match the community vibe. Do not use markdown headers — just plain text with line breaks between sections.',
                 messages: [{
                     role: 'user',
                     content: `Here is today's chat log (${humanMessages.length} messages):\n\n${chatLog}`
@@ -113,12 +113,11 @@ export default async function handler(req, res) {
 
             // --- Post embed to channel ---
             const embedPayload = {
+                content: '⚔️ **The Daily Grind:** Here\'s what went down in BST since yesterday.',
                 embeds: [{
                     title: `Daily Recap — ${dateStr}`,
                     description: summary,
-                    color: EMBED_COLOR,
-                    footer: { text: 'Powered by The Horde' },
-                    timestamp: now.toISOString()
+                    color: EMBED_COLOR
                 }]
             };
 
