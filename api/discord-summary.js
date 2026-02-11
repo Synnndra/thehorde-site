@@ -113,9 +113,9 @@ export default async function handler(req, res) {
                 return `[${ts}] ${name}: ${text}`;
             }).filter(Boolean).join('\n');
 
-            // --- Summarize with Claude Haiku ---
+            // --- Summarize with Claude Sonnet ---
             const aiRes = await anthropic.messages.create({
-                model: 'claude-haiku-4-5-20251001',
+                model: 'claude-sonnet-4-5-20250929',
                 max_tokens: 1024,
                 system: 'Summarize today\'s Discord chat. Focus on WHAT was discussed — the actual topics, opinions, jokes, debates, news, and ideas. Mention who said notable things but prioritize the content over listing names. Highlight key topics, decisions, questions, and memorable moments. Keep it under 500 words. Be casual and match the community vibe. Do not use markdown headers — just plain text with line breaks between sections.',
                 messages: [{
