@@ -14,6 +14,8 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    const dryRun = req.query.preview === 'true';
+
     // --- Auth: Vercel Cron bearer token ---
     const CRON_SECRET = process.env.CRON_SECRET;
     if (!CRON_SECRET || !req.headers['authorization']) {
@@ -92,14 +94,30 @@ export default async function handler(req, res) {
                     timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit'
                 });
                 const name = m.author.global_name || m.author.username;
-                return `[${ts}] ${name}: ${m.content}`;
-            }).join('\n');
+                let text = m.content || '';
+                // Include attachment info
+                if (m.attachments?.length) {
+                    const types = m.attachments.map(a => a.content_type?.startsWith('image') ? '[image]' : `[file: ${a.filename}]`);
+                    text += (text ? ' ' : '') + types.join(' ');
+                }
+                // Include embed titles/descriptions
+                if (m.embeds?.length) {
+                    const embedText = m.embeds.map(e => e.title || e.description || '[embed]').join(' ');
+                    text += (text ? ' ' : '') + embedText;
+                }
+                // Include sticker names
+                if (m.sticker_items?.length) {
+                    text += (text ? ' ' : '') + m.sticker_items.map(s => `[sticker: ${s.name}]`).join(' ');
+                }
+                if (!text.trim()) return null; // skip completely empty messages
+                return `[${ts}] ${name}: ${text}`;
+            }).filter(Boolean).join('\n');
 
             // --- Summarize with Claude Haiku ---
             const aiRes = await anthropic.messages.create({
                 model: 'claude-haiku-4-5-20251001',
                 max_tokens: 1024,
-                system: 'Summarize today\'s Discord chat concisely. Highlight key topics, decisions, questions, and notable moments. Keep it under 500 words. Be casual and match the community vibe. Do not use markdown headers — just plain text with line breaks between sections.',
+                system: 'Summarize today\'s Discord chat. Focus on WHAT was discussed — the actual topics, opinions, jokes, debates, news, and ideas. Mention who said notable things but prioritize the content over listing names. Highlight key topics, decisions, questions, and memorable moments. Keep it under 500 words. Be casual and match the community vibe. Do not use markdown headers — just plain text with line breaks between sections.',
                 messages: [{
                     role: 'user',
                     content: `Here is today's chat log (${humanMessages.length} messages):\n\n${chatLog}`
@@ -111,7 +129,7 @@ export default async function handler(req, res) {
                 throw new Error('Empty response from Claude');
             }
 
-            // --- Post embed to channel ---
+            // --- Post embed to channel (or return preview) ---
             const embedPayload = {
                 content: '⚔️ **The Daily Grind:** Here\'s what went down in BST since yesterday.',
                 embeds: [{
@@ -120,6 +138,10 @@ export default async function handler(req, res) {
                     color: EMBED_COLOR
                 }]
             };
+
+            if (dryRun) {
+                return res.status(200).json({ preview: true, channelId, messageCount: humanMessages.length, embed: embedPayload });
+            }
 
             const postRes = await fetch(`${DISCORD_API}/channels/${channelId}/messages`, {
                 method: 'POST',
