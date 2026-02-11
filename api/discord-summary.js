@@ -31,6 +31,7 @@ export default async function handler(req, res) {
     const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
     const channelsCsv = process.env.DISCORD_SUMMARY_CHANNELS;
+    const postChannelId = process.env.DISCORD_SUMMARY_POST_CHANNEL || '1471023225923440662';
 
     if (!DISCORD_BOT_TOKEN || !ANTHROPIC_API_KEY || !channelsCsv) {
         return res.status(500).json({ error: 'Missing env: DISCORD_BOT_TOKEN, ANTHROPIC_API_KEY, or DISCORD_SUMMARY_CHANNELS' });
@@ -143,7 +144,7 @@ export default async function handler(req, res) {
                 return res.status(200).json({ preview: true, channelId, messageCount: humanMessages.length, embed: embedPayload });
             }
 
-            const postRes = await fetch(`${DISCORD_API}/channels/${channelId}/messages`, {
+            const postRes = await fetch(`${DISCORD_API}/channels/${postChannelId}/messages`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bot ${DISCORD_BOT_TOKEN}`,
