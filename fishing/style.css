@@ -130,23 +130,6 @@ body {
     margin-bottom: 20px;
 }
 
-/* Wallet Input */
-.wallet-input {
-    width: 100%;
-    padding: 14px 18px;
-    font-family: inherit;
-    font-size: 0.9rem;
-    background: var(--bg-dark);
-    border: 1px solid #444;
-    border-radius: 8px;
-    color: var(--text-primary);
-    margin-bottom: 15px;
-}
-
-.wallet-input:focus {
-    outline: none;
-    border-color: var(--accent);
-}
 
 /* Buttons */
 .btn {
@@ -1010,11 +993,6 @@ body {
         font-size: 0.85rem;
     }
 
-    .wallet-input {
-        padding: 12px;
-        font-size: 0.85rem;
-    }
-
     .btn-primary {
         padding: 12px 20px;
         font-size: 0.95rem;
@@ -1107,12 +1085,6 @@ body {
 
     .connect-box p, .select-box p {
         font-size: 0.75rem;
-        margin-bottom: 8px;
-    }
-
-    .wallet-input {
-        padding: 8px 10px;
-        font-size: 0.8rem;
         margin-bottom: 8px;
     }
 
@@ -1313,23 +1285,6 @@ body {
     padding: 16px 28px;
 }
 
-/* Manual toggle link */
-.manual-toggle {
-    display: inline-block;
-    margin-top: 12px;
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    text-decoration: underline;
-    cursor: pointer;
-}
-
-.manual-toggle:hover {
-    color: var(--text-primary);
-}
-
-#manualWalletSection {
-    margin-top: 15px;
-}
 
 /* Wallet Modal */
 .wallet-modal-overlay {

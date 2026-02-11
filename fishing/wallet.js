@@ -24,13 +24,6 @@ function getAvailableWallets() {
     return wallets;
 }
 
-function getWalletProvider() {
-    if (selectedProvider) return selectedProvider;
-    if (window.phantom?.solana?.isPhantom) return window.phantom.solana;
-    if (window.solflare?.isSolflare) return window.solflare;
-    if (window.solana) return window.solana;
-    return null;
-}
 
 function showWalletModal(wallets) {
     hideWalletModal();

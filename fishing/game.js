@@ -76,7 +76,7 @@ Object.keys(RARITY_WEIGHTS).forEach(rarity => {
 // Preload all game images
 function preloadImages() {
     const images = [
-        'Map.jpg', 'Lure.png', 'primordial-essence.png',
+        'Map.jpg', 'Lure.png',
         ...FISHERMEN.map(f => f.image),
         ...FISH_SPECIES.map(f => f.image)
     ];
