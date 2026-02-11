@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="/fishing/">
+    <title>Primordial Pit Fishing - MidEvil</title>
+    <!-- DNS prefetch for API -->
+    <link rel="dns-prefetch" href="https://cdn.discordapp.com">
+    <!-- Preconnect to font servers -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Preload critical assets -->
+    <link rel="preload" href="Map.jpg" as="image" fetchpriority="high">
+    <link rel="preload" href="style.css" as="style">
+    <link rel="preload" href="game.js" as="script">
+    <link rel="preload" href="Lure.png" as="image">
+    <!-- Fonts and styles -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=MedievalSharp&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=MedievalSharp&display=swap" rel="stylesheet"></noscript>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Title -->
+        <h1 class="game-title">Primordial Pit Fishing</h1>
+        <!-- Mute Button -->
+        <button id="muteBtn" class="mute-btn">🔊</button>
+
+        <!-- Wallet Connection Screen -->
+        <div id="connectScreen" class="screen">
+            <div class="connect-box">
+                <h2>Connect Your Wallet</h2>
+                <p>Connect your Solana wallet to start fishing!</p>
+                <button id="connectWalletBtn" class="btn btn-primary btn-connect-wallet">Connect Wallet</button>
+                <div id="connectError" class="error-msg"></div>
+            </div>
+        </div>
+
+        <!-- Fisherman Selection Screen -->
+        <div id="selectScreen" class="screen" style="display: none;">
+            <div class="select-box">
+                <h2>Choose Your Fisherman</h2>
+                <p>Select a fisherman to fish at the Primordial Pit</p>
+                <div id="nftGrid" class="nft-grid"></div>
+                <div id="selectError" class="error-msg"></div>
+            </div>
+        </div>
+
+        <!-- Fisherman Display (direct child for correct positioning) -->
+        <div id="fisherman" class="fisherman" style="display: none;">
+            <img id="fishermanImg" src="" alt="Your MidEvil">
+        </div>
+
+        <!-- Bobber and Splash (direct children for container-relative positioning) -->
+        <img id="bobber" class="bobber" src="Lure.png" alt="Lure" width="40" height="60">
+        <div id="splash" class="splash"></div>
+
+        <!-- Game Screen -->
+        <div id="gameScreen" class="screen" style="display: none;">
+
+            <!-- Game Controls -->
+            <div class="game-controls">
+                <button id="castBtn" class="btn btn-cast">Cast Line</button>
+                <button id="reelBtn" class="btn btn-reel" disabled>Reel In!</button>
+            </div>
+
+            <!-- Game Status -->
+            <div id="gameStatus" class="game-status">Click "Cast Line" to start fishing!</div>
+
+            <!-- Catch Display -->
+            <div id="catchDisplay" class="catch-display" style="display: none;">
+                <div class="catch-content">
+                    <h3>You caught a fish!</h3>
+                    <div id="caughtFish" class="caught-fish"></div>
+                    <button id="closecatch" class="btn btn-secondary">Continue Fishing</button>
+                </div>
+            </div>
+
+            <!-- Catch Log -->
+            <div class="catch-log">
+                <h3>Catch Log <span id="catchCount">(0)</span></h3>
+                <div id="catchList" class="catch-list"></div>
+            </div>
+
+            <!-- Discord Link -->
+            <div id="discordLink" class="discord-link-box">
+                <span id="discordStatus">Loading...</span>
+                <button id="linkDiscordBtn" class="btn btn-discord" style="display: none;">Link Discord</button>
+            </div>
+
+            <!-- Leaderboard Link -->
+            <a href="leaderboard.html" class="leaderboard-link">View Leaderboard</a>
+
+            <!-- Change Fisherman -->
+            <button id="changeBtn" class="btn btn-change">Change Fisherman</button>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading" class="loading-overlay" style="display: none;">
+            <div class="loader"></div>
+            <p>Loading...</p>
+        </div>
+    </div>
+
+    <!-- Rotate Device Prompt (portrait mobile only) -->
+    <div class="rotate-prompt">
+        <div class="rotate-icon">🖥️</div>
+        <p>Please visit on a desktop or laptop to play</p>
+    </div>
+
+    <script src="wallet.js"></script>
+    <script src="game.js" defer></script>
+</body>
+</html>

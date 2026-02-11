@@ -1,0 +1,1453 @@
+/* Reset */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* Prevent zoom on input focus (mobile) */
+input, select, textarea {
+    font-size: 16px;
+}
+
+/* Touch-friendly tap targets */
+button, a, .nft-card {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+:root {
+    --bg-dark: #1a1a2e;
+    --bg-card: #16213e;
+    --bg-pit: #0a0a15;
+    --text-primary: #eee;
+    --text-secondary: #aaa;
+    --accent: #e94560;
+    --accent-hover: #ff6b6b;
+    --gold: #ffd700;
+    --water: #1e3a5f;
+    --water-light: #2d5a7b;
+}
+
+body {
+    font-family: 'MedievalSharp', cursive;
+    background: #000;
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Game Container - locked 16:9 aspect ratio */
+.game-container {
+    width: min(100vw, calc(100vh * 16 / 9));
+    aspect-ratio: 16 / 9;
+    background: url('Map.jpg') no-repeat center center;
+    background-size: cover;
+    position: relative;
+    overflow: hidden;
+}
+
+.game-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+}
+
+/* Title */
+.game-title {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'MedievalSharp', cursive;
+    font-size: 2.5rem;
+    color: var(--gold);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    z-index: 10;
+}
+
+/* Mute Button */
+.mute-btn {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    background: rgba(22, 33, 62, 0.9);
+    border: 2px solid var(--gold);
+    border-radius: 50%;
+    font-size: 1.3rem;
+    cursor: pointer;
+    z-index: 100;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mute-btn:hover {
+    background: rgba(22, 33, 62, 1);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+/* Screens */
+.screen {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Connect Box */
+.connect-box, .select-box {
+    background: rgba(22, 33, 62, 0.95);
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    max-width: 500px;
+    width: 100%;
+}
+
+.connect-box h2, .select-box h2 {
+    font-family: 'MedievalSharp', cursive;
+    font-size: 1.8rem;
+    color: var(--gold);
+    margin-bottom: 10px;
+}
+
+.connect-box p, .select-box p {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+/* Wallet Input */
+.wallet-input {
+    width: 100%;
+    padding: 14px 18px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    background: var(--bg-dark);
+    border: 1px solid #444;
+    border-radius: 8px;
+    color: var(--text-primary);
+    margin-bottom: 15px;
+}
+
+.wallet-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* Buttons */
+.btn {
+    padding: 14px 28px;
+    font-family: 'MedievalSharp', cursive;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: #444;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #555;
+}
+
+.btn-cast {
+    background: linear-gradient(135deg, #2d5a7b, #1e3a5f);
+    color: white;
+    font-size: 1.2rem;
+    padding: 16px 40px;
+}
+
+.btn-cast:hover:not(:disabled) {
+    background: linear-gradient(135deg, #3d6a8b, #2e4a6f);
+    transform: scale(1.05);
+}
+
+.btn-reel {
+    background: linear-gradient(135deg, #ffd700, #ffaa00);
+    color: #1a1a2e;
+    font-size: 1.2rem;
+    padding: 16px 40px;
+    animation: none;
+    font-weight: 700;
+    transform: translateZ(0);
+}
+
+.btn-reel:not(:disabled) {
+    animation: pulse-reel 0.5s infinite;
+    will-change: transform;
+}
+
+.btn-reel:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@keyframes pulse-reel {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.btn-change {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    padding: 10px 20px;
+}
+
+.btn-change:hover {
+    color: white;
+    background: rgba(0, 0, 0, 0.9);
+}
+
+/* Error Message */
+.error-msg {
+    color: var(--accent);
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+/* NFT Grid for Selection */
+.nft-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 15px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 10px;
+    margin-top: 20px;
+}
+
+.nft-card {
+    background: var(--bg-dark);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.nft-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+}
+
+.nft-card img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.nft-card .nft-name {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Cooldown State */
+.nft-card.on-cooldown {
+    opacity: 0.5;
+    cursor: not-allowed;
+    position: relative;
+}
+
+.nft-card.on-cooldown:hover {
+    border-color: transparent;
+    transform: none;
+}
+
+.nft-card.on-cooldown img {
+    filter: grayscale(70%);
+}
+
+.cooldown-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.85);
+    color: var(--accent);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Game Screen */
+#gameScreen {
+    flex-direction: column;
+    padding-top: 80px;
+}
+
+/* Fisherman Display */
+.fisherman {
+    position: absolute;
+    left: 22%;
+    bottom: 18%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 10;
+}
+
+.fisherman img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    filter: brightness(1.2) drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.7));
+}
+
+/* Bobber/Lure */
+.bobber {
+    position: absolute;
+    width: 2.1%;
+    height: auto;
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%) translateZ(0);
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 15;
+    will-change: transform, opacity;
+    pointer-events: none;
+}
+
+.bobber.visible {
+    opacity: 1;
+}
+
+.bobber.bobbing {
+    animation: bob 0.5s ease-in-out infinite;
+    filter: brightness(0.7) saturate(0.6) sepia(0.3) hue-rotate(170deg);
+    opacity: 0.8;
+}
+
+.bobber.bite {
+    animation: bite 0.15s ease-in-out infinite;
+    filter: brightness(0.7) saturate(0.6) sepia(0.3) hue-rotate(170deg);
+    opacity: 0.8;
+}
+
+@keyframes bob {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(5px); }
+}
+
+@keyframes bite {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(15px); }
+}
+
+/* Splash Effect */
+.splash {
+    position: absolute;
+    width: 6%;
+    height: auto;
+    aspect-ratio: 1;
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%) translateZ(0);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.5) 0%, rgba(150,200,255,0.3) 40%, transparent 70%);
+    opacity: 0;
+    z-index: 14;
+    will-change: transform, opacity;
+    pointer-events: none;
+}
+
+.splash.active {
+    animation: splash 0.8s ease-out;
+}
+
+/* Water ripple rings */
+.splash::before,
+.splash::after {
+    content: '';
+    position: absolute;
+    inset: -20%;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    opacity: 0;
+}
+
+.splash.active::before {
+    animation: ripple 0.8s ease-out 0.1s;
+}
+
+.splash.active::after {
+    animation: ripple 0.8s ease-out 0.3s;
+}
+
+@keyframes splash {
+    0% { transform: translateX(-50%) scale(0.3); opacity: 1; }
+    50% { opacity: 0.8; }
+    100% { transform: translateX(-50%) scale(2.5); opacity: 0; }
+}
+
+@keyframes ripple {
+    0% { transform: scale(0.5); opacity: 0.6; }
+    100% { transform: scale(3); opacity: 0; }
+}
+
+/* Game Controls */
+.game-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 75%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 20;
+}
+
+/* Game Status */
+.game-status {
+    position: absolute;
+    bottom: 160px;
+    left: 75%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: var(--text-primary);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    z-index: 20;
+    white-space: nowrap;
+}
+
+/* Catch Display */
+.catch-display {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transform: translateZ(0);
+}
+
+.catch-content {
+    background: var(--bg-card);
+    border: 3px solid var(--gold);
+    border-radius: 16px;
+    padding: 30px;
+    text-align: center;
+    max-width: 400px;
+}
+
+.catch-content h3 {
+    font-family: 'MedievalSharp', cursive;
+    font-size: 1.8rem;
+    color: var(--gold);
+    margin-bottom: 20px;
+}
+
+.caught-fish {
+    margin-bottom: 20px;
+}
+
+/* Primordial Essence Found */
+.essence-found {
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    border: 3px solid #ffd700;
+    border-radius: 12px;
+    padding: 15px 25px;
+    margin-bottom: 20px;
+    animation: essence-glow 1s ease-in-out infinite alternate;
+}
+
+.essence-icon {
+    font-size: 50px;
+    margin-bottom: 10px;
+}
+
+.essence-text {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #ffd700;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.essence-subtext {
+    font-size: 0.9rem;
+    color: #eee;
+    margin-top: 5px;
+}
+
+.btn-share-x {
+    margin-top: 15px;
+    background: #000;
+    color: #fff;
+    border: 2px solid #fff;
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-share-x:hover {
+    background: #1a1a1a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+@keyframes essence-glow {
+    from { box-shadow: 0 0 20px rgba(155, 89, 182, 0.5); }
+    to { box-shadow: 0 0 40px rgba(255, 215, 0, 0.8); }
+}
+
+.caught-fish .fish-image {
+    margin-bottom: 15px;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.caught-fish .fish-image img {
+    max-width: 150px;
+    max-height: 150px;
+    object-fit: contain;
+}
+
+.caught-fish .fish-fallback {
+    font-size: 80px;
+}
+
+.essence-img {
+    max-width: 80px;
+    max-height: 80px;
+    object-fit: contain;
+    margin-bottom: 10px;
+}
+
+.caught-fish .fish-name {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.caught-fish .fish-traits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+
+.caught-fish .trait {
+    background: var(--bg-dark);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.trait.rarity-common { border-left: 3px solid #aaa; }
+.trait.rarity-uncommon { border-left: 3px solid #2ecc71; }
+.trait.rarity-rare { border-left: 3px solid #3498db; }
+.trait.rarity-epic { border-left: 3px solid #9b59b6; }
+.trait.rarity-legendary { border-left: 3px solid var(--gold); }
+
+.fish-score {
+    margin-top: 12px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--gold);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Catch Log */
+.catch-log {
+    position: absolute;
+    top: 80px;
+    left: 20px;
+    background: rgba(22, 33, 62, 0.9);
+    border: 2px solid #444;
+    border-radius: 12px;
+    padding: 15px;
+    width: 250px;
+    max-height: 400px;
+    z-index: 15;
+}
+
+.catch-log h3 {
+    font-size: 1rem;
+    color: var(--gold);
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.catch-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.catch-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-dark);
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    contain: layout style;
+}
+
+.catch-item .fish-icon-img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.catch-item .fish-icon {
+    font-size: 1.5rem;
+}
+
+.catch-item .fish-info {
+    flex: 1;
+}
+
+.catch-item .fish-info .name {
+    font-weight: 600;
+}
+
+.catch-item .fish-info .rarity {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Leaderboard Link */
+.leaderboard-link {
+    position: absolute;
+    top: 80px;
+    right: 20px;
+    background: rgba(22, 33, 62, 0.9);
+    border: 2px solid var(--gold);
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-family: 'MedievalSharp', cursive;
+    font-size: 1rem;
+    color: var(--gold);
+    text-decoration: none;
+    z-index: 15;
+    transition: all 0.3s;
+}
+
+.leaderboard-link:hover {
+    background: rgba(22, 33, 62, 1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+/* Discord Link Box */
+.discord-link-box {
+    position: absolute;
+    top: 130px;
+    right: 20px;
+    background: rgba(22, 33, 62, 0.9);
+    border: 2px solid #5865F2;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+#discordStatus {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.discord-link-box .discord-icon {
+    font-size: 1.1rem;
+}
+
+.btn-discord {
+    background: #5865F2;
+    color: white;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+}
+
+.btn-discord:hover {
+    background: #4752C4;
+    transform: translateY(-2px);
+}
+
+.discord-avatar-small {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.discord-username {
+    color: #5865F2;
+    font-weight: 600;
+}
+
+/* Fish Escape Display */
+.escape-display {
+    text-align: center;
+    padding: 20px;
+}
+
+.escape-emoji {
+    font-size: 80px;
+    margin-bottom: 15px;
+}
+
+.escape-text {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 10px;
+}
+
+.escape-subtext {
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+/* Leaderboard Page Styles */
+.lb-tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.lb-tab {
+    flex: 1;
+    padding: 6px 8px;
+    font-family: 'MedievalSharp', cursive;
+    font-size: 0.7rem;
+    background: var(--bg-dark);
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.lb-tab:hover {
+    border-color: var(--gold);
+    color: var(--text-primary);
+}
+
+.lb-tab.active {
+    background: var(--gold);
+    color: var(--bg-dark);
+    border-color: var(--gold);
+    font-weight: 600;
+}
+
+.leaderboard-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.leaderboard-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-dark);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.leaderboard-entry.current-user {
+    background: rgba(233, 69, 96, 0.3);
+    border: 1px solid var(--accent);
+}
+
+.lb-rank {
+    width: 24px;
+    text-align: center;
+    font-weight: 600;
+    color: var(--gold);
+}
+
+.lb-wallet {
+    flex: 1;
+    color: var(--text-primary);
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+
+.lb-score {
+    font-weight: 600;
+    color: var(--gold);
+}
+
+.leaderboard-empty {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 20px;
+    font-size: 0.9rem;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.loader {
+    width: 50px;
+    height: 50px;
+    border: 4px solid var(--bg-card);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+    will-change: transform;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive - small containers (scales with 16:9 lock) */
+@media (max-width: 768px) {
+    .game-title {
+        font-size: 1.6rem;
+        top: 10px;
+    }
+
+    .catch-log {
+        width: 160px;
+        font-size: 0.75rem;
+        top: 60px;
+        left: 10px;
+        padding: 10px;
+        max-height: 250px;
+    }
+
+    .leaderboard-link {
+        top: 60px;
+        right: 10px;
+        padding: 10px 15px;
+        font-size: 0.85rem;
+    }
+
+    .discord-link-box {
+        top: 110px;
+        right: 10px;
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+
+    .game-controls {
+        left: 50%;
+        bottom: 80px;
+        flex-direction: row;
+        gap: 15px;
+    }
+
+    .game-status {
+        left: 50%;
+        bottom: 20px;
+        font-size: 0.9rem;
+        padding: 10px 16px;
+    }
+
+    .btn-cast, .btn-reel {
+        padding: 14px 24px;
+        font-size: 1rem;
+    }
+
+    .btn-change {
+        bottom: 10px;
+        left: 10px;
+        font-size: 0.75rem;
+        padding: 8px 12px;
+    }
+
+    .connect-box, .select-box {
+        padding: 25px;
+        margin: 10px;
+    }
+
+    .connect-box h2, .select-box h2 {
+        font-size: 1.4rem;
+    }
+
+    .nft-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .game-title {
+        font-size: 1.3rem;
+        top: 8px;
+        width: 60%;
+        text-align: center;
+    }
+
+    .catch-log {
+        display: none;
+    }
+
+    .leaderboard-link {
+        top: auto;
+        bottom: 60px;
+        right: 10px;
+        padding: 8px 12px;
+        font-size: 0.75rem;
+    }
+
+    .discord-link-box {
+        top: auto;
+        bottom: 100px;
+        right: 10px;
+        padding: 6px 10px;
+        font-size: 0.7rem;
+    }
+
+    .game-controls {
+        left: 50%;
+        bottom: 120px;
+        flex-direction: row;
+        gap: 10px;
+    }
+
+    .game-status {
+        left: 50%;
+        bottom: 15px;
+        font-size: 0.8rem;
+        padding: 8px 12px;
+        max-width: 90%;
+        white-space: normal;
+        text-align: center;
+    }
+
+    .btn-cast, .btn-reel {
+        padding: 12px 20px;
+        font-size: 0.95rem;
+    }
+
+    .btn-change {
+        bottom: 8px;
+        left: 8px;
+        font-size: 0.7rem;
+        padding: 6px 10px;
+    }
+
+    .connect-box, .select-box {
+        padding: 20px;
+        margin: 10px;
+        max-width: 95%;
+    }
+
+    .connect-box h2, .select-box h2 {
+        font-size: 1.2rem;
+    }
+
+    .connect-box p, .select-box p {
+        font-size: 0.85rem;
+    }
+
+    .wallet-input {
+        padding: 12px;
+        font-size: 0.85rem;
+    }
+
+    .btn-primary {
+        padding: 12px 20px;
+        font-size: 0.95rem;
+        width: 100%;
+    }
+
+    .nft-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        max-height: 300px;
+    }
+
+    .nft-card {
+        padding: 6px;
+    }
+
+    .nft-card .nft-name {
+        font-size: 0.65rem;
+    }
+
+    .catch-content {
+        padding: 20px;
+        max-width: 95%;
+    }
+
+    .catch-content h3 {
+        font-size: 1.4rem;
+    }
+
+    .caught-fish .fish-image img {
+        max-width: 100px;
+        max-height: 100px;
+    }
+
+    .caught-fish .fish-name {
+        font-size: 1.1rem;
+    }
+
+    .caught-fish .fish-traits {
+        gap: 5px;
+    }
+
+    .caught-fish .trait {
+        padding: 4px 8px;
+        font-size: 0.75rem;
+    }
+
+    .essence-found {
+        padding: 10px 15px;
+    }
+
+    .essence-text {
+        font-size: 1.1rem;
+    }
+
+    .essence-subtext {
+        font-size: 0.8rem;
+    }
+}
+
+/* Landscape mobile - limited height (phones in landscape) */
+@media (max-height: 500px) and (orientation: landscape) {
+    .game-title {
+        font-size: 1rem;
+        top: 4px;
+    }
+
+    .mute-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+        bottom: 4px;
+        right: 4px;
+    }
+
+    /* Connect & Select screens */
+    .screen {
+        padding: 8px;
+    }
+
+    .connect-box, .select-box {
+        padding: 12px 16px;
+        max-width: 400px;
+    }
+
+    .connect-box h2, .select-box h2 {
+        font-size: 1rem;
+        margin-bottom: 4px;
+    }
+
+    .connect-box p, .select-box p {
+        font-size: 0.75rem;
+        margin-bottom: 8px;
+    }
+
+    .wallet-input {
+        padding: 8px 10px;
+        font-size: 0.8rem;
+        margin-bottom: 8px;
+    }
+
+    .btn-primary {
+        padding: 8px 16px;
+        font-size: 0.85rem;
+    }
+
+    .nft-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        max-height: 200px;
+        margin-top: 8px;
+        padding: 4px;
+    }
+
+    .nft-card {
+        padding: 4px;
+    }
+
+    .nft-card .nft-name {
+        font-size: 0.55rem;
+        margin-top: 2px;
+    }
+
+    .cooldown-badge {
+        font-size: 0.55rem;
+        padding: 3px 6px;
+    }
+
+    /* Game screen */
+    #gameScreen {
+        padding-top: 30px;
+    }
+
+    .game-controls {
+        bottom: 8px;
+        left: 70%;
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    .btn-cast, .btn-reel {
+        padding: 8px 18px;
+        font-size: 0.85rem;
+    }
+
+    .game-status {
+        bottom: 56px;
+        left: 70%;
+        font-size: 0.75rem;
+        padding: 6px 12px;
+    }
+
+    .catch-log {
+        top: 30px;
+        left: 4px;
+        width: 130px;
+        padding: 6px;
+        max-height: 180px;
+        font-size: 0.65rem;
+    }
+
+    .catch-log h3 {
+        font-size: 0.75rem;
+        margin-bottom: 4px;
+    }
+
+    .catch-list {
+        max-height: 140px;
+        gap: 4px;
+    }
+
+    .catch-item {
+        padding: 4px;
+        font-size: 0.7rem;
+        gap: 6px;
+    }
+
+    .catch-item .fish-icon-img {
+        width: 24px;
+        height: 24px;
+    }
+
+    .leaderboard-link {
+        top: 30px;
+        right: 4px;
+        padding: 6px 10px;
+        font-size: 0.7rem;
+    }
+
+    .discord-link-box {
+        top: 66px;
+        right: 4px;
+        padding: 4px 8px;
+        font-size: 0.65rem;
+    }
+
+    .btn-discord {
+        padding: 4px 8px;
+        font-size: 0.65rem;
+    }
+
+    .btn-change {
+        bottom: 4px;
+        left: 4px;
+        font-size: 0.6rem;
+        padding: 4px 8px;
+    }
+
+    /* Catch display modal */
+    .catch-display {
+        align-items: flex-start;
+        padding: 10px;
+        overflow-y: auto;
+    }
+
+    .catch-content {
+        padding: 12px;
+        max-width: 350px;
+        margin: auto;
+    }
+
+    .catch-content h3 {
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+    }
+
+    .caught-fish .fish-image img {
+        max-width: 80px;
+        max-height: 80px;
+    }
+
+    .caught-fish .fish-fallback {
+        font-size: 50px;
+    }
+
+    .caught-fish .fish-name {
+        font-size: 1rem;
+        margin-bottom: 6px;
+    }
+
+    .caught-fish .trait {
+        padding: 3px 6px;
+        font-size: 0.65rem;
+    }
+
+    .fish-score {
+        font-size: 1rem;
+        margin-top: 6px;
+    }
+
+    .btn-secondary {
+        padding: 8px 16px;
+        font-size: 0.85rem;
+    }
+
+    .essence-found {
+        padding: 8px 12px;
+        margin-bottom: 10px;
+    }
+
+    .essence-img {
+        max-width: 50px;
+        max-height: 50px;
+    }
+
+    .essence-text {
+        font-size: 0.9rem;
+    }
+
+    .essence-subtext {
+        font-size: 0.7rem;
+    }
+
+    .escape-emoji {
+        font-size: 50px;
+        margin-bottom: 8px;
+    }
+
+    .escape-text {
+        font-size: 1rem;
+    }
+
+    .escape-subtext {
+        font-size: 0.8rem;
+    }
+
+    .error-msg {
+        font-size: 0.75rem;
+    }
+}
+
+/* Connect Wallet Button */
+.btn-connect-wallet {
+    width: 100%;
+    font-size: 1.1rem;
+    padding: 16px 28px;
+}
+
+/* Manual toggle link */
+.manual-toggle {
+    display: inline-block;
+    margin-top: 12px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.manual-toggle:hover {
+    color: var(--text-primary);
+}
+
+#manualWalletSection {
+    margin-top: 15px;
+}
+
+/* Wallet Modal */
+.wallet-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.wallet-modal-card {
+    background: var(--bg-card);
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    width: 340px;
+    max-width: 90vw;
+    overflow: hidden;
+}
+
+.wallet-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(233, 69, 96, 0.3);
+    color: var(--gold);
+    font-family: 'MedievalSharp', cursive;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.wallet-modal-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.wallet-modal-close:hover {
+    color: var(--text-primary);
+}
+
+.wallet-modal-list {
+    padding: 8px;
+}
+
+.wallet-modal-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 16px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: 'MedievalSharp', cursive;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.wallet-modal-option:hover {
+    background: rgba(233, 69, 96, 0.1);
+    border-color: rgba(233, 69, 96, 0.3);
+}
+
+.wallet-modal-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+}
+
+/* Rotate Device Prompt - shown on portrait mobile only */
+.rotate-prompt {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #000;
+    color: var(--gold);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    font-family: 'MedievalSharp', cursive;
+    text-align: center;
+    padding: 40px;
+}
+
+.rotate-prompt .rotate-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    animation: rotate-hint 2s ease-in-out infinite;
+}
+
+.rotate-prompt p {
+    font-size: 1.3rem;
+    max-width: 280px;
+}
+
+@keyframes rotate-hint {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(90deg); }
+}
+
+@media (max-width: 768px) {
+    .rotate-prompt {
+        display: flex;
+    }
+    .game-container {
+        display: none;
+    }
+}

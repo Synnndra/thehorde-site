@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="/fishing/">
+    <title>Leaderboard - Primordial Pit Fishing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=MedievalSharp&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .leaderboard-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            padding-top: 80px;
+        }
+
+        .leaderboard-container {
+            background: rgba(45, 65, 100, 0.92);
+            border: 2px solid var(--gold);
+            border-radius: 12px;
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .leaderboard-container h2 {
+            font-family: 'MedievalSharp', cursive;
+            font-size: 2rem;
+            color: var(--gold);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .lb-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .lb-tab {
+            padding: 10px 20px;
+            font-size: 0.9rem;
+        }
+
+        .leaderboard-list {
+            max-height: none;
+        }
+
+        .leaderboard-entry {
+            padding: 12px 15px;
+            font-size: 1rem;
+            color: #fff;
+        }
+
+        .lb-rank {
+            width: 40px;
+            font-size: 1.2rem;
+            color: #fff;
+        }
+
+        .lb-wallet {
+            font-size: 0.9rem;
+            color: #fff;
+            flex: 1;
+        }
+
+        .lb-wallet .discord-name {
+            color: #5865F2;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .discord-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .lb-wallet .wallet-name {
+            font-family: monospace;
+            color: #aaa;
+        }
+
+        .lb-score {
+            font-size: 1.1rem;
+            color: #fff;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(45, 65, 100, 0.9);
+            border: 2px solid var(--gold);
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-family: 'MedievalSharp', cursive;
+            font-size: 0.95rem;
+            color: var(--gold);
+            text-decoration: none;
+            z-index: 10;
+            transition: all 0.3s;
+        }
+
+        .back-link:hover {
+            background: rgba(55, 75, 110, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+        }
+
+        .leaderboard-empty {
+            padding: 40px;
+            font-size: 1.1rem;
+            color: #fff;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .stat-box {
+            background: rgba(60, 80, 120, 0.8);
+            border: 1px solid #667;
+            border-radius: 8px;
+            padding: 15px 25px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--gold);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #fff;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 480px) {
+            .leaderboard-container {
+                padding: 20px 15px;
+            }
+
+            .leaderboard-container h2 {
+                font-size: 1.5rem;
+            }
+
+            .lb-tab {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+
+            .leaderboard-entry {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+
+            .stat-box {
+                padding: 10px 20px;
+            }
+
+            .stat-value {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">Primordial Pit Fishing</h1>
+
+        <a href="index.html" class="back-link">Back to Game</a>
+
+        <!-- Mute Button -->
+        <button id="muteBtn" class="mute-btn">🔊</button>
+
+        <div class="leaderboard-page">
+            <div class="leaderboard-container">
+                <h2>Leaderboard</h2>
+
+                <div class="stats-row" id="statsRow">
+                    <div class="stat-box">
+                        <div class="stat-value" id="totalCatches">-</div>
+                        <div class="stat-label">Total Catches</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="totalPlayers">-</div>
+                        <div class="stat-label">Players</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="essenceRemaining">-</div>
+                        <div class="stat-label">Essence Left</div>
+                    </div>
+                </div>
+
+                <div class="lb-tabs">
+                    <button class="lb-tab active" data-type="score">Score</button>
+                    <button class="lb-tab" data-type="catches">Catches</button>
+                    <button class="lb-tab" data-type="legendary">Legendary</button>
+                </div>
+
+                <div id="leaderboardList" class="leaderboard-list">
+                    <div class="leaderboard-empty">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desktop only prompt -->
+    <div class="rotate-prompt">
+        <div class="rotate-icon">🖥️</div>
+        <p>Please visit on a desktop or laptop to play</p>
+    </div>
+
+    <script src="leaderboard.js"></script>
+</body>
+</html>
