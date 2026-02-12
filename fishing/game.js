@@ -241,6 +241,7 @@ let selectedFisherman = null;
 let catches = [];
 let gameState = 'idle'; // idle, casting, waiting, bite, reeling
 let isUnlimitedWallet = false; // Admin wallets get unlimited casts
+let castsRemaining = 0;
 
 // ============================================
 // DAILY COOLDOWN TRACKING (Server-side via Redis)
@@ -344,30 +345,31 @@ async function showSelectScreen() {
     elements.selectScreen.style.display = 'flex';
     elements.nftGrid.innerHTML = '<p style="color: #aaa;">Checking play status...</p>';
 
-    // Check if this wallet has already played today (server-side)
+    // Check if this wallet has casts remaining today (server-side)
     const cooldownData = await checkWalletCooldown(userWallet);
-    const walletPlayed = !cooldownData.canPlay && !cooldownData.unlimited;
+    const noCastsLeft = !cooldownData.canPlay && !cooldownData.unlimited;
+    castsRemaining = cooldownData.castsRemaining ?? 0;
 
     elements.nftGrid.innerHTML = '';
 
-    if (walletPlayed) {
+    if (noCastsLeft) {
         const timeLeft = cooldownData.resetInSeconds ? formatTimeRemaining(cooldownData.resetInSeconds) : '24h';
-        elements.selectError.textContent = `You've already fished today! Resets in ${timeLeft}`;
+        elements.selectError.textContent = `No casts remaining! Resets in ${timeLeft}`;
     } else if (cooldownData.unlimited) {
         elements.selectError.textContent = 'Unlimited access enabled';
     } else {
-        elements.selectError.textContent = '';
+        elements.selectError.textContent = `${castsRemaining} cast${castsRemaining !== 1 ? 's' : ''} remaining today`;
     }
 
     FISHERMEN.forEach((fisherman, index) => {
         const card = document.createElement('div');
-        card.className = 'nft-card' + (walletPlayed ? ' on-cooldown' : '');
+        card.className = 'nft-card' + (noCastsLeft ? ' on-cooldown' : '');
         card.innerHTML = `
             <img src="${fisherman.image}" alt="${fisherman.name}" width="120" height="120" loading="eager">
             <div class="nft-name">${fisherman.name}</div>
-            ${walletPlayed ? '<div class="cooldown-badge">Fished Today</div>' : ''}
+            ${noCastsLeft ? '<div class="cooldown-badge">No Casts Left</div>' : ''}
         `;
-        if (!walletPlayed) {
+        if (!noCastsLeft) {
             card.addEventListener('click', () => selectFisherman(index));
         }
         elements.nftGrid.appendChild(card);
@@ -401,7 +403,11 @@ async function selectFisherman(index) {
     elements.fisherman.style.display = 'flex';
 
     gameState = 'idle';
-    updateStatus('Click "Cast Line" to start fishing!');
+    if (isUnlimitedWallet) {
+        updateStatus('Click "Cast Line" to start fishing!');
+    } else {
+        updateStatus(`${castsRemaining} cast${castsRemaining !== 1 ? 's' : ''} remaining — Cast Line to fish!`);
+    }
 
     // Check Discord link status
     checkDiscordStatus();
@@ -419,12 +425,13 @@ function changeFisherman() {
 async function castLine() {
     if (gameState !== 'idle') return;
 
-    // Check if already cast today
+    // Check if casts remaining
     const cooldownData = await checkWalletCooldown(userWallet);
     isUnlimitedWallet = cooldownData.unlimited || false;
+    castsRemaining = cooldownData.castsRemaining ?? 0;
 
     if (!cooldownData.canPlay && !isUnlimitedWallet) {
-        updateStatus("You've already cast today! Come back tomorrow.");
+        updateStatus("No casts remaining! Come back tomorrow.");
         elements.castBtn.disabled = true;
         return;
     }
@@ -446,9 +453,12 @@ async function castLine() {
         }
     }
 
-    // Mark as played immediately when casting (skip for unlimited wallets)
+    // Use one cast (skip for unlimited wallets)
     if (!isUnlimitedWallet) {
-        await markWalletAsPlayed();
+        const result = await markWalletAsPlayed();
+        if (result.castsRemaining !== undefined) {
+            castsRemaining = result.castsRemaining;
+        }
     }
 
     gameState = 'casting';
@@ -610,14 +620,14 @@ function fishGotAway() {
 
     elements.bobber.classList.remove('bite', 'bobbing', 'visible');
     elements.reelBtn.disabled = true;
-    elements.castBtn.disabled = !isUnlimitedWallet;
+    elements.castBtn.disabled = !(isUnlimitedWallet || castsRemaining > 0);
 
     // Show escape popup
     displayEscape();
 }
 
 function displayEscape() {
-    const subtext = isUnlimitedWallet ? 'Try again!' : 'Better luck tomorrow!';
+    const subtext = (isUnlimitedWallet || castsRemaining > 0) ? 'Try again!' : 'Better luck tomorrow!';
     elements.caughtFish.innerHTML = `
         <div class="escape-display">
             <div class="escape-emoji">😢</div>
@@ -667,7 +677,7 @@ async function catchFish() {
     updateCatchLog();
 
     gameState = 'idle';
-    elements.castBtn.disabled = !isUnlimitedWallet;
+    elements.castBtn.disabled = !(isUnlimitedWallet || castsRemaining > 0);
 }
 
 // ============================================
@@ -783,8 +793,12 @@ function closeCatchDisplay() {
     elements.catchDisplay.querySelector('h3').textContent = 'You caught a fish!';
     if (isUnlimitedWallet) {
         updateStatus('Click "Cast Line" to fish again!');
+    } else if (castsRemaining > 0) {
+        updateStatus(`${castsRemaining} cast${castsRemaining !== 1 ? 's' : ''} remaining — Cast again!`);
+        elements.castBtn.disabled = false;
     } else {
-        updateStatus("You've used your cast for today. Come back tomorrow!");
+        updateStatus("No casts remaining today. Come back tomorrow!");
+        elements.castBtn.disabled = true;
     }
 }
 

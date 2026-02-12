@@ -31,7 +31,7 @@ button, a, .nft-card {
 
 body {
     font-family: 'MedievalSharp', cursive;
-    background: #000;
+    background: linear-gradient(135deg, #1a0e08 0%, #2a1508 35%, #1a0a04 65%, #1a0e08 100%);
     color: var(--text-primary);
     min-height: 100vh;
     overflow: hidden;

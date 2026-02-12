@@ -3,6 +3,7 @@ const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 const COOLDOWN_PREFIX = 'fishing_cooldown:';
 const COOLDOWN_SECONDS = 86400; // 24 hours
+const MAX_CASTS_PER_DAY = 5;
 
 // Admin wallets that bypass cooldown (comma-separated in env var)
 const UNLIMITED_WALLETS = process.env.ADMIN_WALLETS
@@ -122,17 +123,21 @@ export default async function handler(req, res) {
 
         // GET - Check if wallet can play
         if (req.method === 'GET') {
-            const played = await redisGet(cooldownKey);
-            const ttl = played ? await redisTtl(cooldownKey) : 0;
+            const castsUsed = parseInt(await redisGet(cooldownKey)) || 0;
+            const ttl = castsUsed > 0 ? await redisTtl(cooldownKey) : 0;
+            const castsRemaining = Math.max(0, MAX_CASTS_PER_DAY - castsUsed);
 
             return res.status(200).json({
-                canPlay: !played,
-                playedToday: !!played,
+                canPlay: castsRemaining > 0,
+                castsUsed,
+                castsRemaining,
+                maxCasts: MAX_CASTS_PER_DAY,
+                playedToday: castsUsed > 0,
                 resetInSeconds: ttl > 0 ? ttl : 0
             });
         }
 
-        // POST - Mark wallet as played
+        // POST - Use one cast
         if (req.method === 'POST') {
             // Validate game session token
             const gameToken = req.body?.gameToken;
@@ -148,23 +153,30 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'Invalid game token' });
             }
 
-            const played = await redisGet(cooldownKey);
+            const castsUsed = parseInt(await redisGet(cooldownKey)) || 0;
 
-            if (played) {
+            if (castsUsed >= MAX_CASTS_PER_DAY) {
                 const ttl = await redisTtl(cooldownKey);
                 return res.status(200).json({
                     success: false,
-                    message: 'Already played today',
+                    message: 'No casts remaining today',
+                    castsRemaining: 0,
                     resetInSeconds: ttl > 0 ? ttl : 0
                 });
             }
 
-            // Mark as played with 24h expiry
-            await redisSetEx(cooldownKey, COOLDOWN_SECONDS, Date.now().toString());
+            // Increment cast count
+            const newCount = await redisIncr(cooldownKey);
+            // Set expiry on first cast
+            if (newCount === 1) {
+                await redisExpire(cooldownKey, COOLDOWN_SECONDS);
+            }
 
             return res.status(200).json({
                 success: true,
-                message: 'Session started'
+                castsUsed: newCount,
+                castsRemaining: Math.max(0, MAX_CASTS_PER_DAY - newCount),
+                message: `Cast ${newCount}/${MAX_CASTS_PER_DAY}`
             });
         }
 
