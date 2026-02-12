@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     }
 
     const { game } = req.body || {};
-    if (!game || !['horde', 'orcrun'].includes(game)) {
+    if (!game || !['horde', 'orcrun', 'fishing'].includes(game)) {
         return res.status(400).json({ error: 'Invalid game type' });
     }
 

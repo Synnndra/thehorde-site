@@ -29,20 +29,42 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Redis not configured' });
     }
 
-    const { code, state: wallet, error: discordError } = req.query;
+    const { code, state: stateToken, error: discordError } = req.query;
 
     // User denied authorization
     if (discordError) {
         return res.redirect(302, '/fishing/?discord=denied');
     }
 
-    if (!code || !wallet) {
+    if (!code || !stateToken) {
         return res.redirect(302, '/fishing/?discord=error&reason=missing_params');
+    }
+
+    // Look up state token in KV to get wallet
+    let wallet;
+    try {
+        const stateRes = await fetch(`${KV_URL}/get/discord_oauth_state:${stateToken}`, {
+            headers: { Authorization: `Bearer ${KV_TOKEN}` }
+        });
+        const stateData = await stateRes.json();
+        if (!stateData.result) {
+            return res.redirect(302, '/fishing/?discord=error&reason=invalid_state');
+        }
+        const parsed = typeof stateData.result === 'string' ? JSON.parse(stateData.result) : stateData.result;
+        wallet = parsed.wallet;
+
+        // Delete state token (single use)
+        await fetch(`${KV_URL}/del/discord_oauth_state:${stateToken}`, {
+            headers: { Authorization: `Bearer ${KV_TOKEN}` }
+        });
+    } catch (e) {
+        console.error('State token lookup failed:', e);
+        return res.redirect(302, '/fishing/?discord=error&reason=invalid_state');
     }
 
     // Validate wallet format
     const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
-    if (!base58Regex.test(wallet)) {
+    if (!wallet || !base58Regex.test(wallet)) {
         return res.redirect(302, '/fishing/?discord=error&reason=invalid_wallet');
     }
 

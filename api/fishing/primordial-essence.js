@@ -116,7 +116,11 @@ async function checkRateLimit(ip) {
 }
 
 export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    const ALLOWED_ORIGINS = ['https://midhorde.com', 'https://www.midhorde.com'];
+    const origin = req.headers.origin;
+    if (ALLOWED_ORIGINS.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -293,6 +297,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Primordial Essence API error:', error);
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: 'Server error' });
     }
 }

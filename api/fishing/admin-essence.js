@@ -1,9 +1,9 @@
 // Admin endpoint to view essence claims
+import { timingSafeEqual } from 'crypto';
+
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
-const ADMIN_WALLETS = process.env.ADMIN_WALLETS
-    ? process.env.ADMIN_WALLETS.split(',').map(w => w.trim())
-    : [];
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 async function redisLrange(key, start, stop) {
     const response = await fetch(`${KV_URL}/lrange/${key}/${start}/${stop}`, {
@@ -44,7 +44,11 @@ async function redisDel(key) {
 }
 
 export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    const ALLOWED_ORIGINS = ['https://midhorde.com', 'https://www.midhorde.com'];
+    const origin = req.headers.origin;
+    if (ALLOWED_ORIGINS.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -60,9 +64,16 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Redis not configured' });
     }
 
-    // Check admin wallet
-    const wallet = req.method === 'GET' ? req.query.wallet : req.body?.wallet;
-    if (!wallet || !ADMIN_WALLETS.includes(wallet)) {
+    // Verify admin secret via timing-safe comparison
+    const providedSecret = req.method === 'GET'
+        ? req.query.secret
+        : req.body?.secret;
+    if (!ADMIN_SECRET || !providedSecret) {
+        return res.status(403).json({ error: 'Admin access required' });
+    }
+    const a = Buffer.from(String(providedSecret));
+    const b = Buffer.from(String(ADMIN_SECRET));
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
         return res.status(403).json({ error: 'Admin access required' });
     }
 
@@ -137,6 +148,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Admin essence error:', error);
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: 'Server error' });
     }
 }

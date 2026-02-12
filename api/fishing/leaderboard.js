@@ -101,7 +101,11 @@ function truncateWallet(wallet) {
 }
 
 export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    const ALLOWED_ORIGINS = ['https://midhorde.com', 'https://www.midhorde.com'];
+    const origin = req.headers.origin;
+    if (ALLOWED_ORIGINS.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -202,10 +206,23 @@ export default async function handler(req, res) {
 
         // POST - Record a catch
         if (req.method === 'POST') {
-            const { wallet, fish } = req.body;
+            const { wallet, fish, gameToken } = req.body;
 
             if (!wallet || !fish) {
                 return res.status(400).json({ error: 'Wallet and fish data required' });
+            }
+
+            // Validate game session token
+            if (!gameToken || typeof gameToken !== 'string') {
+                return res.status(400).json({ error: 'Game token required' });
+            }
+            const sessionData = await redisGet(`game_session:${gameToken}`);
+            if (!sessionData) {
+                return res.status(400).json({ error: 'Invalid or expired game token' });
+            }
+            const session = typeof sessionData === 'string' ? JSON.parse(sessionData) : sessionData;
+            if (session.game !== 'fishing') {
+                return res.status(400).json({ error: 'Invalid game token' });
             }
 
             // Validate wallet
@@ -245,6 +262,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Leaderboard API error:', error);
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: 'Server error' });
     }
 }

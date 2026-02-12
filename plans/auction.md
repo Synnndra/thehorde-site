@@ -63,12 +63,10 @@ If the server fails to refund the outbid bidder (e.g. network issue):
 - Bidders can also see "refund pending" status on their bid in the UI
 
 ## Fee Structure
-- Platform fee: 0.02 SOL (same as Midswap)
-- Free for Orc holders
-- Fee paid by bidder as part of their escrow transaction (bid amount + fee)
-- Refunds return only the bid amount (fee is non-refundable on outbid)
-  - Alternative: fee only charged to the winning bid, refund full amount to outbid. This is friendlier — go with this approach.
-- **Decision: Fee only charged on the winning bid.** Outbid refunds return the full escrowed amount. The fee is deducted from the winner's escrowed SOL during the release phase (seller receives bidAmount - fee).
+- Platform fee: 10% of the final sale price, paid by the seller
+- Deducted during the release phase: seller receives `bidAmount * 0.9`, platform keeps `bidAmount * 0.1`
+- No fee charged to bidders — outbid refunds return the full escrowed amount
+- If auction ends with no bids or is cancelled, no fee is charged
 
 ## Pages
 
@@ -205,7 +203,7 @@ Close an auction and trigger two-phase release. Called by cron when `endsAt` pas
    - Set status to `escrowed` (seller NFT + winner SOL both in escrow)
    - Two-phase release:
      - Phase 1: Release seller's NFT to winner
-     - Phase 2: Release winner's SOL to seller (minus fee if not Orc holder)
+     - Phase 2: Release winner's SOL — seller receives 90%, platform keeps 10%
    - Set status to `completed`
 5. Remove from `auctions:active`
 6. Release lock
@@ -279,8 +277,7 @@ Cron job for auction maintenance.
   ],
   "pendingRefunds": [],
   "sellerEscrowTxSignature": "seller_escrow_tx",
-  "isOrcHolder": true,
-  "fee": 0,
+  "fee": 0.3,
   "releasePhase1Tx": null,
   "releasePhase2Tx": null
 }

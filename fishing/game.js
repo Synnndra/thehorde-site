@@ -236,6 +236,7 @@ const elements = {
 let userWallet = null;
 let walletSignature = null;
 let walletMessage = null;
+let gameToken = null; // Session token for authenticated API calls
 let selectedFisherman = null;
 let catches = [];
 let gameState = 'idle'; // idle, casting, waiting, bite, reeling
@@ -265,7 +266,7 @@ async function markWalletAsPlayed() {
         const response = await fetch('/api/fishing/cooldown', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ wallet: userWallet })
+            body: JSON.stringify({ wallet: userWallet, gameToken })
         });
         return await response.json();
     } catch (error) {
@@ -426,6 +427,23 @@ async function castLine() {
         updateStatus("You've already cast today! Come back tomorrow.");
         elements.castBtn.disabled = true;
         return;
+    }
+
+    // Get a game session token for authenticated API calls
+    if (!IS_LOCAL && !gameToken) {
+        try {
+            const tokenRes = await fetch('/api/game-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ game: 'fishing' })
+            });
+            const tokenData = await tokenRes.json();
+            if (tokenData.token) {
+                gameToken = tokenData.token;
+            }
+        } catch (e) {
+            console.error('Failed to get game session:', e);
+        }
     }
 
     // Mark as played immediately when casting (skip for unlimited wallets)
@@ -626,7 +644,7 @@ async function catchFish() {
                 fetch('/api/fishing/leaderboard', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ wallet: userWallet, fish })
+                    body: JSON.stringify({ wallet: userWallet, fish, gameToken })
                 }),
                 fetch('/api/fishing/primordial-essence', {
                     method: 'POST',
