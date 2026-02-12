@@ -45,6 +45,19 @@ async function redisExpire(key, seconds) {
     return response.json();
 }
 
+async function redisDel(key) {
+    const response = await fetch(`${KV_URL}/del/${key}`, {
+        headers: { Authorization: `Bearer ${KV_TOKEN}` }
+    });
+    return response.json();
+}
+
+// Old format stored Date.now() timestamp — detect and reset
+function parseCastsUsed(raw) {
+    const val = parseInt(raw) || 0;
+    return val > MAX_CASTS_PER_DAY ? 0 : val;
+}
+
 async function redisTtl(key) {
     const response = await fetch(`${KV_URL}/ttl/${key}`, {
         headers: { Authorization: `Bearer ${KV_TOKEN}` }
@@ -123,7 +136,13 @@ export default async function handler(req, res) {
 
         // GET - Check if wallet can play
         if (req.method === 'GET') {
-            const castsUsed = parseInt(await redisGet(cooldownKey)) || 0;
+            const raw = await redisGet(cooldownKey);
+            let castsUsed = parseCastsUsed(raw);
+            // Reset old-format timestamp keys
+            if (raw && parseInt(raw) > MAX_CASTS_PER_DAY) {
+                await redisDel(cooldownKey);
+                castsUsed = 0;
+            }
             const ttl = castsUsed > 0 ? await redisTtl(cooldownKey) : 0;
             const castsRemaining = Math.max(0, MAX_CASTS_PER_DAY - castsUsed);
 
@@ -153,7 +172,13 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'Invalid game token' });
             }
 
-            const castsUsed = parseInt(await redisGet(cooldownKey)) || 0;
+            const raw = await redisGet(cooldownKey);
+            let castsUsed = parseCastsUsed(raw);
+            // Reset old-format timestamp keys
+            if (raw && parseInt(raw) > MAX_CASTS_PER_DAY) {
+                await redisDel(cooldownKey);
+                castsUsed = 0;
+            }
 
             if (castsUsed >= MAX_CASTS_PER_DAY) {
                 const ttl = await redisTtl(cooldownKey);
