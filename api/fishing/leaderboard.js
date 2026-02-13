@@ -201,6 +201,18 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'Invalid game token' });
             }
 
+            // Check minimum game duration (15 seconds for fishing)
+            const elapsed = Date.now() - session.startedAt;
+            if (elapsed < 15000) {
+                return res.status(400).json({ error: 'Game session too short' });
+            }
+
+            // Delete token so it can't be reused
+            await fetch(`${KV_URL}/del/game_session:${gameToken}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${KV_TOKEN}` }
+            });
+
             // Validate wallet
             const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
             if (!base58Regex.test(wallet)) {

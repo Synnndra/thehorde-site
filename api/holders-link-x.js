@@ -1,31 +1,7 @@
 // Vercel Serverless Function for Wallet-X Linking
-import nacl from 'tweetnacl';
-import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed, kvGet, kvSet } from '../lib/swap-utils.js';
+import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed, kvGet, kvSet, verifySignature } from '../lib/swap-utils.js';
 
 const X_MAP_KEY = 'holders:x_map';
-
-function base58Decode(str) {
-    const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-    const bytes = [0];
-    for (let i = 0; i < str.length; i++) {
-        const c = alphabet.indexOf(str[i]);
-        if (c < 0) throw new Error('Invalid base58 character');
-        let carry = c;
-        for (let j = 0; j < bytes.length; j++) {
-            carry += bytes[j] * 58;
-            bytes[j] = carry & 0xff;
-            carry >>= 8;
-        }
-        while (carry > 0) {
-            bytes.push(carry & 0xff);
-            carry >>= 8;
-        }
-    }
-    for (let i = 0; i < str.length && str[i] === '1'; i++) {
-        bytes.push(0);
-    }
-    return new Uint8Array(bytes.reverse());
-}
 
 export default async function handler(req, res) {
     if (req.method !== 'POST' && req.method !== 'DELETE') {
@@ -78,12 +54,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Signature already used' });
         }
 
-        const messageBytes = new TextEncoder().encode(message);
-        const signatureBytes = base58Decode(signature);
-        const publicKeyBytes = base58Decode(wallet);
-
-        const verified = nacl.sign.detached.verify(messageBytes, signatureBytes, publicKeyBytes);
-        if (!verified) {
+        if (!verifySignature(message, signature, wallet)) {
             return res.status(401).json({ error: 'Invalid signature' });
         }
 

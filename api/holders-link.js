@@ -1,32 +1,7 @@
 // Vercel Serverless Function for Wallet-Discord Linking
-import nacl from 'tweetnacl';
-import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed, kvGet, kvSet } from '../lib/swap-utils.js';
+import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed, kvGet, kvSet, kvDelete, verifySignature } from '../lib/swap-utils.js';
 
 const DISCORD_MAP_KEY = 'holders:discord_map';
-
-function base58Decode(str) {
-    const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-    const bytes = [0];
-    for (let i = 0; i < str.length; i++) {
-        const c = alphabet.indexOf(str[i]);
-        if (c < 0) throw new Error('Invalid base58 character');
-        let carry = c;
-        for (let j = 0; j < bytes.length; j++) {
-            carry += bytes[j] * 58;
-            bytes[j] = carry & 0xff;
-            carry >>= 8;
-        }
-        while (carry > 0) {
-            bytes.push(carry & 0xff);
-            carry >>= 8;
-        }
-    }
-    // Leading zeros
-    for (let i = 0; i < str.length && str[i] === '1'; i++) {
-        bytes.push(0);
-    }
-    return new Uint8Array(bytes.reverse());
-}
 
 export default async function handler(req, res) {
     if (req.method !== 'POST' && req.method !== 'DELETE') {
@@ -43,14 +18,6 @@ export default async function handler(req, res) {
     const clientIp = getClientIp(req);
     if (await isRateLimitedKV(clientIp, 'holders-link', 5, 60000, KV_REST_API_URL, KV_REST_API_TOKEN)) {
         return res.status(429).json({ error: 'Too many requests. Try again later.' });
-    }
-
-    async function kvDel(key) {
-        const response = await fetch(`${KV_REST_API_URL}/del/${key}`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-        });
-        return response.json();
     }
 
     try {
@@ -90,12 +57,7 @@ export default async function handler(req, res) {
         }
 
         // Verify signature proves wallet ownership
-        const messageBytes = new TextEncoder().encode(message);
-        const signatureBytes = base58Decode(signature);
-        const publicKeyBytes = base58Decode(wallet);
-
-        const verified = nacl.sign.detached.verify(messageBytes, signatureBytes, publicKeyBytes);
-        if (!verified) {
+        if (!verifySignature(message, signature, wallet)) {
             return res.status(401).json({ error: 'Invalid signature' });
         }
 
@@ -117,7 +79,7 @@ export default async function handler(req, res) {
             // Unlink
             delete discordMap[wallet];
             await kvSet(DISCORD_MAP_KEY, discordMap, KV_REST_API_URL, KV_REST_API_TOKEN);
-            await kvDel(`holder_discord:${wallet}`);
+            await kvDelete(`holder_discord:${wallet}`, KV_REST_API_URL, KV_REST_API_TOKEN);
 
             return res.status(200).json({ success: true, action: 'unlinked' });
         }

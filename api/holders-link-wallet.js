@@ -1,53 +1,10 @@
 // Vercel Serverless Function for Wallet-Wallet Linking
-import nacl from 'tweetnacl';
-import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed, kvGet, kvSet } from '../lib/swap-utils.js';
+import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed, kvGet, kvSet, verifySignature } from '../lib/swap-utils.js';
 
 const WALLET_MAP_KEY = 'holders:wallet_map';
 
-function base58Decode(str) {
-    const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-    const bytes = [0];
-    for (let i = 0; i < str.length; i++) {
-        const c = alphabet.indexOf(str[i]);
-        if (c < 0) throw new Error('Invalid base58 character');
-        let carry = c;
-        for (let j = 0; j < bytes.length; j++) {
-            carry += bytes[j] * 58;
-            bytes[j] = carry & 0xff;
-            carry >>= 8;
-        }
-        while (carry > 0) {
-            bytes.push(carry & 0xff);
-            carry >>= 8;
-        }
-    }
-    // Leading zeros
-    for (let i = 0; i < str.length && str[i] === '1'; i++) {
-        bytes.push(0);
-    }
-    return new Uint8Array(bytes.reverse());
-}
-
 function isValidWallet(wallet) {
     return wallet && typeof wallet === 'string' && wallet.length >= 32 && wallet.length <= 44;
-}
-
-function verifySignature(message, signature, wallet) {
-    try {
-        const messageBytes = new TextEncoder().encode(message);
-        const signatureBytes = base58Decode(signature);
-        const publicKeyBytes = base58Decode(wallet);
-        if (signatureBytes.length !== 64) {
-            return false;
-        }
-        if (publicKeyBytes.length !== 32) {
-            return false;
-        }
-        return nacl.sign.detached.verify(messageBytes, signatureBytes, publicKeyBytes);
-    } catch (e) {
-        console.error('verifySignature error:', e);
-        return false;
-    }
 }
 
 export default async function handler(req, res) {
