@@ -1,6 +1,7 @@
 // Record wallet addresses with signature verification
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
+import { isRateLimitedKV, getClientIp } from '../../lib/swap-utils.js';
 
 export default async function handler(req, res) {
     // CORS headers
@@ -18,6 +19,14 @@ export default async function handler(req, res) {
 
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    // Rate limiting
+    const KV_URL = process.env.KV_REST_API_URL;
+    const KV_TOKEN = process.env.KV_REST_API_TOKEN;
+    const ip = getClientIp(req);
+    if (await isRateLimitedKV(ip, 'record-wallet', 10, 60000, KV_URL, KV_TOKEN)) {
+        return res.status(429).json({ error: 'Too many requests' });
     }
 
     const { wallet, signature, message } = req.body;

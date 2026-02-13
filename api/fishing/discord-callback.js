@@ -16,6 +16,13 @@ async function redisSet(key, value) {
     return response.json();
 }
 
+async function redisSetEx(key, seconds, value) {
+    const response = await fetch(`${KV_URL}/setex/${key}/${seconds}/${encodeURIComponent(JSON.stringify(value))}`, {
+        headers: { Authorization: `Bearer ${KV_TOKEN}` }
+    });
+    return response.json();
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -115,7 +122,8 @@ export default async function handler(req, res) {
             linkedAt: Date.now()
         };
 
-        await redisSet(`${DISCORD_LINK_PREFIX}${wallet}`, linkData);
+        // 90-day TTL to prevent unbounded key growth
+        await redisSetEx(`${DISCORD_LINK_PREFIX}${wallet}`, 7776000, linkData);
 
         // Redirect back to game with success
         const displayName = encodeURIComponent(discordUser.global_name || discordUser.username);

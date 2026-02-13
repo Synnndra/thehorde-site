@@ -1,5 +1,6 @@
 // Primordial Essence Tracker using Upstash Redis
 // With rate limiting and server-side roll verification
+import { isRateLimitedKV, getClientIp } from '../../lib/swap-utils.js';
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 const TOTAL_ESSENCE = 100;
@@ -9,11 +10,6 @@ const CLAIM_LOG_PREFIX = 'essence_claim:';
 const WALLET_CLAIMED_PREFIX = 'essence_claimed:';  // Track wallets that already got essence
 const COOLDOWN_PREFIX = 'fishing_cooldown:';       // Check if wallet has played
 const EVENT_DAYS = 7;
-
-// Rate limiting
-const RATE_LIMIT_PREFIX = 'rate_limit_essence:';
-const RATE_LIMIT_WINDOW = 60; // 1 minute
-const RATE_LIMIT_MAX = 20; // 20 requests per minute
 
 // Calculate dynamic chance based on remaining essences and days left
 function calculateChance(remaining, dayNumber) {
@@ -98,21 +94,18 @@ async function redisExists(key) {
     return data.result === 1;
 }
 
+// SET NX - set only if key doesn't exist (returns true if set, false if already exists)
+async function redisSetNx(key, value) {
+    const response = await fetch(`${KV_URL}/set/${key}/${encodeURIComponent(value)}/NX`, {
+        headers: { Authorization: `Bearer ${KV_TOKEN}` }
+    });
+    const data = await response.json();
+    return data.result === 'OK';
+}
+
 function getTodayKey() {
     const today = new Date();
     return `${today.getUTCFullYear()}-${today.getUTCMonth() + 1}-${today.getUTCDate()}`;
-}
-
-// Check rate limit
-async function checkRateLimit(ip) {
-    const key = `${RATE_LIMIT_PREFIX}${ip}`;
-    const count = await redisIncr(key);
-
-    if (count === 1) {
-        await redisExpire(key, RATE_LIMIT_WINDOW);
-    }
-
-    return count <= RATE_LIMIT_MAX;
 }
 
 export default async function handler(req, res) {
@@ -132,12 +125,9 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Redis not configured' });
     }
 
-    // Get client IP for rate limiting
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.headers['x-real-ip'] || 'unknown';
-
-    // Check rate limit
-    const withinLimit = await checkRateLimit(ip);
-    if (!withinLimit) {
+    // Rate limiting
+    const ip = getClientIp(req);
+    if (await isRateLimitedKV(ip, 'essence', 20, 60000, KV_URL, KV_TOKEN)) {
         return res.status(429).json({ error: 'Too many requests. Please slow down.' });
     }
 
@@ -271,8 +261,18 @@ export default async function handler(req, res) {
                 });
             }
 
-            // Mark wallet as having claimed (permanent - no expiry)
-            await redisSet(`${WALLET_CLAIMED_PREFIX}${wallet}`, Date.now().toString());
+            // Atomically mark wallet as claimed (SET NX prevents double-claim race)
+            const claimed = await redisSetNx(`${WALLET_CLAIMED_PREFIX}${wallet}`, Date.now().toString());
+            if (!claimed) {
+                // Another request from this wallet beat us — restore the counter
+                await redisIncr(ESSENCE_KEY);
+                return res.status(200).json({
+                    success: true,
+                    found: false,
+                    message: 'You already found essence!',
+                    alreadyClaimed: true
+                });
+            }
 
             // Log the claim
             const claimLog = JSON.stringify({

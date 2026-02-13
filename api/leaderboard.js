@@ -1,5 +1,5 @@
 // Vercel Serverless Function for Horde Defense Leaderboard
-import { isRateLimitedKV, getClientIp } from '../lib/swap-utils.js';
+import { isRateLimitedKV, getClientIp, kvGet, kvSet } from '../lib/swap-utils.js';
 
 // Valid map IDs
 const VALID_MAPS = ['tavern_road', 'forest_ambush', 'castle_siege'];
@@ -15,34 +15,10 @@ export default async function handler(req, res) {
     const LEADERBOARD_KEY = 'horde:leaderboard';
     const MAX_SCORES = 50;
 
-    // Helper for KV GET
-    async function kvGet(key) {
-        const response = await fetch(`${KV_REST_API_URL}/get/${key}`, {
-            headers: {
-                'Authorization': `Bearer ${KV_REST_API_TOKEN}`
-            }
-        });
-        const data = await response.json();
-        return data.result;
-    }
-
-    // Helper for KV SET
-    async function kvSet(key, value) {
-        const response = await fetch(`${KV_REST_API_URL}/set/${key}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(value)
-        });
-        return response.json();
-    }
-
     try {
         // GET - Fetch leaderboard
         if (req.method === 'GET') {
-            const result = await kvGet(LEADERBOARD_KEY);
+            const result = await kvGet(LEADERBOARD_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
             const scores = result ? (typeof result === 'string' ? JSON.parse(result) : result) : [];
             return res.status(200).json({ scores });
         }
@@ -63,7 +39,7 @@ export default async function handler(req, res) {
             }
 
             const sessionKey = `game_session:${gameToken}`;
-            const sessionRaw = await kvGet(sessionKey);
+            const sessionRaw = await kvGet(sessionKey, KV_REST_API_URL, KV_REST_API_TOKEN);
             if (!sessionRaw) {
                 return res.status(400).json({ error: 'Invalid or expired game token' });
             }
@@ -108,7 +84,7 @@ export default async function handler(req, res) {
             const safeVictory = victory === true;
 
             // Get current scores
-            const result = await kvGet(LEADERBOARD_KEY);
+            const result = await kvGet(LEADERBOARD_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
             const scores = result ? (typeof result === 'string' ? JSON.parse(result) : result) : [];
 
             // Add new score
@@ -129,7 +105,7 @@ export default async function handler(req, res) {
             const topScores = scores.slice(0, MAX_SCORES);
 
             // Save back to KV
-            await kvSet(LEADERBOARD_KEY, topScores);
+            await kvSet(LEADERBOARD_KEY, topScores, KV_REST_API_URL, KV_REST_API_TOKEN);
 
             // Check if this score made it to top 10
             const rank = topScores.findIndex(s =>

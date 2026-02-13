@@ -1,5 +1,5 @@
 // Vercel Serverless Function for Orc Run Leaderboard
-import { isRateLimitedKV, getClientIp } from '../lib/swap-utils.js';
+import { isRateLimitedKV, getClientIp, kvGet, kvSet } from '../lib/swap-utils.js';
 
 export default async function handler(req, res) {
     const KV_REST_API_URL = process.env.KV_REST_API_URL;
@@ -12,31 +12,9 @@ export default async function handler(req, res) {
     const LEADERBOARD_KEY = 'orcrun:leaderboard';
     const MAX_SCORES = 50;
 
-    async function kvGet(key) {
-        const response = await fetch(`${KV_REST_API_URL}/get/${key}`, {
-            headers: {
-                'Authorization': `Bearer ${KV_REST_API_TOKEN}`
-            }
-        });
-        const data = await response.json();
-        return data.result;
-    }
-
-    async function kvSet(key, value) {
-        const response = await fetch(`${KV_REST_API_URL}/set/${key}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(value)
-        });
-        return response.json();
-    }
-
     try {
         if (req.method === 'GET') {
-            const result = await kvGet(LEADERBOARD_KEY);
+            const result = await kvGet(LEADERBOARD_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
             const scores = result ? (typeof result === 'string' ? JSON.parse(result) : result) : [];
             return res.status(200).json({ scores });
         }
@@ -55,7 +33,7 @@ export default async function handler(req, res) {
             }
 
             const sessionKey = `game_session:${gameToken}`;
-            const sessionRaw = await kvGet(sessionKey);
+            const sessionRaw = await kvGet(sessionKey, KV_REST_API_URL, KV_REST_API_TOKEN);
             if (!sessionRaw) {
                 return res.status(400).json({ error: 'Invalid or expired game token' });
             }
@@ -92,7 +70,7 @@ export default async function handler(req, res) {
             const safeDistance = typeof distance === 'number' ? Math.min(Math.max(0, Math.floor(distance)), 999999) : 0;
             const safeCoins = typeof coins === 'number' ? Math.min(Math.max(0, coins), 99999) : 0;
 
-            const result = await kvGet(LEADERBOARD_KEY);
+            const result = await kvGet(LEADERBOARD_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
             const scores = result ? (typeof result === 'string' ? JSON.parse(result) : result) : [];
 
             const newScore = {
@@ -107,7 +85,7 @@ export default async function handler(req, res) {
             scores.sort((a, b) => b.score - a.score);
             const topScores = scores.slice(0, MAX_SCORES);
 
-            await kvSet(LEADERBOARD_KEY, topScores);
+            await kvSet(LEADERBOARD_KEY, topScores, KV_REST_API_URL, KV_REST_API_TOKEN);
 
             const rank = topScores.findIndex(s =>
                 s.name === newScore.name &&

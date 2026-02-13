@@ -1,4 +1,5 @@
 // Leaderboard API using Upstash Redis
+import { isRateLimitedKV, getClientIp } from '../../lib/swap-utils.js';
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 
@@ -19,11 +20,6 @@ const RARITY_MULTIPLIERS = {
     epic: 10,
     legendary: 25
 };
-
-// Rate limiting
-const RATE_LIMIT_PREFIX = 'rate_limit_lb:';
-const RATE_LIMIT_WINDOW = 60;
-const RATE_LIMIT_MAX = 60;
 
 async function redisCommand(command) {
     const response = await fetch(`${KV_URL}`, {
@@ -58,14 +54,6 @@ async function redisHmget(key, ...fields) {
     return await redisCommand(['HMGET', key, ...fields]);
 }
 
-async function redisIncr(key) {
-    return await redisCommand(['INCR', key]);
-}
-
-async function redisExpire(key, seconds) {
-    return await redisCommand(['EXPIRE', key, seconds]);
-}
-
 async function redisZscore(key, member) {
     return await redisCommand(['ZSCORE', key, member]);
 }
@@ -82,16 +70,6 @@ async function redisExists(key) {
 function getTodayKey() {
     const today = new Date();
     return `${today.getUTCFullYear()}-${today.getUTCMonth() + 1}-${today.getUTCDate()}`;
-}
-
-// Check rate limit
-async function checkRateLimit(ip) {
-    const key = `${RATE_LIMIT_PREFIX}${ip}`;
-    const count = await redisIncr(key);
-    if (count === 1) {
-        await redisExpire(key, RATE_LIMIT_WINDOW);
-    }
-    return count <= RATE_LIMIT_MAX;
 }
 
 // Truncate wallet for display
@@ -117,10 +95,8 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Redis not configured' });
     }
 
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.headers['x-real-ip'] || 'unknown';
-
-    const withinLimit = await checkRateLimit(ip);
-    if (!withinLimit) {
+    const ip = getClientIp(req);
+    if (await isRateLimitedKV(ip, 'fishing-leaderboard', 60, 60000, KV_URL, KV_TOKEN)) {
         return res.status(429).json({ error: 'Too many requests' });
     }
 

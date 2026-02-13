@@ -1,5 +1,5 @@
 // Vercel Serverless Function for Holder Leaderboard
-import { isRateLimitedKV, getClientIp } from '../lib/swap-utils.js';
+import { isRateLimitedKV, getClientIp, kvGet } from '../lib/swap-utils.js';
 
 const ORC_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
 const CACHE_KEY = 'holders:leaderboard';
@@ -34,14 +34,6 @@ export default async function handler(req, res) {
         return res.status(429).json({ error: 'Too many requests. Try again later.' });
     }
 
-    async function kvGet(key) {
-        const response = await fetch(`${KV_REST_API_URL}/get/${key}`, {
-            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-        });
-        const data = await response.json();
-        return data.result;
-    }
-
     async function kvSetEx(key, ttl, value) {
         const response = await fetch(`${KV_REST_API_URL}/setex/${key}/${ttl}`, {
             method: 'POST',
@@ -58,15 +50,15 @@ export default async function handler(req, res) {
     async function readSocialMaps() {
         let discordMap = {}, xMap = {}, walletLinkMap = {};
         try {
-            const rawMap = await kvGet(DISCORD_MAP_KEY);
+            const rawMap = await kvGet(DISCORD_MAP_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
             if (rawMap) discordMap = typeof rawMap === 'string' ? JSON.parse(rawMap) : rawMap;
         } catch (e) { console.error('Failed to read Discord map:', e); }
         try {
-            const rawXMap = await kvGet('holders:x_map');
+            const rawXMap = await kvGet('holders:x_map', KV_REST_API_URL, KV_REST_API_TOKEN);
             if (rawXMap) xMap = typeof rawXMap === 'string' ? JSON.parse(rawXMap) : rawXMap;
         } catch (e) { console.error('Failed to read X map:', e); }
         try {
-            const rawWalletMap = await kvGet('holders:wallet_map');
+            const rawWalletMap = await kvGet('holders:wallet_map', KV_REST_API_URL, KV_REST_API_TOKEN);
             if (rawWalletMap) walletLinkMap = typeof rawWalletMap === 'string' ? JSON.parse(rawWalletMap) : rawWalletMap;
         } catch (e) { console.error('Failed to read wallet map:', e); }
         return { discordMap, xMap, walletLinkMap };
@@ -86,7 +78,7 @@ export default async function handler(req, res) {
 
     try {
         // Check cache for base data (expensive Helius + rarity + floor price)
-        const cached = await kvGet(CACHE_KEY);
+        const cached = await kvGet(CACHE_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
         if (cached) {
             const baseData = typeof cached === 'string' ? JSON.parse(cached) : cached;
             // Always merge fresh social data

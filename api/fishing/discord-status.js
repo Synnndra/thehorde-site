@@ -1,13 +1,9 @@
 // Check Discord Link Status for a Wallet
+import { isRateLimitedKV, getClientIp } from '../../lib/swap-utils.js';
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 
 const DISCORD_LINK_PREFIX = 'discord_link:';
-
-// Rate limiting
-const RATE_LIMIT_PREFIX = 'rate_limit:';
-const RATE_LIMIT_WINDOW = 60; // 1 minute
-const RATE_LIMIT_MAX = 60; // 60 requests per minute
 
 async function redisGet(key) {
     const response = await fetch(`${KV_URL}/get/${key}`, {
@@ -15,30 +11,6 @@ async function redisGet(key) {
     });
     const data = await response.json();
     return data.result;
-}
-
-async function redisIncr(key) {
-    const response = await fetch(`${KV_URL}/incr/${key}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
-    });
-    const data = await response.json();
-    return data.result;
-}
-
-async function redisExpire(key, seconds) {
-    const response = await fetch(`${KV_URL}/expire/${key}/${seconds}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
-    });
-    return response.json();
-}
-
-async function checkRateLimit(ip) {
-    const key = `${RATE_LIMIT_PREFIX}discord_status:${ip}`;
-    const count = await redisIncr(key);
-    if (count === 1) {
-        await redisExpire(key, RATE_LIMIT_WINDOW);
-    }
-    return count <= RATE_LIMIT_MAX;
 }
 
 export default async function handler(req, res) {
@@ -63,9 +35,8 @@ export default async function handler(req, res) {
     }
 
     // Rate limiting
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.headers['x-real-ip'] || 'unknown';
-    const withinLimit = await checkRateLimit(ip);
-    if (!withinLimit) {
+    const ip = getClientIp(req);
+    if (await isRateLimitedKV(ip, 'discord-status', 60, 60000, KV_URL, KV_TOKEN)) {
         return res.status(429).json({ error: 'Too many requests' });
     }
 

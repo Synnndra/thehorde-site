@@ -1,4 +1,5 @@
 // Server-side Cooldown Tracking with Redis
+import { isRateLimitedKV, getClientIp } from '../../lib/swap-utils.js';
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 const COOLDOWN_PREFIX = 'fishing_cooldown:';
@@ -10,10 +11,6 @@ const UNLIMITED_WALLETS = process.env.ADMIN_WALLETS
     ? process.env.ADMIN_WALLETS.split(',').map(w => w.trim())
     : [];
 
-// Rate limiting
-const RATE_LIMIT_PREFIX = 'rate_limit:';
-const RATE_LIMIT_WINDOW = 60; // 1 minute
-const RATE_LIMIT_MAX = 30; // 30 requests per minute
 
 async function redisGet(key) {
     const response = await fetch(`${KV_URL}/get/${key}`, {
@@ -66,18 +63,6 @@ async function redisTtl(key) {
     return data.result;
 }
 
-// Check rate limit
-async function checkRateLimit(ip) {
-    const key = `${RATE_LIMIT_PREFIX}${ip}`;
-    const count = await redisIncr(key);
-
-    if (count === 1) {
-        await redisExpire(key, RATE_LIMIT_WINDOW);
-    }
-
-    return count <= RATE_LIMIT_MAX;
-}
-
 function getTodayKey() {
     const today = new Date();
     return `${today.getUTCFullYear()}-${today.getUTCMonth() + 1}-${today.getUTCDate()}`;
@@ -100,12 +85,9 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Redis not configured' });
     }
 
-    // Get client IP for rate limiting
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.headers['x-real-ip'] || 'unknown';
-
-    // Check rate limit
-    const withinLimit = await checkRateLimit(ip);
-    if (!withinLimit) {
+    // Rate limiting
+    const ip = getClientIp(req);
+    if (await isRateLimitedKV(ip, 'fishing-cooldown', 30, 60000, KV_URL, KV_TOKEN)) {
         return res.status(429).json({ error: 'Too many requests. Please slow down.' });
     }
 

@@ -1,6 +1,6 @@
 // Vercel Serverless Function for Wallet-X Linking
 import nacl from 'tweetnacl';
-import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed } from '../lib/swap-utils.js';
+import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed, kvGet, kvSet } from '../lib/swap-utils.js';
 
 const X_MAP_KEY = 'holders:x_map';
 
@@ -42,26 +42,6 @@ export default async function handler(req, res) {
     const clientIp = getClientIp(req);
     if (await isRateLimitedKV(clientIp, 'holders-link-x', 5, 60000, KV_REST_API_URL, KV_REST_API_TOKEN)) {
         return res.status(429).json({ error: 'Too many requests. Try again later.' });
-    }
-
-    async function kvGet(key) {
-        const response = await fetch(`${KV_REST_API_URL}/get/${key}`, {
-            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-        });
-        const data = await response.json();
-        return data.result;
-    }
-
-    async function kvSet(key, value) {
-        const response = await fetch(`${KV_REST_API_URL}/set/${key}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(value)
-        });
-        return response.json();
     }
 
     try {
@@ -112,7 +92,7 @@ export default async function handler(req, res) {
 
         let xMap = {};
         try {
-            const rawMap = await kvGet(X_MAP_KEY);
+            const rawMap = await kvGet(X_MAP_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
             if (rawMap) {
                 xMap = typeof rawMap === 'string' ? JSON.parse(rawMap) : rawMap;
             }
@@ -122,7 +102,7 @@ export default async function handler(req, res) {
 
         if (req.method === 'DELETE') {
             delete xMap[wallet];
-            await kvSet(X_MAP_KEY, xMap);
+            await kvSet(X_MAP_KEY, xMap, KV_REST_API_URL, KV_REST_API_TOKEN);
             return res.status(200).json({ success: true, action: 'unlinked' });
         }
 
@@ -148,7 +128,7 @@ export default async function handler(req, res) {
         };
 
         xMap[wallet] = xInfo;
-        await kvSet(X_MAP_KEY, xMap);
+        await kvSet(X_MAP_KEY, xMap, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         return res.status(200).json({ success: true, action: 'linked', x: xInfo });
 

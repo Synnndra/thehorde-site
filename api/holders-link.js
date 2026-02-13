@@ -1,6 +1,6 @@
 // Vercel Serverless Function for Wallet-Discord Linking
 import nacl from 'tweetnacl';
-import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed } from '../lib/swap-utils.js';
+import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed, kvGet, kvSet } from '../lib/swap-utils.js';
 
 const DISCORD_MAP_KEY = 'holders:discord_map';
 
@@ -43,26 +43,6 @@ export default async function handler(req, res) {
     const clientIp = getClientIp(req);
     if (await isRateLimitedKV(clientIp, 'holders-link', 5, 60000, KV_REST_API_URL, KV_REST_API_TOKEN)) {
         return res.status(429).json({ error: 'Too many requests. Try again later.' });
-    }
-
-    async function kvGet(key) {
-        const response = await fetch(`${KV_REST_API_URL}/get/${key}`, {
-            headers: { 'Authorization': `Bearer ${KV_REST_API_TOKEN}` }
-        });
-        const data = await response.json();
-        return data.result;
-    }
-
-    async function kvSet(key, value) {
-        const response = await fetch(`${KV_REST_API_URL}/set/${key}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(value)
-        });
-        return response.json();
     }
 
     async function kvDel(key) {
@@ -125,7 +105,7 @@ export default async function handler(req, res) {
         // Get current Discord map
         let discordMap = {};
         try {
-            const rawMap = await kvGet(DISCORD_MAP_KEY);
+            const rawMap = await kvGet(DISCORD_MAP_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
             if (rawMap) {
                 discordMap = typeof rawMap === 'string' ? JSON.parse(rawMap) : rawMap;
             }
@@ -136,7 +116,7 @@ export default async function handler(req, res) {
         if (req.method === 'DELETE') {
             // Unlink
             delete discordMap[wallet];
-            await kvSet(DISCORD_MAP_KEY, discordMap);
+            await kvSet(DISCORD_MAP_KEY, discordMap, KV_REST_API_URL, KV_REST_API_TOKEN);
             await kvDel(`holder_discord:${wallet}`);
 
             return res.status(200).json({ success: true, action: 'unlinked' });
@@ -166,8 +146,8 @@ export default async function handler(req, res) {
 
         // Update map + individual key
         discordMap[wallet] = discordInfo;
-        await kvSet(DISCORD_MAP_KEY, discordMap);
-        await kvSet(`holder_discord:${wallet}`, discordInfo);
+        await kvSet(DISCORD_MAP_KEY, discordMap, KV_REST_API_URL, KV_REST_API_TOKEN);
+        await kvSet(`holder_discord:${wallet}`, discordInfo, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         return res.status(200).json({ success: true, action: 'linked', discord: discordInfo });
 
