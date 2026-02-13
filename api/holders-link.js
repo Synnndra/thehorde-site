@@ -1,7 +1,8 @@
 // Vercel Serverless Function for Wallet-Discord Linking
-import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed, kvGet, kvSet, kvDelete, verifySignature } from '../lib/swap-utils.js';
+import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed, kvDelete, kvSet, kvHset, kvHdel, verifySignature, migrateMapToHash } from '../lib/swap-utils.js';
 
 const DISCORD_MAP_KEY = 'holders:discord_map';
+const DISCORD_HASH_KEY = 'holders:discord_map:h';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST' && req.method !== 'DELETE') {
@@ -64,23 +65,13 @@ export default async function handler(req, res) {
         // Mark signature as used
         await markSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN);
 
-        // Get current Discord map
-        let discordMap = {};
-        try {
-            const rawMap = await kvGet(DISCORD_MAP_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
-            if (rawMap) {
-                discordMap = typeof rawMap === 'string' ? JSON.parse(rawMap) : rawMap;
-            }
-        } catch (e) {
-            console.error('Failed to read Discord map:', e);
-        }
+        // Auto-migrate old blob format to hash if needed
+        await migrateMapToHash(DISCORD_MAP_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         if (req.method === 'DELETE') {
-            // Unlink
-            delete discordMap[wallet];
-            await kvSet(DISCORD_MAP_KEY, discordMap, KV_REST_API_URL, KV_REST_API_TOKEN);
+            // Atomic per-wallet delete — no read-modify-write race
+            await kvHdel(DISCORD_HASH_KEY, wallet, KV_REST_API_URL, KV_REST_API_TOKEN);
             await kvDelete(`holder_discord:${wallet}`, KV_REST_API_URL, KV_REST_API_TOKEN);
-
             return res.status(200).json({ success: true, action: 'unlinked' });
         }
 
@@ -106,9 +97,8 @@ export default async function handler(req, res) {
             linkedAt: new Date().toISOString()
         };
 
-        // Update map + individual key
-        discordMap[wallet] = discordInfo;
-        await kvSet(DISCORD_MAP_KEY, discordMap, KV_REST_API_URL, KV_REST_API_TOKEN);
+        // Atomic per-wallet write — no read-modify-write race
+        await kvHset(DISCORD_HASH_KEY, wallet, discordInfo, KV_REST_API_URL, KV_REST_API_TOKEN);
         await kvSet(`holder_discord:${wallet}`, discordInfo, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         return res.status(200).json({ success: true, action: 'linked', discord: discordInfo });

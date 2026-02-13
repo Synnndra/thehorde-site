@@ -642,19 +642,18 @@ function displayEscape() {
 
 async function catchFish() {
     stopSound('reel');
-    const fish = generateFish();
-    catches.unshift(fish);
     playSound('catch');
 
-    // Run API calls in parallel for faster response
+    let fish;
     let foundEssence = false;
+
     if (!IS_LOCAL) {
         try {
-            const [, essenceResponse] = await Promise.all([
+            const [leaderboardResponse, essenceResponse] = await Promise.all([
                 fetch('/api/fishing/leaderboard', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ wallet: userWallet, fish, gameToken })
+                    body: JSON.stringify({ wallet: userWallet, gameToken })
                 }),
                 fetch('/api/fishing/primordial-essence', {
                     method: 'POST',
@@ -662,6 +661,12 @@ async function catchFish() {
                     body: JSON.stringify({ wallet: userWallet })
                 })
             ]);
+
+            const leaderboardData = await leaderboardResponse.json();
+            if (leaderboardData.fish) {
+                fish = leaderboardData.fish;
+                fish.timestamp = new Date().toLocaleTimeString();
+            }
 
             const essenceData = await essenceResponse.json();
             if (essenceData.found) {
@@ -671,8 +676,17 @@ async function catchFish() {
         } catch (error) {
             console.error('API error:', error);
         }
+
+        // Token is consumed — clear so a new one is requested next cast
+        gameToken = null;
     }
 
+    // Fallback to client-side generation for local dev or API failure
+    if (!fish) {
+        fish = generateFish();
+    }
+
+    catches.unshift(fish);
     displayCatch(fish, foundEssence);
     updateCatchLog();
 

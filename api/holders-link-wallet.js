@@ -1,7 +1,8 @@
 // Vercel Serverless Function for Wallet-Wallet Linking
-import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed, kvGet, kvSet, verifySignature } from '../lib/swap-utils.js';
+import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed, kvHset, kvHget, kvHdel, verifySignature, migrateMapToHash } from '../lib/swap-utils.js';
 
 const WALLET_MAP_KEY = 'holders:wallet_map';
+const WALLET_HASH_KEY = 'holders:wallet_map:h';
 
 function isValidWallet(wallet) {
     return wallet && typeof wallet === 'string' && wallet.length >= 32 && wallet.length <= 44;
@@ -25,16 +26,8 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Read current wallet map
-        let walletMap = {};
-        try {
-            const rawMap = await kvGet(WALLET_MAP_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
-            if (rawMap) {
-                walletMap = typeof rawMap === 'string' ? JSON.parse(rawMap) : rawMap;
-            }
-        } catch (e) {
-            console.error('Failed to read wallet map:', e);
-        }
+        // Auto-migrate old blob format to hash if needed
+        await migrateMapToHash(WALLET_MAP_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         if (req.method === 'DELETE') {
             // Unlink wallet
@@ -70,15 +63,14 @@ export default async function handler(req, res) {
 
             await markSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN);
 
-            // Find and remove both directions
-            const linked = walletMap[wallet];
+            // Atomic per-wallet delete — remove both directions
+            const linked = await kvHget(WALLET_HASH_KEY, wallet, KV_REST_API_URL, KV_REST_API_TOKEN);
             if (linked) {
                 const otherWallet = linked.linkedWallet;
-                delete walletMap[wallet];
-                if (walletMap[otherWallet]) {
-                    delete walletMap[otherWallet];
+                await kvHdel(WALLET_HASH_KEY, wallet, KV_REST_API_URL, KV_REST_API_TOKEN);
+                if (otherWallet) {
+                    await kvHdel(WALLET_HASH_KEY, otherWallet, KV_REST_API_URL, KV_REST_API_TOKEN);
                 }
-                await kvSet(WALLET_MAP_KEY, walletMap, KV_REST_API_URL, KV_REST_API_TOKEN);
             }
 
             return res.status(200).json({ success: true, action: 'unlinked' });
@@ -144,19 +136,20 @@ export default async function handler(req, res) {
         await markSignatureUsed(signatureB, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         // Check if either wallet is already linked to a different wallet
-        if (walletMap[walletA] && walletMap[walletA].linkedWallet !== walletB) {
+        const existingA = await kvHget(WALLET_HASH_KEY, walletA, KV_REST_API_URL, KV_REST_API_TOKEN);
+        const existingB = await kvHget(WALLET_HASH_KEY, walletB, KV_REST_API_URL, KV_REST_API_TOKEN);
+
+        if (existingA && existingA.linkedWallet !== walletB) {
             return res.status(400).json({ error: 'Wallet A is already linked to a different wallet' });
         }
-        if (walletMap[walletB] && walletMap[walletB].linkedWallet !== walletA) {
+        if (existingB && existingB.linkedWallet !== walletA) {
             return res.status(400).json({ error: 'Wallet B is already linked to a different wallet' });
         }
 
-        // Store bidirectional link
+        // Atomic per-wallet writes — no read-modify-write race
         const linkedAt = new Date().toISOString();
-        walletMap[walletA] = { linkedWallet: walletB, linkedAt };
-        walletMap[walletB] = { linkedWallet: walletA, linkedAt };
-
-        await kvSet(WALLET_MAP_KEY, walletMap, KV_REST_API_URL, KV_REST_API_TOKEN);
+        await kvHset(WALLET_HASH_KEY, walletA, { linkedWallet: walletB, linkedAt }, KV_REST_API_URL, KV_REST_API_TOKEN);
+        await kvHset(WALLET_HASH_KEY, walletB, { linkedWallet: walletA, linkedAt }, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         return res.status(200).json({ success: true, action: 'linked', linkedWallet: walletB });
 

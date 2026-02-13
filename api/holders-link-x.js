@@ -1,7 +1,8 @@
 // Vercel Serverless Function for Wallet-X Linking
-import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed, kvGet, kvSet, verifySignature } from '../lib/swap-utils.js';
+import { isRateLimitedKV, getClientIp, validateTimestamp, isSignatureUsed, markSignatureUsed, kvHset, kvHdel, verifySignature, migrateMapToHash } from '../lib/swap-utils.js';
 
 const X_MAP_KEY = 'holders:x_map';
+const X_HASH_KEY = 'holders:x_map:h';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST' && req.method !== 'DELETE') {
@@ -61,19 +62,11 @@ export default async function handler(req, res) {
         // Mark signature as used
         await markSignatureUsed(signature, KV_REST_API_URL, KV_REST_API_TOKEN);
 
-        let xMap = {};
-        try {
-            const rawMap = await kvGet(X_MAP_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
-            if (rawMap) {
-                xMap = typeof rawMap === 'string' ? JSON.parse(rawMap) : rawMap;
-            }
-        } catch (e) {
-            console.error('Failed to read X map:', e);
-        }
+        // Auto-migrate old blob format to hash if needed
+        await migrateMapToHash(X_MAP_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         if (req.method === 'DELETE') {
-            delete xMap[wallet];
-            await kvSet(X_MAP_KEY, xMap, KV_REST_API_URL, KV_REST_API_TOKEN);
+            await kvHdel(X_HASH_KEY, wallet, KV_REST_API_URL, KV_REST_API_TOKEN);
             return res.status(200).json({ success: true, action: 'unlinked' });
         }
 
@@ -98,8 +91,7 @@ export default async function handler(req, res) {
             linkedAt: new Date().toISOString()
         };
 
-        xMap[wallet] = xInfo;
-        await kvSet(X_MAP_KEY, xMap, KV_REST_API_URL, KV_REST_API_TOKEN);
+        await kvHset(X_HASH_KEY, wallet, xInfo, KV_REST_API_URL, KV_REST_API_TOKEN);
 
         return res.status(200).json({ success: true, action: 'linked', x: xInfo });
 

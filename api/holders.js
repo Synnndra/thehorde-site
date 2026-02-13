@@ -1,5 +1,5 @@
 // Vercel Serverless Function for Holder Leaderboard
-import { isRateLimitedKV, getClientIp, kvGet } from '../lib/swap-utils.js';
+import { isRateLimitedKV, getClientIp, kvGet, kvHgetall } from '../lib/swap-utils.js';
 
 const ORC_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
 const CACHE_KEY = 'holders:leaderboard';
@@ -47,19 +47,29 @@ export default async function handler(req, res) {
     }
 
     // Read fresh social maps (cheap KV reads, always current)
+    // Tries new hash keys first (:h suffix), falls back to old blob keys
     async function readSocialMaps() {
         let discordMap = {}, xMap = {}, walletLinkMap = {};
         try {
-            const rawMap = await kvGet(DISCORD_MAP_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
-            if (rawMap) discordMap = typeof rawMap === 'string' ? JSON.parse(rawMap) : rawMap;
+            discordMap = await kvHgetall('holders:discord_map:h', KV_REST_API_URL, KV_REST_API_TOKEN) || {};
+            if (Object.keys(discordMap).length === 0) {
+                const raw = await kvGet(DISCORD_MAP_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
+                if (raw) discordMap = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            }
         } catch (e) { console.error('Failed to read Discord map:', e); }
         try {
-            const rawXMap = await kvGet('holders:x_map', KV_REST_API_URL, KV_REST_API_TOKEN);
-            if (rawXMap) xMap = typeof rawXMap === 'string' ? JSON.parse(rawXMap) : rawXMap;
+            xMap = await kvHgetall('holders:x_map:h', KV_REST_API_URL, KV_REST_API_TOKEN) || {};
+            if (Object.keys(xMap).length === 0) {
+                const raw = await kvGet('holders:x_map', KV_REST_API_URL, KV_REST_API_TOKEN);
+                if (raw) xMap = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            }
         } catch (e) { console.error('Failed to read X map:', e); }
         try {
-            const rawWalletMap = await kvGet('holders:wallet_map', KV_REST_API_URL, KV_REST_API_TOKEN);
-            if (rawWalletMap) walletLinkMap = typeof rawWalletMap === 'string' ? JSON.parse(rawWalletMap) : rawWalletMap;
+            walletLinkMap = await kvHgetall('holders:wallet_map:h', KV_REST_API_URL, KV_REST_API_TOKEN) || {};
+            if (Object.keys(walletLinkMap).length === 0) {
+                const raw = await kvGet('holders:wallet_map', KV_REST_API_URL, KV_REST_API_TOKEN);
+                if (raw) walletLinkMap = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            }
         } catch (e) { console.error('Failed to read wallet map:', e); }
         return { discordMap, xMap, walletLinkMap };
     }

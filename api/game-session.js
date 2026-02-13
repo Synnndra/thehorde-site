@@ -32,7 +32,10 @@ export default async function handler(req, res) {
         const token = Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
 
         const key = `game_session:${token}`;
-        const sessionData = { game, startedAt: Date.now(), ip: clientIp };
+        // Seed for server-side deterministic generation (fishing anti-cheat)
+        const seedArray = new Uint32Array(1);
+        crypto.getRandomValues(seedArray);
+        const sessionData = { game, startedAt: Date.now(), ip: clientIp, seed: seedArray[0] };
         const TTL_SECONDS = 3 * 60 * 60; // 3 hours
 
         // Store with TTL

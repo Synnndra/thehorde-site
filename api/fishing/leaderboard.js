@@ -1,5 +1,6 @@
 // Leaderboard API using Upstash Redis
 import { isRateLimitedKV, getClientIp } from '../../lib/swap-utils.js';
+import { generateFish } from '../../lib/fish-generator.js';
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 
@@ -182,10 +183,10 @@ export default async function handler(req, res) {
 
         // POST - Record a catch
         if (req.method === 'POST') {
-            const { wallet, fish, gameToken } = req.body;
+            const { wallet, gameToken } = req.body;
 
-            if (!wallet || !fish) {
-                return res.status(400).json({ error: 'Wallet and fish data required' });
+            if (!wallet) {
+                return res.status(400).json({ error: 'Wallet required' });
             }
 
             // Validate game session token
@@ -219,6 +220,9 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'Invalid wallet address' });
             }
 
+            // Generate fish server-side from session seed (anti-cheat)
+            const fish = generateFish(session.seed || 0);
+
             // Update total catches
             await redisZincrby(CATCHES_KEY, 1, wallet);
 
@@ -243,7 +247,8 @@ export default async function handler(req, res) {
             // Store wallet display name
             await redisHset(WALLETS_KEY, wallet, truncateWallet(wallet));
 
-            return res.status(200).json({ success: true });
+            // Return server-generated fish so client can display it
+            return res.status(200).json({ success: true, fish });
         }
 
         return res.status(405).json({ error: 'Method not allowed' });
