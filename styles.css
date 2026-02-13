@@ -964,6 +964,18 @@ header::after {
     box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
 }
 
+.community-btn.me-cta {
+    color: #fff;
+    background: #E42575;
+    border: 2px solid #E42575;
+    box-shadow: 0 0 15px rgba(228, 37, 117, 0.2);
+}
+
+.community-btn.me-cta:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 20px rgba(228, 37, 117, 0.5), 0 0 30px rgba(228, 37, 117, 0.25);
+}
+
 /* ========================================
    FOOTER
    ======================================== */
