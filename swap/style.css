@@ -1,5 +1,14 @@
 /* MidEvils NFT Swap - Styles */
 
+/* Swap-specific variables (use base.css tokens where possible) */
+:root {
+    --swap-primary: var(--color-info);
+    --swap-primary-hover: #7b8ff0;
+    --swap-success: var(--color-success);
+    --swap-danger: var(--color-danger);
+    --swap-bg-dark: #1a1a2e;
+}
+
 /* Page-specific override */
 body {
     padding: 20px;
