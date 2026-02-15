@@ -236,6 +236,7 @@ let catches = [];
 let gameState = 'idle'; // idle, casting, waiting, bite, reeling
 let isUnlimitedWallet = false; // Admin wallets get unlimited casts
 let castsRemaining = 0;
+let lastCooldownData = null; // Cache cooldown response for bonus display
 
 // ============================================
 // DAILY COOLDOWN TRACKING (Server-side via Redis)
@@ -274,6 +275,15 @@ function formatTimeRemaining(seconds) {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     return `${hours}h ${minutes}m`;
+}
+
+function formatCastsMessage(remaining) {
+    const bonus = lastCooldownData?.bonusCasts || 0;
+    const label = `${remaining} cast${remaining !== 1 ? 's' : ''} remaining`;
+    if (bonus > 0) {
+        return `${label} (${lastCooldownData.baseCasts} base + ${bonus} Orc bonus)`;
+    }
+    return label;
 }
 
 // ============================================
@@ -341,6 +351,7 @@ async function showSelectScreen() {
 
     // Check if this wallet has casts remaining today (server-side)
     const cooldownData = await checkWalletCooldown(userWallet);
+    lastCooldownData = cooldownData;
     const noCastsLeft = !cooldownData.canPlay && !cooldownData.unlimited;
     castsRemaining = cooldownData.castsRemaining ?? 0;
 
@@ -352,7 +363,7 @@ async function showSelectScreen() {
     } else if (cooldownData.unlimited) {
         elements.selectError.textContent = 'Unlimited access enabled';
     } else {
-        elements.selectError.textContent = `${castsRemaining} cast${castsRemaining !== 1 ? 's' : ''} remaining today`;
+        elements.selectError.textContent = `${formatCastsMessage(castsRemaining)} today`;
     }
 
     FISHERMEN.forEach((fisherman, index) => {
@@ -401,7 +412,7 @@ async function selectFisherman(index) {
     if (isUnlimitedWallet) {
         updateStatus('Click "Cast Line" to start fishing!');
     } else {
-        updateStatus(`${castsRemaining} cast${castsRemaining !== 1 ? 's' : ''} remaining — Cast Line to fish!`);
+        updateStatus(`${formatCastsMessage(castsRemaining)} — Cast Line to fish!`);
     }
 
     // Check Discord link status
@@ -422,6 +433,7 @@ async function castLine() {
 
     // Check if casts remaining
     const cooldownData = await checkWalletCooldown(userWallet);
+    lastCooldownData = cooldownData;
     isUnlimitedWallet = cooldownData.unlimited || false;
     castsRemaining = cooldownData.castsRemaining ?? 0;
 
@@ -766,7 +778,7 @@ function closeCatchDisplay() {
     if (isUnlimitedWallet) {
         updateStatus('Click "Cast Line" to fish again!');
     } else if (castsRemaining > 0) {
-        updateStatus(`${castsRemaining} cast${castsRemaining !== 1 ? 's' : ''} remaining — Cast again!`);
+        updateStatus(`${formatCastsMessage(castsRemaining)} — Cast again!`);
         elements.castBtn.disabled = false;
     } else {
         updateStatus("No casts remaining today. Come back tomorrow!");

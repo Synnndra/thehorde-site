@@ -4,7 +4,11 @@ const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 const COOLDOWN_PREFIX = 'fishing_cooldown:';
 const COOLDOWN_SECONDS = 86400; // 24 hours
-const MAX_CASTS_PER_DAY = 999999; // TESTING: unlimited casts (was 5)
+const MAX_CASTS_PER_DAY = 5;
+const MAX_ORC_BONUS = 5;
+const MIDEVILS_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
+const GRAVEYARD_COLLECTION = 'DpYLtgV5XcWPt3TM9FhXEh8uNg6QFYrj3zCGZxpcA3vF';
+const ORC_COUNT_TTL = 3600; // 1 hour cache
 
 // Admin wallets that bypass cooldown (comma-separated in env var)
 const UNLIMITED_WALLETS = process.env.ADMIN_WALLETS
@@ -52,7 +56,7 @@ async function redisDel(key) {
 // Old format stored Date.now() timestamp — detect and reset
 function parseCastsUsed(raw) {
     const val = parseInt(raw) || 0;
-    return val > MAX_CASTS_PER_DAY ? 0 : val;
+    return val > 100 ? 0 : val;
 }
 
 async function redisTtl(key) {
@@ -66,6 +70,71 @@ async function redisTtl(key) {
 function getTodayKey() {
     const today = new Date();
     return `${today.getUTCFullYear()}-${today.getUTCMonth() + 1}-${today.getUTCDate()}`;
+}
+
+// Count MidEvil Orcs owned by wallet (cached 1 hour)
+async function getOrcCount(wallet) {
+    const cacheKey = `orc_count:${wallet}`;
+    try {
+        const cached = await redisGet(cacheKey);
+        if (cached !== null && cached !== undefined) {
+            return Math.min(parseInt(cached) || 0, MAX_ORC_BONUS);
+        }
+    } catch (e) {
+        // Cache miss, proceed to fetch
+    }
+
+    const heliusApiKey = process.env.HELIUS_API_KEY;
+    if (!heliusApiKey) {
+        return 0;
+    }
+
+    try {
+        let orcCount = 0;
+        let page = 1;
+        let hasMore = true;
+
+        while (hasMore) {
+            const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 'orc-count',
+                    method: 'getAssetsByOwner',
+                    params: { ownerAddress: wallet, page, limit: 1000 }
+                })
+            });
+
+            const data = await response.json();
+            const items = data.result?.items || [];
+
+            for (const item of items) {
+                const collections = (item.grouping || [])
+                    .filter(g => g.group_key === 'collection')
+                    .map(g => g.group_value);
+
+                const isMidEvil = collections.includes(MIDEVILS_COLLECTION);
+                const isGraveyard = collections.includes(GRAVEYARD_COLLECTION);
+                const name = (item.content?.metadata?.name || '').toLowerCase();
+                const isBurnt = item.burnt === true;
+
+                if (isMidEvil && !isGraveyard && !isBurnt && name.includes('orc')) {
+                    orcCount++;
+                }
+            }
+
+            hasMore = items.length === 1000;
+            page++;
+        }
+
+        const bonus = Math.min(orcCount, MAX_ORC_BONUS);
+        await redisSetEx(cacheKey, ORC_COUNT_TTL, bonus.toString());
+        return bonus;
+    } catch (err) {
+        console.error('Error counting Orcs:', err);
+        return 0;
+    }
 }
 
 export default async function handler(req, res) {
@@ -121,18 +190,24 @@ export default async function handler(req, res) {
             const raw = await redisGet(cooldownKey);
             let castsUsed = parseCastsUsed(raw);
             // Reset old-format timestamp keys
-            if (raw && parseInt(raw) > MAX_CASTS_PER_DAY) {
+            if (raw && parseInt(raw) > 100) {
                 await redisDel(cooldownKey);
                 castsUsed = 0;
             }
+
+            const bonusCasts = await getOrcCount(wallet);
+            const maxCasts = MAX_CASTS_PER_DAY + bonusCasts;
+
             const ttl = castsUsed > 0 ? await redisTtl(cooldownKey) : 0;
-            const castsRemaining = Math.max(0, MAX_CASTS_PER_DAY - castsUsed);
+            const castsRemaining = Math.max(0, maxCasts - castsUsed);
 
             return res.status(200).json({
                 canPlay: castsRemaining > 0,
                 castsUsed,
                 castsRemaining,
-                maxCasts: MAX_CASTS_PER_DAY,
+                maxCasts,
+                baseCasts: MAX_CASTS_PER_DAY,
+                bonusCasts,
                 playedToday: castsUsed > 0,
                 resetInSeconds: ttl > 0 ? ttl : 0
             });
@@ -157,12 +232,15 @@ export default async function handler(req, res) {
             const raw = await redisGet(cooldownKey);
             let castsUsed = parseCastsUsed(raw);
             // Reset old-format timestamp keys
-            if (raw && parseInt(raw) > MAX_CASTS_PER_DAY) {
+            if (raw && parseInt(raw) > 100) {
                 await redisDel(cooldownKey);
                 castsUsed = 0;
             }
 
-            if (castsUsed >= MAX_CASTS_PER_DAY) {
+            const bonusCasts = await getOrcCount(wallet);
+            const maxCasts = MAX_CASTS_PER_DAY + bonusCasts;
+
+            if (castsUsed >= maxCasts) {
                 const ttl = await redisTtl(cooldownKey);
                 return res.status(200).json({
                     success: false,
@@ -182,8 +260,8 @@ export default async function handler(req, res) {
             return res.status(200).json({
                 success: true,
                 castsUsed: newCount,
-                castsRemaining: Math.max(0, MAX_CASTS_PER_DAY - newCount),
-                message: `Cast ${newCount}/${MAX_CASTS_PER_DAY}`
+                castsRemaining: Math.max(0, maxCasts - newCount),
+                message: `Cast ${newCount}/${maxCasts}`
             });
         }
 
