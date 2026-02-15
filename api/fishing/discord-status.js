@@ -43,7 +43,7 @@ export default async function handler(req, res) {
         return res.status(429).json({ error: 'Too many requests' });
     }
 
-    const { wallet } = req.query;
+    const wallet = req.method === 'GET' ? req.query.wallet : req.body?.wallet;
 
     if (!wallet) {
         return res.status(400).json({ error: 'Wallet address required' });
