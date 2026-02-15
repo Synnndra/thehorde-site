@@ -841,11 +841,37 @@ async function checkDiscordStatus() {
             elements.discordStatus.appendChild(nameSpan);
             elements.linkDiscordBtn.style.display = 'none';
         } else {
-            elements.discordStatus.textContent = 'Discord not linked';
-            elements.linkDiscordBtn.style.display = 'inline-block';
+            // Fall back to nav's localStorage Discord data
+            showLocalDiscordOrPrompt();
         }
     } catch (error) {
         console.error('Failed to check Discord status:', error);
+        showLocalDiscordOrPrompt();
+    }
+}
+
+function showLocalDiscordOrPrompt() {
+    const localUsername = localStorage.getItem('discord_username');
+    const localId = localStorage.getItem('discord_id');
+    const localAvatar = localStorage.getItem('discord_avatar');
+
+    if (localId && localUsername) {
+        elements.discordStatus.innerHTML = '';
+        if (localAvatar) {
+            const avatarUrl = `https://cdn.discordapp.com/avatars/${encodeURIComponent(localId)}/${encodeURIComponent(localAvatar)}.png?size=64`;
+            const img = document.createElement('img');
+            img.src = avatarUrl;
+            img.alt = '';
+            img.className = 'discord-avatar-small';
+            img.onerror = function() { this.style.display = 'none'; };
+            elements.discordStatus.appendChild(img);
+        }
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'discord-username';
+        nameSpan.textContent = localUsername;
+        elements.discordStatus.appendChild(nameSpan);
+        elements.linkDiscordBtn.style.display = 'none';
+    } else {
         elements.discordStatus.textContent = 'Discord not linked';
         elements.linkDiscordBtn.style.display = 'inline-block';
     }
