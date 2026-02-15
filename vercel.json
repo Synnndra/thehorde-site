@@ -51,9 +51,7 @@
     { "source": "/fishing", "destination": "/fishing/index.html" },
     { "source": "/api/fishing/cooldown", "destination": "/api/fishing/cooldown.js" },
     { "source": "/api/fishing/leaderboard", "destination": "/api/fishing/leaderboard.js" },
-    { "source": "/api/fishing/primordial-essence", "destination": "/api/fishing/primordial-essence.js" },
     { "source": "/api/fishing/record-wallet", "destination": "/api/fishing/record-wallet.js" },
-    { "source": "/api/fishing/admin-essence", "destination": "/api/fishing/admin-essence.js" },
     { "source": "/api/fishing/discord", "destination": "/api/fishing/discord.js" },
     { "source": "/api/fishing/discord-callback", "destination": "/api/fishing/discord-callback.js" },
     { "source": "/api/fishing/discord-status", "destination": "/api/fishing/discord-status.js" }

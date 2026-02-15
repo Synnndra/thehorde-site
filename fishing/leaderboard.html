@@ -4,14 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/fishing/">
-    <title>Leaderboard - Primordial Pit Fishing</title>
+    <title>Leaderboard - Bobbers</title>
+    <meta name="description" content="Bobbers leaderboard — top fishers in the MidEvils NFT fishing minigame.">
+    <meta property="og:title" content="Bobbers Leaderboard | The Horde">
+    <meta property="og:description" content="Bobbers leaderboard — top fishers in the MidEvils NFT fishing minigame.">
+    <meta property="og:image" content="https://midhorde.com/orclogo.jpg">
+    <meta property="og:url" content="https://midhorde.com/fishing/leaderboard">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Bobbers Leaderboard | The Horde">
+    <meta name="twitter:description" content="Bobbers leaderboard — top fishers in the MidEvils NFT fishing minigame.">
+    <meta name="twitter:image" content="https://midhorde.com/orclogo.jpg">
+    <link rel="icon" href="/orclogo.jpg" type="image/jpeg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=MedievalSharp&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/shared/nav.css">
     <link rel="stylesheet" href="style.css">
     <style>
+        body {
+            overflow: auto;
+        }
+
+        .site-nav {
+            align-self: stretch;
+        }
+
+        .game-container {
+            width: 100%;
+            aspect-ratio: auto;
+            background-size: cover;
+        }
+
         .leaderboard-page {
-            min-height: 100vh;
+            min-height: calc(100vh - 40px);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -181,8 +207,39 @@
     </style>
 </head>
 <body>
-    <div class="game-container">
-        <h1 class="game-title">Primordial Pit Fishing</h1>
+    <a href="#main-content" class="skip-link">Skip to content</a>
+    <nav class="site-nav">
+        <a href="/">Home</a>
+        <div class="nav-group">
+            <span class="nav-group-label">Explore</span>
+            <div class="nav-dropdown">
+                <a href="/orc-viewer">Viewer</a>
+                <a href="/holders">Leaderboard</a>
+                <a href="/my-horde">My Horde</a>
+                <a href="/create-orc">Create an Orc</a>
+            </div>
+        </div>
+        <div class="nav-group">
+            <span class="nav-group-label">Utility</span>
+            <div class="nav-dropdown">
+                <a href="/swap">MidSwap</a>
+                <a href="/dao">DAO</a>
+                <a href="/collage-maker">Collage Maker</a>
+            </div>
+        </div>
+        <div class="nav-group">
+            <span class="nav-group-label">Arcade</span>
+            <div class="nav-dropdown">
+                <a href="/minigame">Horde Tower Defense</a>
+                <a href="/orc-run">Orc Run</a>
+                <a href="/fishing">Bobbers</a>
+            </div>
+        </div>
+        <button id="nav-link-discord" class="nav-link-discord" title="Link Discord">Link Discord</button>
+        <button id="nav-link-x" class="nav-link-x" title="Link X">Link X</button>
+    </nav>
+    <div class="game-container" id="main-content">
+        <h1 class="game-title">Bobbers</h1>
 
         <a href="index.html" class="back-link">Back to Game</a>
 
@@ -201,10 +258,6 @@
                     <div class="stat-box">
                         <div class="stat-value" id="totalPlayers">-</div>
                         <div class="stat-label">Players</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-value" id="essenceRemaining">-</div>
-                        <div class="stat-label">Essence Left</div>
                     </div>
                 </div>
 
@@ -227,6 +280,8 @@
         <p>Please visit on a desktop or laptop to play</p>
     </div>
 
+    <script src="/shared/nav.js"></script>
     <script src="leaderboard.js"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

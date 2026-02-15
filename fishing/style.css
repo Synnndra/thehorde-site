@@ -36,13 +36,18 @@ body {
     min-height: 100vh;
     overflow: hidden;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
 }
 
-/* Game Container - locked 16:9 aspect ratio */
+.site-nav {
+    align-self: stretch;
+}
+
+/* Game Container - locked 16:9 aspect ratio, accounting for nav height */
 .game-container {
-    width: min(100vw, calc(100vh * 16 / 9));
+    --nav-height: 40px;
+    width: min(100vw, calc((100vh - var(--nav-height)) * 16 / 9));
     aspect-ratio: 16 / 9;
     background: url('Map.jpg') no-repeat center center;
     background-size: cover;
@@ -251,6 +256,11 @@ body {
     aspect-ratio: 1;
     object-fit: cover;
     border-radius: 4px;
+}
+
+.nft-card[data-id="amos"] img {
+    object-fit: contain;
+    transform: scale(1.15);
 }
 
 .nft-card .nft-name {
@@ -469,57 +479,6 @@ body {
     margin-bottom: 20px;
 }
 
-/* Primordial Essence Found */
-.essence-found {
-    background: linear-gradient(135deg, #9b59b6, #8e44ad);
-    border: 3px solid #ffd700;
-    border-radius: 12px;
-    padding: 15px 25px;
-    margin-bottom: 20px;
-    animation: essence-glow 1s ease-in-out infinite alternate;
-}
-
-.essence-icon {
-    font-size: 50px;
-    margin-bottom: 10px;
-}
-
-.essence-text {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #ffd700;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.essence-subtext {
-    font-size: 0.9rem;
-    color: #eee;
-    margin-top: 5px;
-}
-
-.btn-share-x {
-    margin-top: 15px;
-    background: #000;
-    color: #fff;
-    border: 2px solid #fff;
-    padding: 10px 20px;
-    font-size: 0.9rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.btn-share-x:hover {
-    background: #1a1a1a;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
-}
-
-@keyframes essence-glow {
-    from { box-shadow: 0 0 20px rgba(155, 89, 182, 0.5); }
-    to { box-shadow: 0 0 40px rgba(255, 215, 0, 0.8); }
-}
-
 .caught-fish .fish-image {
     margin-bottom: 15px;
     min-height: 100px;
@@ -538,12 +497,6 @@ body {
     font-size: 80px;
 }
 
-.essence-img {
-    max-width: 80px;
-    max-height: 80px;
-    object-fit: contain;
-    margin-bottom: 10px;
-}
 
 .caught-fish .fish-name {
     font-size: 1.4rem;
@@ -1040,17 +993,6 @@ body {
         font-size: 0.75rem;
     }
 
-    .essence-found {
-        padding: 10px 15px;
-    }
-
-    .essence-text {
-        font-size: 1.1rem;
-    }
-
-    .essence-subtext {
-        font-size: 0.8rem;
-    }
 }
 
 /* Landscape mobile - limited height (phones in landscape) */
@@ -1240,24 +1182,6 @@ body {
     .btn-secondary {
         padding: 8px 16px;
         font-size: 0.85rem;
-    }
-
-    .essence-found {
-        padding: 8px 12px;
-        margin-bottom: 10px;
-    }
-
-    .essence-img {
-        max-width: 50px;
-        max-height: 50px;
-    }
-
-    .essence-text {
-        font-size: 0.9rem;
-    }
-
-    .essence-subtext {
-        font-size: 0.7rem;
     }
 
     .escape-emoji {

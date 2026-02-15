@@ -1,6 +1,12 @@
 // Leaderboard page logic
 let currentType = 'score';
 
+function escapeHTML(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
 // Background music
 const BACKGROUND_MUSIC = new Audio('sounds/background.mp3');
 BACKGROUND_MUSIC.loop = true;
@@ -43,11 +49,6 @@ async function fetchLeaderboard(type) {
 
 async function fetchStats() {
     try {
-        // Get essence remaining
-        const essenceRes = await fetch('/api/fishing/primordial-essence');
-        const essenceData = await essenceRes.json();
-        document.getElementById('essenceRemaining').textContent = essenceData.remaining || 0;
-
         // Get catches leaderboard to calculate totals
         const catchesRes = await fetch('/api/fishing/leaderboard?type=catches&limit=100');
         const catchesData = await catchesRes.json();
@@ -78,10 +79,11 @@ function displayLeaderboard(leaderboard) {
         const score = (currentType === 'weight' || currentType === 'score') ? parseFloat(entry.score).toFixed(1) : entry.score;
         let displayName;
         if (entry.discordName) {
-            const avatarImg = entry.discordAvatar
-                ? `<img src="${entry.discordAvatar}" alt="" class="discord-avatar" onerror="this.style.display='none'">`
+            const isValidAvatar = entry.discordAvatar && entry.discordAvatar.startsWith('https://cdn.discordapp.com/');
+            const avatarImg = isValidAvatar
+                ? `<img src="${escapeHTML(entry.discordAvatar)}" alt="" class="discord-avatar" onerror="this.style.display='none'">`
                 : '';
-            displayName = `<span class="discord-name">${avatarImg}${entry.discordName}</span>`;
+            displayName = `<span class="discord-name">${avatarImg}${escapeHTML(entry.discordName)}</span>`;
         } else {
             displayName = `<span class="wallet-name">${entry.wallet}</span>`;
         }

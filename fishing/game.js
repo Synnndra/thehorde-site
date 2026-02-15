@@ -1,4 +1,4 @@
-// Primordial Pit Fishing Game
+// Bobbers - Fishing Game
 
 // ============================================
 // LOCAL DEV MODE (skip API calls on localhost)
@@ -8,15 +8,13 @@ const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127
 // ============================================
 // CONFIGURATION
 // ============================================
-// Primordial Essence - rare limited drop (100 total for the week)
-// Chance is now dynamic - fetched from API based on remaining and days left
-
 // Fisherman options
 const FISHERMEN = [
-    { id: 'wolf', name: 'Wolf', image: 'fisherman1.png', pos: { left: '18.6%', bottom: '22.6%', width: '14.5%' }, castFrom: { left: '29.3%', top: '57.3%' }, lure: { left: '62.0%', top: '61.6%' } },
-    { id: 'golden-pirate', name: 'Golden Pirate', image: 'fisherman2.png', pos: { left: '12.6%', bottom: '34.5%', width: '15.3%' }, castFrom: { left: '24.1%', top: '40.5%' }, lure: { left: '66.5%', top: '64.4%' } },
-    { id: 'majestic-beard', name: 'Majestic Beard', image: 'fisherman3.png', pos: { left: '20.2%', bottom: '45.1%', width: '14.5%' }, castFrom: { left: '31.1%', top: '34.9%' }, lure: { left: '60.0%', top: '59.5%' } },
-    { id: 'orc-fisherman', name: 'Orc Fisherman', image: 'fisherman4.png', pos: { left: '12.0%', bottom: '34.4%', width: '16.1%' }, castFrom: { left: '24.1%', top: '44.7%' }, lure: { left: '64.7%', top: '62.1%' } }
+    { id: 'amos', name: 'Amos', image: 'fisherman5.png', pos: { left: '8.1%', bottom: '30.8%', width: '20.0%' }, castFrom: { left: '25.7%', top: '39.1%' }, lure: { left: '60.7%', top: '64.9%' } },
+    { id: 'grimfang', name: 'Grimfang', image: 'fisherman1.png', pos: { left: '18.6%', bottom: '22.6%', width: '14.5%' }, castFrom: { left: '29.3%', top: '57.3%' }, lure: { left: '62.0%', top: '61.6%' } },
+    { id: 'captain-goldtusk', name: 'Captain Goldtusk', image: 'fisherman2.png', pos: { left: '12.6%', bottom: '34.5%', width: '15.3%' }, castFrom: { left: '24.1%', top: '40.5%' }, lure: { left: '66.5%', top: '64.4%' } },
+    { id: 'gristlebeard', name: 'Gristlebeard', image: 'fisherman3.png', pos: { left: '20.2%', bottom: '45.1%', width: '14.5%' }, castFrom: { left: '31.1%', top: '34.9%' }, lure: { left: '60.0%', top: '59.5%' } },
+    { id: 'gill', name: 'Gill', image: 'fisherman4.png', pos: { left: '12.0%', bottom: '34.4%', width: '16.1%' }, castFrom: { left: '24.1%', top: '44.7%' }, lure: { left: '64.7%', top: '62.1%' } }
 ];
 
 // Fish Species (MidEvil themed)
@@ -32,9 +30,6 @@ const FISH_SPECIES = [
     { name: 'Primordial Leviathan', image: 'fish-primordial-leviathan.png', fallback: '🐲', baseRarity: 'legendary' },
     { name: 'Golden Kraken', image: 'fish-golden-kraken.png', fallback: '🦈', baseRarity: 'legendary' }
 ];
-
-const ESSENCE_IMAGE = 'primordial-essence.png';
-const ESSENCE_FALLBACK = '✨';
 
 const FISH_SIZES = ['Tiny', 'Small', 'Medium', 'Large', 'Massive'];
 const FISH_COLORS = ['Shadowy', 'Bloody', 'Mossy', 'Ashen', 'Golden', 'Cursed', 'Ancient'];
@@ -97,7 +92,6 @@ const SOUND_URLS = {
     reel: 'sounds/reel.mp3',
     catch: 'sounds/catch.mp3',
     escape: 'sounds/escape.mp3',
-    essence: 'sounds/essence.mp3'
 };
 
 // Sound cache - populated on first use
@@ -364,6 +358,7 @@ async function showSelectScreen() {
     FISHERMEN.forEach((fisherman, index) => {
         const card = document.createElement('div');
         card.className = 'nft-card' + (noCastsLeft ? ' on-cooldown' : '');
+        card.dataset.id = fisherman.id;
         card.innerHTML = `
             <img src="${fisherman.image}" alt="${fisherman.name}" width="120" height="120" loading="eager">
             <div class="nft-name">${fisherman.name}</div>
@@ -645,33 +640,19 @@ async function catchFish() {
     playSound('catch');
 
     let fish;
-    let foundEssence = false;
 
     if (!IS_LOCAL) {
         try {
-            const [leaderboardResponse, essenceResponse] = await Promise.all([
-                fetch('/api/fishing/leaderboard', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ wallet: userWallet, gameToken })
-                }),
-                fetch('/api/fishing/primordial-essence', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ wallet: userWallet })
-                })
-            ]);
+            const leaderboardResponse = await fetch('/api/fishing/leaderboard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ wallet: userWallet, gameToken })
+            });
 
             const leaderboardData = await leaderboardResponse.json();
             if (leaderboardData.fish) {
                 fish = leaderboardData.fish;
                 fish.timestamp = new Date().toLocaleTimeString();
-            }
-
-            const essenceData = await essenceResponse.json();
-            if (essenceData.found) {
-                foundEssence = true;
-                playSound('essence');
             }
         } catch (error) {
             console.error('API error:', error);
@@ -687,7 +668,7 @@ async function catchFish() {
     }
 
     catches.unshift(fish);
-    displayCatch(fish, foundEssence);
+    displayCatch(fish);
     updateCatchLog();
 
     gameState = 'idle';
@@ -755,33 +736,8 @@ function getRandomRarity() {
 // ============================================
 // UI UPDATES
 // ============================================
-function shareEssenceOnX() {
-    const tweetText = `I just found a Primordial Essence in the Primordial Pit! Only 100 exist this week. Can you find one?
-
-Play now: ${window.location.origin}/fishing
-
-@MidEvilsNFT #MidEvils #PrimordialPit`;
-
-    const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
-    window.open(tweetUrl, '_blank', 'width=550,height=420');
-}
-
-function displayCatch(fish, foundEssence = false) {
-    let essenceHTML = '';
-    if (foundEssence) {
-        essenceHTML = `
-            <div class="essence-found">
-                <img class="essence-img" src="${ESSENCE_IMAGE}" alt="Primordial Essence" width="80" height="80" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                <div class="essence-fallback" style="display:none; font-size:60px;">${ESSENCE_FALLBACK}</div>
-                <div class="essence-text">PRIMORDIAL ESSENCE FOUND!</div>
-                <div class="essence-subtext">One of only 100 this week!</div>
-                <button class="btn btn-share-x" onclick="shareEssenceOnX()">Share on X</button>
-            </div>
-        `;
-    }
-
+function displayCatch(fish) {
     elements.caughtFish.innerHTML = `
-        ${essenceHTML}
         <div class="fish-image">
             <img src="${fish.image}" alt="${fish.species}" width="150" height="150" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
             <span class="fish-fallback" style="display:none; font-size:80px;">${fish.fallback}</span>
@@ -867,12 +823,22 @@ async function checkDiscordStatus() {
 
         if (data.linked) {
             const avatarUrl = data.avatar && data.discordId
-                ? `https://cdn.discordapp.com/avatars/${data.discordId}/${data.avatar}.png?size=64`
+                ? `https://cdn.discordapp.com/avatars/${encodeURIComponent(data.discordId)}/${encodeURIComponent(data.avatar)}.png?size=64`
                 : null;
-            const avatarImg = avatarUrl
-                ? `<img src="${avatarUrl}" alt="" class="discord-avatar-small" onerror="this.style.display='none'">`
-                : '';
-            elements.discordStatus.innerHTML = `${avatarImg}<span class="discord-username">${data.globalName || data.username}</span>`;
+            const isValidAvatar = avatarUrl && avatarUrl.startsWith('https://cdn.discordapp.com/');
+            elements.discordStatus.innerHTML = '';
+            if (isValidAvatar) {
+                const img = document.createElement('img');
+                img.src = avatarUrl;
+                img.alt = '';
+                img.className = 'discord-avatar-small';
+                img.onerror = function() { this.style.display = 'none'; };
+                elements.discordStatus.appendChild(img);
+            }
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'discord-username';
+            nameSpan.textContent = data.globalName || data.username;
+            elements.discordStatus.appendChild(nameSpan);
             elements.linkDiscordBtn.style.display = 'none';
         } else {
             elements.discordStatus.textContent = 'Discord not linked';

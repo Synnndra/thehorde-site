@@ -95,7 +95,7 @@ async function connectWithProvider(provider) {
         // Require signature to prove wallet ownership
         if (connectError) connectError.textContent = 'Please sign the message to verify ownership...';
         var timestamp = Date.now();
-        var message = 'Sign to play Primordial Pit Fishing\nWallet: ' + wallet + '\nTimestamp: ' + timestamp;
+        var message = 'Sign to play Bobbers\nWallet: ' + wallet + '\nTimestamp: ' + timestamp;
         var encodedMessage = new TextEncoder().encode(message);
         var signedMessage = await provider.signMessage(encodedMessage);
 

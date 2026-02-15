@@ -4,7 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/fishing/">
-    <title>Primordial Pit Fishing - MidEvil</title>
+    <title>Bobbers - MidEvil</title>
+    <meta name="description" content="Bobbers — NFT fishing minigame for MidEvils. Cast your line and catch legendary fish!">
+    <meta property="og:title" content="Bobbers | The Horde">
+    <meta property="og:description" content="Bobbers — NFT fishing minigame for MidEvils. Cast your line and catch legendary fish!">
+    <meta property="og:image" content="https://midhorde.com/orclogo.jpg">
+    <meta property="og:url" content="https://midhorde.com/fishing">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Bobbers | The Horde">
+    <meta name="twitter:description" content="Bobbers — NFT fishing minigame for MidEvils. Cast your line and catch legendary fish!">
+    <meta name="twitter:image" content="https://midhorde.com/orclogo.jpg">
+    <link rel="icon" href="/orclogo.jpg" type="image/jpeg">
     <!-- DNS prefetch for API -->
     <link rel="dns-prefetch" href="https://cdn.discordapp.com">
     <!-- Preconnect to font servers -->
@@ -18,12 +29,44 @@
     <!-- Fonts and styles -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=MedievalSharp&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=MedievalSharp&display=swap" rel="stylesheet"></noscript>
+    <link rel="stylesheet" href="/shared/nav.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="game-container">
+    <a href="#main-content" class="skip-link">Skip to content</a>
+    <nav class="site-nav">
+        <a href="/">Home</a>
+        <div class="nav-group">
+            <span class="nav-group-label">Explore</span>
+            <div class="nav-dropdown">
+                <a href="/orc-viewer">Viewer</a>
+                <a href="/holders">Leaderboard</a>
+                <a href="/my-horde">My Horde</a>
+                <a href="/create-orc">Create an Orc</a>
+            </div>
+        </div>
+        <div class="nav-group">
+            <span class="nav-group-label">Utility</span>
+            <div class="nav-dropdown">
+                <a href="/swap">MidSwap</a>
+                <a href="/dao">DAO</a>
+                <a href="/collage-maker">Collage Maker</a>
+            </div>
+        </div>
+        <div class="nav-group">
+            <span class="nav-group-label">Arcade</span>
+            <div class="nav-dropdown">
+                <a href="/minigame">Horde Tower Defense</a>
+                <a href="/orc-run">Orc Run</a>
+                <a href="/fishing">Bobbers</a>
+            </div>
+        </div>
+        <button id="nav-link-discord" class="nav-link-discord" title="Link Discord">Link Discord</button>
+        <button id="nav-link-x" class="nav-link-x" title="Link X">Link X</button>
+    </nav>
+    <div class="game-container" id="main-content">
         <!-- Title -->
-        <h1 class="game-title">Primordial Pit Fishing</h1>
+        <h1 class="game-title">Bobbers</h1>
         <!-- Mute Button -->
         <button id="muteBtn" class="mute-btn">🔊</button>
 
@@ -41,7 +84,7 @@
         <div id="selectScreen" class="screen" style="display: none;">
             <div class="select-box">
                 <h2>Choose Your Fisherman</h2>
-                <p>Select a fisherman to fish at the Primordial Pit</p>
+                <p>Select a fisherman to fish at the Primordial Pit!</p>
                 <div id="nftGrid" class="nft-grid"></div>
                 <div id="selectError" class="error-msg"></div>
             </div>
@@ -109,7 +152,9 @@
         <p>Please visit on a desktop or laptop to play</p>
     </div>
 
+    <script src="/shared/nav.js"></script>
     <script src="wallet.js"></script>
     <script src="game.js" defer></script>
+    <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

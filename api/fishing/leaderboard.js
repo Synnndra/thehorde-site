@@ -7,7 +7,6 @@ const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 // Redis keys
 const CATCHES_KEY = 'leaderboard:catches';        // Sorted set: wallet -> total catches
 const LEGENDARY_KEY = 'leaderboard:legendary';    // Sorted set: wallet -> legendary count
-const ESSENCE_KEY = 'leaderboard:essence';        // Sorted set: wallet -> essence count
 const WEIGHT_KEY = 'leaderboard:weight';          // Sorted set: wallet -> total weight
 const SCORE_KEY = 'leaderboard:score';            // Sorted set: wallet -> cumulative score
 const WALLETS_KEY = 'leaderboard:wallets';        // Hash: wallet -> display name (truncated)
@@ -114,9 +113,6 @@ export default async function handler(req, res) {
                     break;
                 case 'legendary':
                     key = LEGENDARY_KEY;
-                    break;
-                case 'essence':
-                    key = ESSENCE_KEY;
                     break;
                 case 'weight':
                     key = WEIGHT_KEY;
