@@ -1,4 +1,10 @@
 (function() {
+    // Silence console.log/warn in production (keep console.error for real issues)
+    if (location.hostname !== 'localhost' && !location.hostname.includes('127.0.0.1')) {
+        console.log = function() {};
+        console.warn = function() {};
+    }
+
     // Check URL params for Discord/X callback data
     var params = new URLSearchParams(window.location.search);
 
