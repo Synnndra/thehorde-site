@@ -4,7 +4,7 @@ const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 const COOLDOWN_PREFIX = 'fishing_cooldown:';
 const COOLDOWN_SECONDS = 86400; // 24 hours
-const MAX_CASTS_PER_DAY = 5;
+const MAX_CASTS_PER_DAY = 999999; // TESTING: unlimited casts (was 5)
 
 // Admin wallets that bypass cooldown (comma-separated in env var)
 const UNLIMITED_WALLETS = process.env.ADMIN_WALLETS
