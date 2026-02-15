@@ -813,42 +813,18 @@ function capitalize(str) {
 // DISCORD LINKING
 // ============================================
 async function checkDiscordStatus() {
-    if (!userWallet || !elements.discordStatus) return;
-    if (IS_LOCAL) {
-        elements.discordStatus.textContent = 'Local mode';
-        return;
-    }
+    if (!userWallet || IS_LOCAL) return;
 
     try {
         const response = await fetch(`/api/fishing/discord-status?wallet=${encodeURIComponent(userWallet)}`);
         const data = await response.json();
 
-        if (data.linked) {
-            const avatarUrl = data.avatar && data.discordId
-                ? `https://cdn.discordapp.com/avatars/${encodeURIComponent(data.discordId)}/${encodeURIComponent(data.avatar)}.png?size=64`
-                : null;
-            const isValidAvatar = avatarUrl && avatarUrl.startsWith('https://cdn.discordapp.com/');
-            elements.discordStatus.innerHTML = '';
-            if (isValidAvatar) {
-                const img = document.createElement('img');
-                img.src = avatarUrl;
-                img.alt = '';
-                img.className = 'discord-avatar-small';
-                img.onerror = function() { this.style.display = 'none'; };
-                elements.discordStatus.appendChild(img);
-            }
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'discord-username';
-            nameSpan.textContent = data.globalName || data.username;
-            elements.discordStatus.appendChild(nameSpan);
-            elements.linkDiscordBtn.style.display = 'none';
-        } else {
-            // Fall back to nav's localStorage Discord data and sync to Redis
+        if (!data.linked) {
+            // Sync nav's localStorage Discord data to Redis for leaderboard
             syncNavDiscordToWallet();
         }
     } catch (error) {
         console.error('Failed to check Discord status:', error);
-        showLocalDiscordOrPrompt();
     }
 }
 
@@ -874,39 +850,6 @@ async function syncNavDiscordToWallet() {
             // Sync is best-effort
         }
     }
-    showLocalDiscordOrPrompt();
-}
-
-function showLocalDiscordOrPrompt() {
-    const localUsername = localStorage.getItem('discord_username');
-    const localId = localStorage.getItem('discord_id');
-    const localAvatar = localStorage.getItem('discord_avatar');
-
-    if (localId && localUsername) {
-        elements.discordStatus.innerHTML = '';
-        if (localAvatar) {
-            const avatarUrl = `https://cdn.discordapp.com/avatars/${encodeURIComponent(localId)}/${encodeURIComponent(localAvatar)}.png?size=64`;
-            const img = document.createElement('img');
-            img.src = avatarUrl;
-            img.alt = '';
-            img.className = 'discord-avatar-small';
-            img.onerror = function() { this.style.display = 'none'; };
-            elements.discordStatus.appendChild(img);
-        }
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'discord-username';
-        nameSpan.textContent = localUsername;
-        elements.discordStatus.appendChild(nameSpan);
-        elements.linkDiscordBtn.style.display = 'none';
-    } else {
-        elements.discordStatus.textContent = 'Discord not linked';
-        elements.linkDiscordBtn.style.display = 'inline-block';
-    }
-}
-
-function linkDiscord() {
-    if (!userWallet) return;
-    window.location.href = `/api/fishing/discord?wallet=${encodeURIComponent(userWallet)}`;
 }
 
 // Handle Discord OAuth callback messages
