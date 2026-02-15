@@ -63,12 +63,6 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'Discord ID and username required' });
             }
 
-            // Only sync if wallet doesn't already have a link
-            const existing = await redisGet(`${DISCORD_LINK_PREFIX}${wallet}`);
-            if (existing) {
-                return res.status(200).json({ synced: false, message: 'Already linked' });
-            }
-
             const linkData = {
                 discordId: String(discordId),
                 username: String(username),
