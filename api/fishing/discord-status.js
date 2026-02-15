@@ -13,21 +13,24 @@ async function redisGet(key) {
     return data.result;
 }
 
+async function redisSetEx(key, seconds, value) {
+    const response = await fetch(`${KV_URL}/setex/${key}/${seconds}/${encodeURIComponent(JSON.stringify(value))}`, {
+        headers: { Authorization: `Bearer ${KV_TOKEN}` }
+    });
+    return response.json();
+}
+
 export default async function handler(req, res) {
     const ALLOWED_ORIGINS = ['https://midhorde.com', 'https://www.midhorde.com'];
     const origin = req.headers.origin;
     if (ALLOWED_ORIGINS.includes(origin)) {
         res.setHeader('Access-Control-Allow-Origin', origin);
     }
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
-    }
-
-    if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
     }
 
     if (!KV_URL || !KV_TOKEN) {
@@ -53,6 +56,38 @@ export default async function handler(req, res) {
     }
 
     try {
+        // POST - Sync nav Discord data to wallet-specific Redis key
+        if (req.method === 'POST') {
+            const { discordId, username, avatar } = req.body;
+            if (!discordId || !username) {
+                return res.status(400).json({ error: 'Discord ID and username required' });
+            }
+
+            // Only sync if wallet doesn't already have a link
+            const existing = await redisGet(`${DISCORD_LINK_PREFIX}${wallet}`);
+            if (existing) {
+                return res.status(200).json({ synced: false, message: 'Already linked' });
+            }
+
+            const linkData = {
+                discordId: String(discordId),
+                username: String(username),
+                globalName: String(username),
+                avatar: avatar ? String(avatar) : null,
+                linkedAt: Date.now()
+            };
+
+            // 90-day TTL matching discord-callback.js
+            await redisSetEx(`${DISCORD_LINK_PREFIX}${wallet}`, 7776000, linkData);
+
+            return res.status(200).json({ synced: true });
+        }
+
+        // GET - Check Discord link status
+        if (req.method !== 'GET') {
+            return res.status(405).json({ error: 'Method not allowed' });
+        }
+
         const linkData = await redisGet(`${DISCORD_LINK_PREFIX}${wallet}`);
 
         if (!linkData) {

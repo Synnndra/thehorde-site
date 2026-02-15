@@ -843,13 +843,38 @@ async function checkDiscordStatus() {
             elements.discordStatus.appendChild(nameSpan);
             elements.linkDiscordBtn.style.display = 'none';
         } else {
-            // Fall back to nav's localStorage Discord data
-            showLocalDiscordOrPrompt();
+            // Fall back to nav's localStorage Discord data and sync to Redis
+            syncNavDiscordToWallet();
         }
     } catch (error) {
         console.error('Failed to check Discord status:', error);
         showLocalDiscordOrPrompt();
     }
+}
+
+// Sync nav bar's localStorage Discord data to the wallet-specific Redis key
+async function syncNavDiscordToWallet() {
+    const localId = localStorage.getItem('discord_id');
+    const localUsername = localStorage.getItem('discord_username');
+    const localAvatar = localStorage.getItem('discord_avatar');
+
+    if (localId && localUsername && userWallet) {
+        try {
+            await fetch('/api/fishing/discord-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wallet: userWallet,
+                    discordId: localId,
+                    username: localUsername,
+                    avatar: localAvatar || null
+                })
+            });
+        } catch (e) {
+            // Sync is best-effort
+        }
+    }
+    showLocalDiscordOrPrompt();
 }
 
 function showLocalDiscordOrPrompt() {
