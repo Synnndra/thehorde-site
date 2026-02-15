@@ -814,18 +814,8 @@ function capitalize(str) {
 // ============================================
 async function checkDiscordStatus() {
     if (!userWallet || IS_LOCAL) return;
-
-    try {
-        const response = await fetch(`/api/fishing/discord-status?wallet=${encodeURIComponent(userWallet)}`);
-        const data = await response.json();
-
-        if (!data.linked) {
-            // Sync nav's localStorage Discord data to Redis for leaderboard
-            syncNavDiscordToWallet();
-        }
-    } catch (error) {
-        console.error('Failed to check Discord status:', error);
-    }
+    // Always sync nav Discord data to Redis (overwrites stale data)
+    syncNavDiscordToWallet();
 }
 
 // Sync nav bar's localStorage Discord data to the wallet-specific Redis key
