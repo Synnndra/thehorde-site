@@ -198,9 +198,9 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'Invalid game token' });
             }
 
-            // Check minimum game duration (15 seconds for fishing)
+            // Check minimum game duration (4 seconds for fishing)
             const elapsed = Date.now() - session.startedAt;
-            if (elapsed < 15000) {
+            if (elapsed < 4000) {
                 return res.status(400).json({ error: 'Game session too short' });
             }
 

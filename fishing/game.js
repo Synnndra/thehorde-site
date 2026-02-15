@@ -653,6 +653,8 @@ async function catchFish() {
             if (leaderboardData.fish) {
                 fish = leaderboardData.fish;
                 fish.timestamp = new Date().toLocaleTimeString();
+            } else if (leaderboardData.error) {
+                console.error('Leaderboard API error:', leaderboardData.error);
             }
         } catch (error) {
             console.error('API error:', error);
