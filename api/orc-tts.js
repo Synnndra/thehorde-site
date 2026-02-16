@@ -3,7 +3,9 @@ import {
     isRateLimitedKV,
     getClientIp,
     validateSolanaAddress,
-    verifySignature
+    verifySignature,
+    kvGet,
+    kvSet
 } from '../lib/swap-utils.js';
 import { getOrcHoldings } from '../lib/dao-utils.js';
 
@@ -65,9 +67,15 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Invalid signature' });
     }
 
-    // Verify orc holdings
-    const { orcCount } = await getOrcHoldings(wallet, heliusApiKey);
-    if (orcCount < 1) {
+    // Verify orc holdings (use cached if fresh — orc-advisor caches on each message)
+    const holdingsCacheKey = `holdings:cache:${wallet}`;
+    let holdingsData = await kvGet(holdingsCacheKey, kvUrl, kvToken).catch(() => null);
+    if (!holdingsData || Date.now() - (holdingsData.cachedAt || 0) > 5 * 60 * 1000) {
+        holdingsData = await getOrcHoldings(wallet, heliusApiKey);
+        holdingsData.cachedAt = Date.now();
+        await kvSet(holdingsCacheKey, holdingsData, kvUrl, kvToken).catch(() => {});
+    }
+    if (holdingsData.orcCount < 1) {
         return res.status(403).json({ error: 'Orc holder only' });
     }
 

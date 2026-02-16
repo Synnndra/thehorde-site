@@ -8,7 +8,7 @@ import {
     isSignatureUsed,
     markSignatureUsed
 } from '../lib/swap-utils.js';
-import { getOrcHoldings, kvGet } from '../lib/dao-utils.js';
+import { getOrcHoldings, kvGet, kvSet } from '../lib/dao-utils.js';
 import { kvHgetall } from '../lib/swap-utils.js';
 
 const ORC_SYSTEM_PROMPT = `You are Drak, a battle-scarred orc war chief and advisor to The Horde. You speak in a gruff, direct style with occasional orc-ish expressions. You're wise but blunt. You use medieval/fantasy language naturally. You are proud of your Horde and fiercely loyal.
@@ -179,9 +179,15 @@ export default async function handler(req, res) {
     // signs once and reuses the signature for multiple messages within the 5-minute window.
     // The rate limiter prevents abuse instead.
 
-    // Verify orc holdings server-side
-    const { orcCount } = await getOrcHoldings(wallet, heliusApiKey);
-    if (orcCount < 1) {
+    // Verify orc holdings server-side (cached 5 min to avoid redundant Helius calls)
+    const holdingsCacheKey = `holdings:cache:${wallet}`;
+    let holdingsData = await kvGet(holdingsCacheKey, kvUrl, kvToken).catch(() => null);
+    if (!holdingsData || Date.now() - (holdingsData.cachedAt || 0) > 5 * 60 * 1000) {
+        holdingsData = await getOrcHoldings(wallet, heliusApiKey);
+        holdingsData.cachedAt = Date.now();
+        await kvSet(holdingsCacheKey, holdingsData, kvUrl, kvToken).catch(() => {});
+    }
+    if (holdingsData.orcCount < 1) {
         return res.status(403).json({ error: 'You need at least 1 Orc to consult the advisor' });
     }
 
@@ -203,8 +209,10 @@ export default async function handler(req, res) {
             if (proposalIndex && Array.isArray(proposalIndex)) {
                 const activeProposals = [];
                 const recent = proposalIndex.slice(-10);
-                for (const id of recent) {
-                    const prop = await kvGet(`dao:proposal:${id}`, kvUrl, kvToken);
+                const proposals = await Promise.all(
+                    recent.map(id => kvGet(`dao:proposal:${id}`, kvUrl, kvToken).catch(() => null))
+                );
+                for (const prop of proposals) {
                     if (prop && prop.status === 'active') {
                         activeProposals.push(`"${prop.title}" (${prop.forVotes} for, ${prop.againstVotes} against, ends ${new Date(prop.endsAt).toLocaleDateString()})`);
                     }
@@ -289,8 +297,6 @@ export default async function handler(req, res) {
         console.error('Error fetching admin knowledge:', err);
     }
 
-    const systemPrompt = ORC_SYSTEM_PROMPT + liveContext;
-
     // Build conversation for Claude
     var messages = [];
 
@@ -314,16 +320,22 @@ export default async function handler(req, res) {
     try {
         const client = new Anthropic({ apiKey: anthropicApiKey });
 
+        // Split system prompt: static lore (cached) + live context (not cached)
+        const systemBlocks = [
+            {
+                type: 'text',
+                text: ORC_SYSTEM_PROMPT,
+                cache_control: { type: 'ephemeral' }
+            }
+        ];
+        if (liveContext) {
+            systemBlocks.push({ type: 'text', text: liveContext });
+        }
+
         const response = await client.messages.create({
             model: 'claude-sonnet-4-5-20250929',
             max_tokens: 350,
-            system: [
-                {
-                    type: 'text',
-                    text: systemPrompt,
-                    cache_control: { type: 'ephemeral' }
-                }
-            ],
+            system: systemBlocks,
             messages: messages
         });
 

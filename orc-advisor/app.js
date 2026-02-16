@@ -110,6 +110,14 @@ async function connectWithProvider(provider) {
         onWalletConnected();
     } catch (err) {
         console.error('Wallet connection failed:', err);
+        var placeholder = document.getElementById('chatPlaceholder');
+        if (placeholder) {
+            placeholder.textContent = '';
+            var p = document.createElement('p');
+            p.textContent = 'Wallet connection failed. Please try again.';
+            placeholder.appendChild(p);
+            placeholder.style.display = '';
+        }
     }
 }
 
@@ -119,6 +127,30 @@ async function connectWallet() {
     if (wallets.length === 0) {
         if (isMobileBrowser()) {
             showMobileWalletPrompt();
+        } else {
+            var placeholder = document.getElementById('chatPlaceholder');
+            if (placeholder) {
+                placeholder.textContent = '';
+                var p = document.createElement('p');
+                p.textContent = 'No wallet detected. Install ';
+                var phantomLink = document.createElement('a');
+                phantomLink.href = 'https://phantom.app';
+                phantomLink.target = '_blank';
+                phantomLink.rel = 'noopener';
+                phantomLink.textContent = 'Phantom';
+                var orText = document.createTextNode(' or ');
+                var solflareLink = document.createElement('a');
+                solflareLink.href = 'https://solflare.com';
+                solflareLink.target = '_blank';
+                solflareLink.rel = 'noopener';
+                solflareLink.textContent = 'Solflare';
+                var endText = document.createTextNode(' to continue.');
+                p.appendChild(phantomLink);
+                p.appendChild(orText);
+                p.appendChild(solflareLink);
+                p.appendChild(endText);
+                placeholder.appendChild(p);
+            }
         }
         return;
     }
