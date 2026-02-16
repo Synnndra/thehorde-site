@@ -4,6 +4,12 @@ import { generateFish } from '../../lib/fish-generator.js';
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 
+// Tournament window (PST → UTC)
+// Start: Tue 2/17/2026 5:00 PM PST = Wed 2/18/2026 1:00 AM UTC
+// End:   Sat 2/21/2026 12:00 PM PST = Sat 2/21/2026 8:00 PM UTC
+const TOURNAMENT_START = Date.UTC(2026, 1, 18, 1, 0, 0);  // month is 0-indexed
+const TOURNAMENT_END = Date.UTC(2026, 1, 21, 20, 0, 0);
+
 // Redis keys
 const CATCHES_KEY = 'leaderboard:catches';        // Sorted set: wallet -> total catches
 const LEGENDARY_KEY = 'leaderboard:legendary';    // Sorted set: wallet -> legendary count
@@ -179,6 +185,14 @@ export default async function handler(req, res) {
 
         // POST - Record a catch
         if (req.method === 'POST') {
+            const now = Date.now();
+            if (now < TOURNAMENT_START) {
+                return res.status(400).json({ error: 'Tournament hasn\'t started yet! Starts Tuesday 5pm PST.' });
+            }
+            if (now > TOURNAMENT_END) {
+                return res.status(400).json({ error: 'Tournament is over! Leaderboard is locked. Check the final standings.' });
+            }
+
             const { wallet, gameToken } = req.body;
 
             if (!wallet) {
