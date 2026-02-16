@@ -71,6 +71,18 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'Orc holder only' });
     }
 
+    // Normalize acronyms/abbreviations for natural TTS pronunciation
+    let ttsText = text
+        .replace(/\bSOL\b/g, 'Sol')
+        .replace(/\bNFT\b/g, 'N F T')
+        .replace(/\bNFTs\b/g, 'N F Ts')
+        .replace(/\bDAO\b/g, 'dow')
+        .replace(/\bPFP\b/g, 'P F P')
+        .replace(/\bDeFi\b/g, 'dee-fi')
+        .replace(/\bGM\b/g, 'G M')
+        .replace(/\bWGMI\b/g, 'we gonna make it')
+        .replace(/\bNGMI\b/g, 'not gonna make it');
+
     // Call ElevenLabs TTS API
     try {
         const ttsResponse = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
@@ -81,7 +93,7 @@ export default async function handler(req, res) {
                 'xi-api-key': elevenLabsApiKey
             },
             body: JSON.stringify({
-                text: text,
+                text: ttsText,
                 model_id: 'eleven_multilingual_v2',
                 voice_settings: {
                     stability: 0.6,
