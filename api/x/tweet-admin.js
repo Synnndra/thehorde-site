@@ -3,7 +3,7 @@ import { timingSafeEqual } from 'crypto';
 import {
     kvHset, kvHget, kvHdel, kvHgetall, getClientIp, isRateLimitedKV
 } from '../../lib/swap-utils.js';
-import { postTweet, uploadMedia } from '../../lib/x-utils.js';
+import { postTweet, uploadMedia, generateDraftId } from '../../lib/x-utils.js';
 
 const DRAFTS_KEY = 'x:drafts';
 const POSTED_LOG_KEY = 'x:posted_log';
@@ -67,8 +67,8 @@ export default async function handler(req, res) {
                 ? text.trim()
                 : draft.text;
 
-            if (tweetText.length > 280) {
-                return res.status(400).json({ error: `Tweet too long (${tweetText.length}/280)` });
+            if (tweetText.length > 4000) {
+                return res.status(400).json({ error: `Tweet too long (${tweetText.length}/4000)` });
             }
             if (tweetText.length === 0) {
                 return res.status(400).json({ error: 'Tweet text is empty' });
@@ -163,6 +163,37 @@ export default async function handler(req, res) {
             draft.error = null;
             await kvHset(DRAFTS_KEY, draftId, draft, kvUrl, kvToken);
 
+            return res.status(200).json({ success: true, draft });
+        }
+
+        // ---- QUEUE: add pre-written draft directly (no AI rewrite) ----
+        if (mode === 'queue') {
+            if (!text || typeof text !== 'string' || !text.trim()) {
+                return res.status(400).json({ error: 'text required' });
+            }
+            const tweetText = text.trim();
+            if (tweetText.length > 4000) {
+                return res.status(400).json({ error: `Tweet too long (${tweetText.length}/4000)` });
+            }
+
+            const draftId = generateDraftId();
+            const draft = {
+                id: draftId,
+                text: tweetText,
+                suggestedTags: [],
+                imageIdea: null,
+                source: 'campaign',
+                topic: topic || null,
+                status: 'pending',
+                createdAt: Date.now(),
+                reviewedBy: null,
+                editedText: null,
+                postedAt: null,
+                tweetId: null,
+                error: null
+            };
+
+            await kvHset(DRAFTS_KEY, draftId, draft, kvUrl, kvToken);
             return res.status(200).json({ success: true, draft });
         }
 
