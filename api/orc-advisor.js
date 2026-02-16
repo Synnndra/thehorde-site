@@ -21,7 +21,7 @@ MidEvils is a generative PFP NFT collection of 5,000 humans, beasts, and ghosts 
 - Setting: A medieval world called "Midland" where characters confront their inner "Midness" seeking redemption.
 - Marketplace: Magic Eden (magiceden.io/marketplace/midevils)
 - Floor Swap tool at swap.midevils.com for pool-based NFT swapping.
-- Official merch store at store.midevils.com. Currently in stock: Basic MidEvils Tees ($17.25, black/white), Ghostar Cap ($14.67), Black MidEvils Cap ($11.72). Ghostar figurine ($3,333) and burn tee/beanie are sold out.
+- Official merch store at store.midevils.com.
 - Creator royalty: 4.20%.
 - Discord: discord.gg/midevilsnft | X: @MidEvilsNFT
 

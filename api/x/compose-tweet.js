@@ -194,27 +194,15 @@ export default async function handler(req, res) {
                     ? savedAccounts : DEFAULT_RESEARCH_ACCOUNTS;
 
                 const fromQuery = accounts.map(h => `from:${h}`).join(' OR ');
-                const [accountResults, hashtagResults] = await Promise.all([
-                    searchRecentTweets(fromQuery, 100).catch(err => {
-                        console.error('X search (accounts) error:', err.message);
-                        return { tweets: [], resultCount: 0 };
-                    }),
-                    searchRecentTweets('#NFTs', 20).catch(err => {
-                        console.error('X search (#NFTs) error:', err.message);
-                        return { tweets: [], resultCount: 0 };
-                    })
-                ]);
+                const accountResults = await searchRecentTweets(fromQuery, 100).catch(err => {
+                    console.error('X search (accounts) error:', err.message);
+                    return { tweets: [], resultCount: 0 };
+                });
 
-                if (accountResults.tweets.length > 0 || hashtagResults.tweets.length > 0) {
+                if (accountResults.tweets.length > 0) {
                     researchContext += '\nX RESEARCH (recent tweets from accounts we follow):';
                     for (const t of accountResults.tweets.slice(0, 30)) {
                         researchContext += `\n@${t.username}: ${t.text.slice(0, 200)}`;
-                    }
-                    if (hashtagResults.tweets.length > 0) {
-                        researchContext += '\n\n#NFTs TRENDING:';
-                        for (const t of hashtagResults.tweets.slice(0, 10)) {
-                            researchContext += `\n@${t.username}: ${t.text.slice(0, 200)}`;
-                        }
                     }
                 }
 
@@ -222,7 +210,6 @@ export default async function handler(req, res) {
                 await kvSet('drak:research_cache', {
                     researchText: researchContext,
                     accounts: accountResults.tweets.length,
-                    hashtags: hashtagResults.tweets.length,
                     fetchedAt: Date.now()
                 }, kvUrl, kvToken).catch(() => {});
             }
