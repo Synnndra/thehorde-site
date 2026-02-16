@@ -3,7 +3,7 @@ import { isRateLimitedKV, getClientIp } from '../../lib/swap-utils.js';
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 const COOLDOWN_PREFIX = 'fishing_cooldown:';
-const COOLDOWN_SECONDS = 86400; // 24 hours
+const RESET_HOUR_UTC = 1; // 1:00 AM UTC = 5:00 PM PST
 const MAX_CASTS_PER_DAY = 5;
 const MAX_ORC_BONUS = 5;
 const MIDEVILS_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
@@ -67,9 +67,21 @@ async function redisTtl(key) {
     return data.result;
 }
 
+// Fishing day resets at 5pm PST (1:00 AM UTC next day)
 function getTodayKey() {
-    const today = new Date();
-    return `${today.getUTCFullYear()}-${today.getUTCMonth() + 1}-${today.getUTCDate()}`;
+    const adjusted = new Date(Date.now() - (RESET_HOUR_UTC * 60 * 60 * 1000));
+    return `${adjusted.getUTCFullYear()}-${adjusted.getUTCMonth() + 1}-${adjusted.getUTCDate()}`;
+}
+
+// Seconds until next 5pm PST reset
+function getSecondsUntilReset() {
+    const now = new Date();
+    const next = new Date(now);
+    next.setUTCHours(RESET_HOUR_UTC, 0, 0, 0);
+    if (now >= next) {
+        next.setUTCDate(next.getUTCDate() + 1);
+    }
+    return Math.ceil((next - now) / 1000);
 }
 
 // Count MidEvil Orcs owned by wallet (cached 1 hour)
@@ -252,9 +264,9 @@ export default async function handler(req, res) {
 
             // Increment cast count
             const newCount = await redisIncr(cooldownKey);
-            // Set expiry on first cast
+            // Set expiry to next 5pm PST reset
             if (newCount === 1) {
-                await redisExpire(cooldownKey, COOLDOWN_SECONDS);
+                await redisExpire(cooldownKey, getSecondsUntilReset());
             }
 
             return res.status(200).json({
