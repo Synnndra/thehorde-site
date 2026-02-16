@@ -186,7 +186,7 @@ export default async function handler(req, res) {
         // POST - Record a catch
         if (req.method === 'POST') {
             const now = Date.now();
-            if (now < TOURNAMENT_START || now > TOURNAMENT_END) {
+            if (now > TOURNAMENT_END) {
                 return res.status(400).json({ error: 'The leaderboard is currently locked.' });
             }
 
