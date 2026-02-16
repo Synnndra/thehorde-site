@@ -198,7 +198,7 @@ export default async function handler(req, res) {
     const wantsDao = /\b(dao|vote|voting|proposal|governance|quorum|multisig|treasury)\b/.test(allText);
     const wantsMarket = /\b(floor|price|buy|sell|listed|market|sol|cost|expensive|cheap|worth|value|holders?|supply|staked?|enlisted)\b/.test(allText);
     const wantsDiscord = /\b(discord|community|chat|recap|summary|news|update|latest|happening|going on|what's new|whats new)\b/.test(allText);
-    const wantsKnowledge = /\b(roadmap|burn|season|primevil|merch|store|knightfall|ghostar|infinite fun|candy|jonny|bridge|eth|staking|mutation)\b/.test(allText);
+    const wantsKnowledge = /\b(roadmap|burn|season|primevil|merch|store|knightfall|ghostar|infinite fun|candy|jonny|bridge|eth|staking|mutation|event|coaster|giveaway|contest|competition|collab|partner|lore|history|story|comic|print|figurine|shirt|physical|merlin|tavern|orc war)\b/.test(allText);
     // If nothing specific matched, inject a light summary of everything
     const nothingMatched = !wantsDao && !wantsMarket && !wantsDiscord && !wantsKnowledge;
 
@@ -212,7 +212,7 @@ export default async function handler(req, res) {
             ? kvGet('holders:leaderboard', kvUrl, kvToken).catch(() => null) : null,
         discord: (wantsDiscord || nothingMatched)
             ? kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null) : null,
-        knowledge: wantsKnowledge
+        knowledge: (wantsKnowledge || nothingMatched)
             ? kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null) : null,
         adminFacts: kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null)
     };
