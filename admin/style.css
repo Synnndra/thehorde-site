@@ -437,6 +437,126 @@ tr.txlog-row td {
     color: var(--color-text-dim);
 }
 
+/* Knowledge Base */
+.knowledge-subsection {
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.knowledge-subsection:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.knowledge-subsection h3 {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    color: var(--color-text-dim);
+    margin-bottom: 0.5rem;
+}
+
+.knowledge-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 500px;
+}
+
+.knowledge-form textarea,
+.knowledge-form select {
+    background: var(--color-bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    padding: 0.6rem 0.8rem;
+    outline: none;
+}
+
+.knowledge-form textarea:focus,
+.knowledge-form select:focus {
+    border-color: var(--color-primary);
+}
+
+.knowledge-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.knowledge-fact-card {
+    background: var(--color-bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.75rem;
+}
+
+.knowledge-fact-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.knowledge-fact-category {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-family: var(--font-display);
+    text-transform: capitalize;
+    background: #2a2a2a;
+    color: var(--color-text-dim);
+}
+
+.knowledge-fact-category.cat-project { background: #2a3a5a; color: #8cc4ff; }
+.knowledge-fact-category.cat-community { background: #2a4a2a; color: #8cdd8c; }
+.knowledge-fact-category.cat-market { background: #4a3a1a; color: #f1c40f; }
+.knowledge-fact-category.cat-lore { background: #3a2a4a; color: #c48cff; }
+.knowledge-fact-category.cat-general { background: #2a2a2a; color: #aaa; }
+
+.knowledge-fact-date {
+    font-size: 0.75rem;
+    color: var(--color-text-dim);
+    margin-left: auto;
+}
+
+.knowledge-fact-text {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin-bottom: 0.4rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.knowledge-fact-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.knowledge-fact-edit-area {
+    width: 100%;
+    min-height: 60px;
+    background: var(--color-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    padding: 0.5rem 0.6rem;
+    resize: vertical;
+    outline: none;
+    margin-bottom: 0.4rem;
+}
+
+.knowledge-fact-edit-area:focus {
+    border-color: var(--color-primary);
+}
+
 /* Tweet Management */
 .tweet-subsection {
     margin-bottom: 1.25rem;

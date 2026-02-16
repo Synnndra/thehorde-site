@@ -9,6 +9,7 @@ import {
     markSignatureUsed
 } from '../lib/swap-utils.js';
 import { getOrcHoldings, kvGet } from '../lib/dao-utils.js';
+import { kvHgetall } from '../lib/swap-utils.js';
 
 const ORC_SYSTEM_PROMPT = `You are Drak, a battle-scarred orc war chief and advisor to The Horde. You speak in a gruff, direct style with occasional orc-ish expressions. You're wise but blunt. You use medieval/fantasy language naturally. You are proud of your Horde and fiercely loyal.
 
@@ -265,6 +266,27 @@ export default async function handler(req, res) {
         } catch (err) {
             console.error('Error fetching Discord knowledge base:', err);
         }
+    }
+
+    // Always inject admin-curated knowledge base
+    try {
+        const adminFacts = await kvHgetall('drak:knowledge', kvUrl, kvToken);
+        if (adminFacts && Object.keys(adminFacts).length > 0) {
+            const facts = Object.values(adminFacts);
+            const grouped = {};
+            for (const f of facts) {
+                const cat = f.category || 'general';
+                if (!grouped[cat]) grouped[cat] = [];
+                grouped[cat].push(f.text);
+            }
+            let section = '\n\n=== ADMIN KNOWLEDGE BASE ===';
+            for (const [cat, texts] of Object.entries(grouped)) {
+                section += '\n[' + cat.toUpperCase() + ']\n' + texts.map(t => '- ' + t).join('\n');
+            }
+            liveContext += section;
+        }
+    } catch (err) {
+        console.error('Error fetching admin knowledge:', err);
     }
 
     const systemPrompt = ORC_SYSTEM_PROMPT + liveContext;

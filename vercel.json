@@ -63,6 +63,7 @@
     { "source": "/api/fishing/discord-status", "destination": "/api/fishing/discord-status.js" },
     { "source": "/orc-advisor", "destination": "/orc-advisor/index.html" },
     { "source": "/api/orc-advisor", "destination": "/api/orc-advisor.js" },
+    { "source": "/api/drak-knowledge", "destination": "/api/drak-knowledge.js" },
     { "source": "/api/orc-tts", "destination": "/api/orc-tts.js" },
     { "source": "/api/discord-backfill", "destination": "/api/discord-backfill.js" }
   ],

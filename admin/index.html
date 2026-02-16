@@ -161,6 +161,37 @@
             </div>
         </section>
 
+        <!-- Knowledge Base -->
+        <section class="card" id="knowledge-section">
+            <h2>Drak Knowledge Base</h2>
+
+            <!-- Add Fact -->
+            <div class="knowledge-subsection">
+                <h3>Add Fact</h3>
+                <form id="knowledge-add-form" class="knowledge-form">
+                    <textarea id="knowledge-text-input" placeholder="Fact text (max 500 chars)" rows="3" maxlength="500" required></textarea>
+                    <select id="knowledge-category-input">
+                        <option value="general">General</option>
+                        <option value="project">Project</option>
+                        <option value="community">Community</option>
+                        <option value="market">Market</option>
+                        <option value="lore">Lore</option>
+                    </select>
+                    <button type="submit">Add Fact</button>
+                </form>
+                <p id="knowledge-add-error" class="error-text" hidden></p>
+                <p id="knowledge-add-success" class="success-text" hidden></p>
+            </div>
+
+            <!-- Existing Facts -->
+            <div class="knowledge-subsection">
+                <h3>Existing Facts</h3>
+                <button id="knowledge-refresh-btn" class="btn-small">Refresh</button>
+                <div id="knowledge-list" class="knowledge-list"></div>
+                <p id="knowledge-list-empty" class="empty-text" hidden>No facts added yet.</p>
+            </div>
+        </section>
+
         <!-- Offer Table -->
         <section class="card" id="offers-section">
             <h2>Recent Offers</h2>

@@ -73,6 +73,7 @@
                 showDashboard();
                 loadAll();
                 loadBadges();
+                loadKnowledgeFacts();
             } else {
                 loginError.textContent = res.status === 403 ? 'Invalid secret.' : 'Login failed.';
                 loginError.hidden = false;
@@ -465,6 +466,172 @@
             badgeBackfillBtn.textContent = 'Backfill Swap Counts';
         }
     });
+
+    // ---- Drak Knowledge Base ----
+
+    var API_DRAK_KNOWLEDGE = '/api/drak-knowledge';
+    var knowledgeAddForm = document.getElementById('knowledge-add-form');
+    var knowledgeRefreshBtn = document.getElementById('knowledge-refresh-btn');
+
+    async function fetchDrakKnowledge(body) {
+        var secret = getSecret();
+        var res = await fetch(API_DRAK_KNOWLEDGE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ secret: secret, ...body })
+        });
+        if (res.status === 403) {
+            sessionStorage.removeItem('admin_secret');
+            showLogin();
+            return null;
+        }
+        var data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Request failed');
+        return data;
+    }
+
+    async function loadKnowledgeFacts() {
+        try {
+            var data = await fetchDrakKnowledge({ mode: 'list' });
+            if (!data) return;
+
+            var listEl = document.getElementById('knowledge-list');
+            var emptyEl = document.getElementById('knowledge-list-empty');
+            listEl.innerHTML = '';
+
+            var facts = data.facts || [];
+            if (facts.length === 0) {
+                emptyEl.hidden = false;
+                return;
+            }
+            emptyEl.hidden = true;
+
+            facts.forEach(function (f) {
+                var card = document.createElement('div');
+                card.className = 'knowledge-fact-card';
+                card.dataset.factId = f.id;
+                card.innerHTML =
+                    '<div class="knowledge-fact-header">' +
+                        '<span class="knowledge-fact-category cat-' + escapeHtml(f.category || 'general') + '">' + escapeHtml(f.category || 'general') + '</span>' +
+                        '<span class="knowledge-fact-date">' + formatDate(f.createdAt) + '</span>' +
+                    '</div>' +
+                    '<div class="knowledge-fact-text">' + escapeHtml(f.text) + '</div>' +
+                    '<div class="knowledge-fact-actions">' +
+                        '<button class="knowledge-edit-btn btn-small" data-fact-id="' + escapeHtml(f.id) + '">Edit</button>' +
+                        '<button class="knowledge-delete-btn btn-small btn-danger" data-fact-id="' + escapeHtml(f.id) + '">Delete</button>' +
+                    '</div>';
+                listEl.appendChild(card);
+            });
+        } catch (err) {
+            console.error('Load knowledge failed:', err);
+        }
+    }
+
+    // Add fact form
+    knowledgeAddForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var errEl = document.getElementById('knowledge-add-error');
+        var successEl = document.getElementById('knowledge-add-success');
+        errEl.hidden = true;
+        successEl.hidden = true;
+
+        var text = document.getElementById('knowledge-text-input').value.trim();
+        var category = document.getElementById('knowledge-category-input').value;
+        if (!text) {
+            errEl.textContent = 'Fact text is required.';
+            errEl.hidden = false;
+            return;
+        }
+
+        try {
+            var data = await fetchDrakKnowledge({ mode: 'add', text: text, category: category });
+            if (!data) return;
+            successEl.textContent = 'Fact added.';
+            successEl.hidden = false;
+            knowledgeAddForm.reset();
+            loadKnowledgeFacts();
+        } catch (err) {
+            errEl.textContent = err.message;
+            errEl.hidden = false;
+        }
+    });
+
+    // Edit fact — inline toggle
+    document.addEventListener('click', async function (e) {
+        var btn = e.target.closest('.knowledge-edit-btn');
+        if (!btn) return;
+        var card = btn.closest('.knowledge-fact-card');
+        if (!card) return;
+        var factId = btn.dataset.factId;
+
+        // If already in edit mode, save
+        var existingArea = card.querySelector('.knowledge-fact-edit-area');
+        if (existingArea) {
+            var newText = existingArea.value.trim();
+            var newCat = card.querySelector('.knowledge-edit-category');
+            var catVal = newCat ? newCat.value : null;
+            if (!newText) { alert('Text cannot be empty.'); return; }
+
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            try {
+                var body = { mode: 'edit', factId: factId, text: newText };
+                if (catVal) body.category = catVal;
+                await fetchDrakKnowledge(body);
+                loadKnowledgeFacts();
+            } catch (err) {
+                alert('Error: ' + err.message);
+                btn.disabled = false;
+                btn.textContent = 'Save';
+            }
+            return;
+        }
+
+        // Enter edit mode
+        var textEl = card.querySelector('.knowledge-fact-text');
+        var currentText = textEl.textContent;
+        var catEl = card.querySelector('.knowledge-fact-category');
+        var currentCat = catEl ? catEl.textContent.trim() : 'general';
+
+        var textarea = document.createElement('textarea');
+        textarea.className = 'knowledge-fact-edit-area';
+        textarea.maxLength = 500;
+        textarea.value = currentText;
+        textEl.replaceWith(textarea);
+        textarea.focus();
+
+        // Add category dropdown
+        var catSelect = document.createElement('select');
+        catSelect.className = 'knowledge-edit-category';
+        catSelect.style.cssText = 'background:var(--color-bg);border:1px solid var(--border);border-radius:3px;color:var(--color-text);font-size:0.8rem;padding:0.2rem 0.4rem;margin-bottom:0.4rem;';
+        ['project', 'community', 'market', 'lore', 'general'].forEach(function (c) {
+            var opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c;
+            if (c === currentCat) opt.selected = true;
+            catSelect.appendChild(opt);
+        });
+        textarea.after(catSelect);
+
+        btn.textContent = 'Save';
+    });
+
+    // Delete fact
+    document.addEventListener('click', async function (e) {
+        var btn = e.target.closest('.knowledge-delete-btn');
+        if (!btn) return;
+        var factId = btn.dataset.factId;
+        if (!confirm('Delete this fact?')) return;
+
+        try {
+            await fetchDrakKnowledge({ mode: 'delete', factId: factId });
+            loadKnowledgeFacts();
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    });
+
+    knowledgeRefreshBtn.addEventListener('click', loadKnowledgeFacts);
 
     // ---- Tweet Management ----
 
@@ -947,6 +1114,7 @@
         showDashboard();
         loadAll();
         loadBadges();
+        loadKnowledgeFacts();
         loadTweetDrafts();
     } else {
         showLogin();
