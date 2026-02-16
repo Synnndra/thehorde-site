@@ -815,9 +815,11 @@
             if (posted.length === 0) {
                 historyEl.innerHTML = '<p class="empty-text">No posted tweets yet.</p>';
             } else {
-                posted.forEach(function (d) {
+                var HISTORY_VISIBLE = 3;
+                posted.forEach(function (d, idx) {
                     var item = document.createElement('div');
                     item.className = 'tweet-history-item';
+                    if (idx >= HISTORY_VISIBLE) item.classList.add('tweet-history-hidden');
                     var displayText = d.editedText || d.text || '';
                     var statusLabel = d.status === 'rejected'
                         ? '<span class="badge badge-failed">rejected</span> '
@@ -830,6 +832,24 @@
                         '</span>';
                     historyEl.appendChild(item);
                 });
+                if (posted.length > HISTORY_VISIBLE) {
+                    var toggleBtn = document.createElement('button');
+                    toggleBtn.className = 'btn-small tweet-history-toggle';
+                    toggleBtn.textContent = 'Show ' + (posted.length - HISTORY_VISIBLE) + ' more';
+                    toggleBtn.addEventListener('click', function () {
+                        var hidden = historyEl.querySelectorAll('.tweet-history-hidden');
+                        var isCollapsed = hidden.length > 0 && hidden[0].style.display !== 'block';
+                        hidden.forEach(function (el) { el.style.display = isCollapsed ? 'block' : ''; });
+                        if (isCollapsed) {
+                            toggleBtn.textContent = 'Show less';
+                            hidden.forEach(function (el) { el.style.display = 'block'; });
+                        } else {
+                            toggleBtn.textContent = 'Show ' + (posted.length - HISTORY_VISIBLE) + ' more';
+                            hidden.forEach(function (el) { el.style.display = ''; });
+                        }
+                    });
+                    historyEl.appendChild(toggleBtn);
+                }
             }
         } catch (err) {
             console.error('Load tweet drafts failed:', err);

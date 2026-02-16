@@ -884,6 +884,15 @@ tr.txlog-row td {
     color: var(--color-accent);
 }
 
+.tweet-history-hidden {
+    display: none;
+}
+
+.tweet-history-toggle {
+    margin-top: 0.5rem;
+    color: var(--color-accent);
+}
+
 /* Responsive */
 @media (max-width: 600px) {
     .stats-row { gap: 0.5rem; }
