@@ -464,6 +464,38 @@ tr.txlog-row td {
     max-width: 500px;
 }
 
+.knowledge-image-label {
+    cursor: pointer;
+    display: inline-block;
+    width: fit-content;
+}
+
+.knowledge-image-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.knowledge-image-preview img {
+    max-width: 120px;
+    max-height: 80px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    object-fit: cover;
+}
+
+.knowledge-fact-image {
+    margin: 0.4rem 0;
+}
+
+.knowledge-fact-image img {
+    max-width: 200px;
+    max-height: 140px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    object-fit: cover;
+}
+
 .knowledge-form textarea,
 .knowledge-form select {
     background: var(--color-bg-dark);

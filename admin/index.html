@@ -82,6 +82,14 @@
                         <option value="market">Market</option>
                         <option value="lore">Lore</option>
                     </select>
+                    <label class="knowledge-image-label">
+                        <span class="btn-small">Attach Image</span>
+                        <input type="file" id="knowledge-image-input" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
+                    </label>
+                    <div id="knowledge-image-preview" class="knowledge-image-preview" hidden>
+                        <img id="knowledge-image-thumb">
+                        <button type="button" id="knowledge-image-remove" class="btn-small btn-danger">Remove</button>
+                    </div>
                     <button type="submit">Add Fact</button>
                 </form>
                 <p id="knowledge-add-error" class="error-text" hidden></p>

@@ -511,14 +511,20 @@
                 var card = document.createElement('div');
                 card.className = 'knowledge-fact-card';
                 card.dataset.factId = f.id;
+                var imageHtml = '';
+                if (f.imageBase64) {
+                    imageHtml = '<div class="knowledge-fact-image"><img src="data:image/png;base64,' + f.imageBase64 + '" alt="Fact image"></div>';
+                }
                 card.innerHTML =
                     '<div class="knowledge-fact-header">' +
                         '<span class="knowledge-fact-category cat-' + escapeHtml(f.category || 'general') + '">' + escapeHtml(f.category || 'general') + '</span>' +
                         '<span class="knowledge-fact-date">' + formatDate(f.createdAt) + '</span>' +
                     '</div>' +
+                    imageHtml +
                     '<div class="knowledge-fact-text">' + escapeHtml(f.text) + '</div>' +
                     '<div class="knowledge-fact-actions">' +
                         '<button class="knowledge-edit-btn btn-small" data-fact-id="' + escapeHtml(f.id) + '">Edit</button>' +
+                        (f.imageBase64 ? '<button class="knowledge-remove-image-btn btn-small" data-fact-id="' + escapeHtml(f.id) + '">Remove Image</button>' : '') +
                         '<button class="knowledge-delete-btn btn-small btn-danger" data-fact-id="' + escapeHtml(f.id) + '">Delete</button>' +
                     '</div>';
                 listEl.appendChild(card);
@@ -527,6 +533,36 @@
             console.error('Load knowledge failed:', err);
         }
     }
+
+    // Image upload for add-fact form
+    var knowledgeImageInput = document.getElementById('knowledge-image-input');
+    var knowledgeImagePreview = document.getElementById('knowledge-image-preview');
+    var knowledgeImageThumb = document.getElementById('knowledge-image-thumb');
+    var knowledgeImageRemove = document.getElementById('knowledge-image-remove');
+    var pendingImageBase64 = null;
+
+    knowledgeImageInput.addEventListener('change', function () {
+        var file = knowledgeImageInput.files[0];
+        if (!file) return;
+        if (file.size > 500 * 1024) {
+            alert('Image must be under 500KB');
+            knowledgeImageInput.value = '';
+            return;
+        }
+        var reader = new FileReader();
+        reader.onload = function () {
+            knowledgeImageThumb.src = reader.result;
+            knowledgeImagePreview.hidden = false;
+            pendingImageBase64 = reader.result.split(',')[1];
+        };
+        reader.readAsDataURL(file);
+    });
+
+    knowledgeImageRemove.addEventListener('click', function () {
+        knowledgeImagePreview.hidden = true;
+        knowledgeImageInput.value = '';
+        pendingImageBase64 = null;
+    });
 
     // Add fact form
     knowledgeAddForm.addEventListener('submit', async function (e) {
@@ -545,11 +581,17 @@
         }
 
         try {
-            var data = await fetchDrakKnowledge({ mode: 'add', text: text, category: category });
+            var body = { mode: 'add', text: text, category: category };
+            if (pendingImageBase64) {
+                body.imageBase64 = pendingImageBase64;
+            }
+            var data = await fetchDrakKnowledge(body);
             if (!data) return;
             successEl.textContent = 'Fact added.';
             successEl.hidden = false;
             knowledgeAddForm.reset();
+            knowledgeImagePreview.hidden = true;
+            pendingImageBase64 = null;
             loadKnowledgeFacts();
         } catch (err) {
             errEl.textContent = err.message;
@@ -615,6 +657,21 @@
         textarea.after(catSelect);
 
         btn.textContent = 'Save';
+    });
+
+    // Remove image from fact
+    document.addEventListener('click', async function (e) {
+        var btn = e.target.closest('.knowledge-remove-image-btn');
+        if (!btn) return;
+        var factId = btn.dataset.factId;
+        if (!confirm('Remove image from this fact?')) return;
+
+        try {
+            await fetchDrakKnowledge({ mode: 'edit', factId: factId, removeImage: true });
+            loadKnowledgeFacts();
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
     });
 
     // Delete fact

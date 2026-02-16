@@ -57,12 +57,21 @@ export default async function handler(req, res) {
             const cat = CATEGORIES.includes(category) ? category : 'general';
             const id = 'fact_' + randomBytes(16).toString('hex');
 
+            const { imageBase64 } = req.body;
             const fact = {
                 id,
                 text: text.trim(),
                 category: cat,
                 createdAt: Date.now()
             };
+
+            // Optional image (max ~500KB base64 ≈ ~375KB file)
+            if (imageBase64 && typeof imageBase64 === 'string') {
+                if (imageBase64.length > 700000) {
+                    return res.status(400).json({ error: 'Image too large (max ~500KB)' });
+                }
+                fact.imageBase64 = imageBase64;
+            }
 
             await kvHset(KNOWLEDGE_KEY, id, fact, KV_REST_API_URL, KV_REST_API_TOKEN);
             return res.status(200).json({ success: true, fact });
@@ -91,6 +100,15 @@ export default async function handler(req, res) {
                 if (CATEGORIES.includes(category)) {
                     existing.category = category;
                 }
+            }
+            const { imageBase64, removeImage } = req.body;
+            if (removeImage) {
+                delete existing.imageBase64;
+            } else if (imageBase64 && typeof imageBase64 === 'string') {
+                if (imageBase64.length > 700000) {
+                    return res.status(400).json({ error: 'Image too large (max ~500KB)' });
+                }
+                existing.imageBase64 = imageBase64;
             }
             existing.updatedAt = Date.now();
 
