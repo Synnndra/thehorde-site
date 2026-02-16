@@ -41,7 +41,17 @@ CONTEXT:
 - Reference real community data or X research when provided — don't force it if nothing relevant
 - When X RESEARCH is provided, you can react to trending topics, reply to sentiment, or riff on what others are saying
 
-OUTPUT: Return ONLY the tweet text. No quotes, no labels, no explanation.`;
+OUTPUT: Return valid JSON with these fields:
+{
+  "text": "the tweet text here",
+  "suggestedTags": ["@username1", "@username2"],
+  "imageIdea": "brief description of a good image to pair with this tweet"
+}
+
+RULES FOR SUGGESTIONS:
+- suggestedTags: 0-3 X handles to @mention or tag. Only suggest accounts that are relevant to the tweet content. Pull from the X RESEARCH usernames when applicable. Include the @ prefix.
+- imageIdea: A short (10-20 word) description of an image that would boost engagement. Think: orc art, battle scenes, collection screenshots, memes, infographics. Be specific enough for an admin to find or create it.
+- Return ONLY the JSON object. No markdown, no code fences, no explanation.`;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -194,12 +204,32 @@ export default async function handler(req, res) {
         const client = new Anthropic({ apiKey: anthropicApiKey });
         const response = await client.messages.create({
             model: 'claude-sonnet-4-5-20250929',
-            max_tokens: 150,
+            max_tokens: 300,
             system: TWEET_SYSTEM_PROMPT,
             messages: [{ role: 'user', content: userMessage }]
         });
 
-        let tweetText = response.content[0]?.text?.trim() || '';
+        let rawOutput = response.content[0]?.text?.trim() || '';
+
+        // Parse JSON response — fall back to plain text if JSON fails
+        let tweetText = '';
+        let suggestedTags = [];
+        let imageIdea = null;
+
+        try {
+            // Strip markdown code fences if Claude wrapped it
+            let jsonStr = rawOutput;
+            if (jsonStr.startsWith('```')) {
+                jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+            }
+            const parsed = JSON.parse(jsonStr);
+            tweetText = (parsed.text || '').trim();
+            suggestedTags = Array.isArray(parsed.suggestedTags) ? parsed.suggestedTags.slice(0, 5) : [];
+            imageIdea = parsed.imageIdea || null;
+        } catch {
+            // Fallback: treat entire output as tweet text
+            tweetText = rawOutput;
+        }
 
         // Strip wrapping quotes if Claude added them
         if ((tweetText.startsWith('"') && tweetText.endsWith('"')) ||
@@ -219,6 +249,8 @@ export default async function handler(req, res) {
         const draft = {
             id: draftId,
             text: tweetText,
+            suggestedTags,
+            imageIdea,
             source,
             topic: topic || null,
             status: 'pending',

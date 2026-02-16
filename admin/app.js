@@ -916,6 +916,23 @@
 
         html += '<div class="tweet-editor-wrap">' + buildEditorHtml(textareaId, displayText, editable) + '</div>';
 
+        // Suggested tags
+        if (d.suggestedTags && d.suggestedTags.length > 0 && editable) {
+            html += '<div class="tweet-suggestions">';
+            html += '<span class="tweet-suggestion-label">Tag:</span>';
+            d.suggestedTags.forEach(function (tag) {
+                html += '<button type="button" class="tweet-tag-pill" data-tag="' + escapeHtml(tag) + '">' + escapeHtml(tag) + '</button>';
+            });
+            html += '</div>';
+        }
+
+        // Image idea
+        if (d.imageIdea && editable) {
+            html += '<div class="tweet-image-idea">';
+            html += '<span class="tweet-suggestion-label">Image idea:</span> ' + escapeHtml(d.imageIdea);
+            html += '</div>';
+        }
+
         if (editable) {
             html += '<div class="tweet-draft-actions">';
             html += '<button class="tweet-approve-btn" data-draft-id="' + escapeHtml(d.id) + '">Approve & Post</button>';
@@ -937,6 +954,27 @@
         if (!e.target.classList.contains('tweet-edit-area')) return;
         var card = e.target.closest('.tweet-draft-card');
         if (card) updateEditorState(card);
+    });
+
+    // Tag pill insert
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.tweet-tag-pill');
+        if (!btn) return;
+        var card = btn.closest('.tweet-draft-card');
+        if (!card) return;
+        var textarea = card.querySelector('.tweet-edit-area');
+        if (!textarea) return;
+        var tag = btn.dataset.tag;
+        // Append tag to end of tweet with a space
+        var text = textarea.value;
+        if (text.length > 0 && !text.endsWith(' ') && !text.endsWith('\n')) {
+            text += ' ';
+        }
+        textarea.value = text + tag;
+        textarea.focus();
+        updateEditorState(card);
+        // Dim the pill to show it was used
+        btn.classList.add('used');
     });
 
     // Emoji toggle

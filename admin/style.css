@@ -615,6 +615,53 @@ tr.txlog-row td {
     flex: 1;
 }
 
+/* Tweet Suggestions (tags + image idea) */
+.tweet-suggestions {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0.5rem 0 0.25rem;
+    flex-wrap: wrap;
+}
+
+.tweet-suggestion-label {
+    font-size: 0.75rem;
+    color: var(--color-text-dim);
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.tweet-tag-pill {
+    display: inline-block;
+    background: #2a3a5a;
+    color: #8cc4ff;
+    border: 1px solid #3a5a8a;
+    border-radius: 12px;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.tweet-tag-pill:hover {
+    background: #3a4a6a;
+}
+
+.tweet-tag-pill.used {
+    opacity: 0.4;
+}
+
+.tweet-image-idea {
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    margin: 0.35rem 0 0.25rem;
+    padding: 0.4rem 0.6rem;
+    background: #1a2a1a;
+    border: 1px solid #2a4a2a;
+    border-radius: 4px;
+}
+
 .tweet-draft-card {
     background: var(--color-bg-dark);
     border: 1px solid var(--border);
