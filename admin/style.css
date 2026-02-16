@@ -476,6 +476,10 @@ tr.txlog-row td {
     gap: 0.5rem;
 }
 
+.knowledge-image-preview[hidden] {
+    display: none;
+}
+
 .knowledge-image-preview img {
     max-width: 120px;
     max-height: 80px;
