@@ -6,10 +6,12 @@ import { generateDraftId } from '../../lib/x-utils.js';
 
 const DRAFTS_KEY = 'x:drafts';
 
+// All times in UTC (PST + 8 hours). Post 13 has no scheduledAt — manual only.
 const CAMPAIGN_POSTS = [
     {
         label: 'Post 1 — Teaser (Mon afternoon)',
         schedule: 'Mon Feb 16 afternoon',
+        scheduledAt: Date.UTC(2026, 1, 16, 23, 0),  // 3 PM PST
         text:
 `\u{1F41F} Something's stirring in the Primordial Pit\u2026
 
@@ -24,6 +26,7 @@ Details dropping tonight \u{1F440}`
     {
         label: 'Post 2 — Full Announcement (Mon evening) \u{1F4CC}PIN',
         schedule: 'Mon Feb 16 evening',
+        scheduledAt: Date.UTC(2026, 1, 17, 3, 0),   // 7 PM PST
         text:
 `\u{1F3A3} THE FIRST ANNUAL BOBBERS FISHING TOURNAMENT \u{1F3A3}
 
@@ -44,6 +47,7 @@ Who's ready to fish? \u{1F41F}\u2B07\uFE0F`
     {
         label: 'Post 3 — It\'s Live (Tue 5PM PST)',
         schedule: 'Tue Feb 17 5:00 PM',
+        scheduledAt: Date.UTC(2026, 1, 18, 1, 0),   // 5 PM PST
         text:
 `\u{1F6A8} LINES ARE IN THE WATER \u{1F6A8}
 
@@ -59,6 +63,7 @@ Let's see what you catch \u{1F41F}`
     {
         label: 'Post 4 — Day 1 Engagement (Tue 8-9PM)',
         schedule: 'Tue Feb 17 8-9 PM',
+        scheduledAt: Date.UTC(2026, 1, 18, 4, 30),  // 8:30 PM PST
         text:
 `How's Day 1 going, anglers? \u{1F3A3}
 
@@ -71,6 +76,7 @@ Remember: Score = Weight \u00D7 Rarity. One legendary pull could change everythi
     {
         label: 'Post 5 — Day 2 Morning (Wed 10AM)',
         schedule: 'Wed Feb 18 10 AM',
+        scheduledAt: Date.UTC(2026, 1, 18, 18, 0),  // 10 AM PST
         text:
 `\u2600\uFE0F Day 2 of the Bobbers Fishing Tournament
 
@@ -83,6 +89,7 @@ Cast now \u2192 midhorde.com/fishing`
     {
         label: 'Post 6 — Day 2 Midday Engagement (Wed)',
         schedule: 'Wed Feb 18 1-2 PM',
+        scheduledAt: Date.UTC(2026, 1, 18, 21, 30), // 1:30 PM PST
         text:
 `Quick math for the tournament:
 
@@ -97,6 +104,7 @@ midhorde.com/fishing \u{1F41F}`
     {
         label: 'Post 7 — Midweek Hype (Thu morning)',
         schedule: 'Thu Feb 19 10 AM',
+        scheduledAt: Date.UTC(2026, 1, 19, 18, 0),  // 10 AM PST
         text:
 `We're at the halfway point of the Bobbers Fishing Tournament! \u{1F3A3}
 
@@ -109,6 +117,7 @@ Jump in \u2192 midhorde.com/fishing`
     {
         label: 'Post 8 — Prize Reminder (Thu afternoon)',
         schedule: 'Thu Feb 19 5-6 PM',
+        scheduledAt: Date.UTC(2026, 1, 20, 1, 30),  // 5:30 PM PST
         text:
 `Friendly reminder of what's on the line \u{1F3C6}
 
@@ -122,6 +131,7 @@ midhorde.com/fishing`
     {
         label: 'Post 9 — 24 Hours Left (Fri morning)',
         schedule: 'Fri Feb 20 10 AM',
+        scheduledAt: Date.UTC(2026, 1, 20, 18, 0),  // 10 AM PST
         text:
 `\u23F0 24 HOURS LEFT to fish
 
@@ -135,6 +145,7 @@ midhorde.com/fishing`
     {
         label: 'Post 10 — Final Night Push (Fri evening)',
         schedule: 'Fri Feb 20 8-9 PM',
+        scheduledAt: Date.UTC(2026, 1, 21, 4, 30),  // 8:30 PM PST
         text:
 `Last full day of casting is DONE after tonight.
 
@@ -147,6 +158,7 @@ If you're in striking distance of the top 3\u2026 tomorrow is your moment.
     {
         label: 'Post 11 — Final Morning (Sat 8-9AM)',
         schedule: 'Sat Feb 21 8-9 AM',
+        scheduledAt: Date.UTC(2026, 1, 21, 16, 30), // 8:30 AM PST
         text:
 `\u{1F6A8} FINAL CASTS \u{1F6A8}
 
@@ -161,6 +173,7 @@ Who's taking home that Legendary fish? \u{1F440}`
     {
         label: 'Post 12 — Tournament Closed (Sat 12PM)',
         schedule: 'Sat Feb 21 12:00 PM',
+        scheduledAt: Date.UTC(2026, 1, 21, 20, 0),  // 12 PM PST
         text:
 `\u{1F3C1} LINES UP! The First Annual Bobbers Fishing Tournament is CLOSED!
 
@@ -228,6 +241,7 @@ export default async function handler(req, res) {
                 imageIdea: null,
                 source: 'campaign',
                 topic: `${post.label} | ${post.schedule}`,
+                scheduledAt: post.scheduledAt || null,
                 status: 'pending',
                 createdAt: Date.now(),
                 reviewedBy: null,

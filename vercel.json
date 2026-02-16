@@ -23,6 +23,10 @@
     {
       "path": "/api/fishing/reset-leaderboard",
       "schedule": "59 0 18 2 *"
+    },
+    {
+      "path": "/api/x/campaign-notify",
+      "schedule": "*/15 * * * *"
     }
   ],
   "rewrites": [
@@ -44,6 +48,8 @@
     { "source": "/api/x/callback", "destination": "/api/x/callback.js" },
     { "source": "/api/x/compose-tweet", "destination": "/api/x/compose-tweet.js" },
     { "source": "/api/x/tweet-admin", "destination": "/api/x/tweet-admin.js" },
+    { "source": "/api/x/queue-campaign", "destination": "/api/x/queue-campaign.js" },
+    { "source": "/api/x/campaign-notify", "destination": "/api/x/campaign-notify.js" },
     { "source": "/api/swap/admin-txlog", "destination": "/api/swap/admin-txlog.js" },
     { "source": "/admin", "destination": "/admin/index.html" },
     { "source": "/minigame", "destination": "/minigame/index.html" },
