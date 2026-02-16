@@ -19,6 +19,10 @@
     {
       "path": "/api/discord-kb-update",
       "schedule": "0 6 * * 0"
+    },
+    {
+      "path": "/api/fishing/reset-leaderboard",
+      "schedule": "59 0 18 2 *"
     }
   ],
   "rewrites": [
@@ -69,6 +73,7 @@
     { "source": "/api/fishing/discord", "destination": "/api/fishing/discord.js" },
     { "source": "/api/fishing/discord-callback", "destination": "/api/fishing/discord-callback.js" },
     { "source": "/api/fishing/discord-status", "destination": "/api/fishing/discord-status.js" },
+    { "source": "/api/fishing/reset-leaderboard", "destination": "/api/fishing/reset-leaderboard.js" },
     { "source": "/orc-advisor", "destination": "/orc-advisor/index.html" },
     { "source": "/api/orc-advisor", "destination": "/api/orc-advisor.js" },
     { "source": "/api/drak-knowledge", "destination": "/api/drak-knowledge.js" },
