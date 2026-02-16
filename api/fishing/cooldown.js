@@ -256,6 +256,11 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'Invalid game token' });
             }
 
+            // Verify request IP matches the IP that created the game session
+            if (session.ip && session.ip !== ip) {
+                return res.status(403).json({ error: 'Session IP mismatch' });
+            }
+
             // Consume game token immediately — prevents reuse for draining other wallets
             await redisDel(tokenKey);
 

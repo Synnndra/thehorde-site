@@ -82,6 +82,18 @@ export default async function handler(req, res) {
                 if (!walletMatch || walletMatch[1] !== wallet) {
                     return res.status(401).json({ error: 'Wallet mismatch in signed message' });
                 }
+                // Verify timestamp isn't too old (5 minutes) or in the future
+                const timestampMatch = message.match(/Timestamp: (\d+)/);
+                if (timestampMatch) {
+                    const signedAt = parseInt(timestampMatch[1]);
+                    const age = Date.now() - signedAt;
+                    if (age > 5 * 60 * 1000) {
+                        return res.status(401).json({ error: 'Signature expired' });
+                    }
+                    if (age < -30000) {
+                        return res.status(401).json({ error: 'Invalid timestamp' });
+                    }
+                }
             } catch (err) {
                 return res.status(401).json({ error: 'Signature verification failed' });
             }

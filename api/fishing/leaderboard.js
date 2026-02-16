@@ -210,6 +210,20 @@ export default async function handler(req, res) {
                     return res.status(400).json({ error: 'Invalid cast token' });
                 }
                 const castKey = `cast_ready:${castToken}`;
+                const claimKey = `cast_claimed:${castToken}`;
+
+                // Atomic claim: SET NX ensures only one request can claim this token
+                const claimRes = await fetch(`${KV_URL}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(['SET', claimKey, 'claimed', 'EX', 60, 'NX'])
+                });
+                const claimData = await claimRes.json();
+                if (!claimData.result) {
+                    return res.status(400).json({ error: 'Cast token already used' });
+                }
+
+                // Now safe to read — we hold exclusive claim
                 const castData = await redisGet(castKey);
                 if (!castData) {
                     return res.status(400).json({ error: 'Invalid or expired cast token' });
@@ -226,7 +240,7 @@ export default async function handler(req, res) {
                     return res.status(400).json({ error: 'Game session too short' });
                 }
 
-                // Consume cast token
+                // Clean up the cast token
                 await fetch(`${KV_URL}`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
