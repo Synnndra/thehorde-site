@@ -65,56 +65,6 @@
         <button id="nav-link-x" class="nav-link-x" title="Link X">Link X</button>
     </nav>
     <div class="game-container" id="main-content">
-        <!-- Tournament Banner -->
-        <div id="tournamentBanner" class="tournament-banner">
-            <div class="tournament-bar" id="tournamentBar">
-                <span class="tournament-badge">TOURNAMENT</span>
-                <span id="tournamentTimer" class="tournament-timer"></span>
-                <span class="tournament-chevron" id="tournamentChevron">&#9660;</span>
-            </div>
-            <div class="tournament-panel" id="tournamentPanel">
-                <div class="tournament-panel-inner">
-                    <div class="tp-header">
-                        <span class="tp-label">FIRST ANNUAL</span>
-                        <h2>Bobbers Fishing Tournament</h2>
-                        <p>Cast your lines at the Primordial Pit for legendary prizes</p>
-                    </div>
-                    <div class="tp-dates">
-                        <div class="tp-date-box">
-                            <span class="tp-date-label">STARTS</span>
-                            <strong>Tue, Feb 17</strong>
-                            <span>5:00 PM PST</span>
-                        </div>
-                        <div class="tp-date-box">
-                            <span class="tp-date-label">ENDS</span>
-                            <strong>Sat, Feb 21</strong>
-                            <span>12:00 PM PST</span>
-                        </div>
-                    </div>
-                    <div class="tp-rules">
-                        <span class="tp-rules-label">HOW IT WORKS</span>
-                        <p>5 casts per day &middot; Orc holders get up to +5 bonus casts/day</p>
-                        <p class="tp-rules-sub">Score = Weight &times; Rarity Multiplier &mdash; every cast counts!</p>
-                    </div>
-                    <div class="tp-prizes">
-                        <h3>Prizes</h3>
-                        <div class="tp-prize tp-prize-1st">
-                            <span class="tp-prize-place">1st</span>
-                            <span>Free MidEvils NFT + Legendary fish named after you</span>
-                        </div>
-                        <div class="tp-prize tp-prize-2nd">
-                            <span class="tp-prize-place">2nd</span>
-                            <span>Your Mid immortalized as a fisherman character</span>
-                        </div>
-                        <div class="tp-prize tp-prize-3rd">
-                            <span class="tp-prize-place">3rd</span>
-                            <span>A Common fish named after you (you help design it!)</span>
-                        </div>
-                    </div>
-                    <p class="tp-cta">Hold Orcs? You get bonus casts. More Orcs = more chances to win!</p>
-                </div>
-            </div>
-        </div>
         <!-- Title -->
         <h1 class="game-title">Bobbers</h1>
         <!-- Mute Button -->
@@ -127,12 +77,6 @@
                 <p>Connect your Solana wallet to start fishing!</p>
                 <button id="connectWalletBtn" class="btn btn-primary btn-connect-wallet">Connect Wallet</button>
                 <div id="connectError" class="error-msg"></div>
-                <div class="tournament-info-box">
-                    <div class="ti-badge">FISHING TOURNAMENT</div>
-                    <p class="ti-dates">Feb 17, 5PM &ndash; Feb 21, 12PM PST</p>
-                    <p class="ti-tagline">Cast for legendary prizes &mdash; connect to compete!</p>
-                    <p class="ti-cta">Hold Orcs? Bonus casts await.</p>
-                </div>
             </div>
         </div>
 
@@ -205,7 +149,6 @@
     <script src="/shared/nav.js"></script>
     <script src="wallet.js"></script>
     <script src="game.js" defer></script>
-    <script src="tournament.js" defer></script>
     <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
