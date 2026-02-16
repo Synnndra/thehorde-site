@@ -67,8 +67,8 @@ export default async function handler(req, res) {
 
             // Optional image (max ~500KB base64 ≈ ~375KB file)
             if (imageBase64 && typeof imageBase64 === 'string') {
-                if (imageBase64.length > 700000) {
-                    return res.status(400).json({ error: 'Image too large (max ~500KB)' });
+                if (imageBase64.length > 2800000) {
+                    return res.status(400).json({ error: 'Image too large (max ~2MB)' });
                 }
                 fact.imageBase64 = imageBase64;
             }
@@ -105,8 +105,8 @@ export default async function handler(req, res) {
             if (removeImage) {
                 delete existing.imageBase64;
             } else if (imageBase64 && typeof imageBase64 === 'string') {
-                if (imageBase64.length > 700000) {
-                    return res.status(400).json({ error: 'Image too large (max ~500KB)' });
+                if (imageBase64.length > 2800000) {
+                    return res.status(400).json({ error: 'Image too large (max ~2MB)' });
                 }
                 existing.imageBase64 = imageBase64;
             }

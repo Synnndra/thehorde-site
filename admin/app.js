@@ -544,8 +544,8 @@
     knowledgeImageInput.addEventListener('change', function () {
         var file = knowledgeImageInput.files[0];
         if (!file) return;
-        if (file.size > 500 * 1024) {
-            alert('Image must be under 500KB');
+        if (file.size > 2 * 1024 * 1024) {
+            alert('Image must be under 2MB');
             knowledgeImageInput.value = '';
             return;
         }
