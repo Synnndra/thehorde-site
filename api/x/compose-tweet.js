@@ -2,7 +2,7 @@
 // Called by cron (daily) or admin trigger. Does NOT post — only creates a draft.
 import { timingSafeEqual } from 'crypto';
 import Anthropic from '@anthropic-ai/sdk';
-import { kvGet, kvSet, kvHset, kvHgetall } from '../../lib/swap-utils.js';
+import { kvGet, kvSet, kvHget, kvHset, kvHgetall } from '../../lib/swap-utils.js';
 import { generateDraftId, searchRecentTweets } from '../../lib/x-utils.js';
 
 const DEFAULT_RESEARCH_ACCOUNTS = [
@@ -88,7 +88,20 @@ export default async function handler(req, res) {
     }
 
     const source = isCron ? 'cron' : 'admin';
-    const topic = req.body?.topic || null;
+    let topic = req.body?.topic || req.query?.topic || null;
+
+    // If no explicit topic, check for day-of-week theme from KV
+    if (!topic) {
+        try {
+            const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const pstDate = new Date(Date.now() - 8 * 60 * 60 * 1000);
+            const dayName = days[pstDate.getUTCDay()];
+            const theme = await kvHget('drak:tweet_themes', dayName, kvUrl, kvToken);
+            if (theme && typeof theme === 'string' && theme.trim()) {
+                topic = theme.trim();
+            }
+        } catch {}
+    }
 
     try {
         // Gather live context from KV

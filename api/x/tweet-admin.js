@@ -200,6 +200,32 @@ export default async function handler(req, res) {
             }
         }
 
+        // ---- GET-THEMES: return day-of-week tweet themes ----
+        if (mode === 'get-themes') {
+            const themes = await kvHgetall('drak:tweet_themes', kvUrl, kvToken) || {};
+            return res.status(200).json({ themes });
+        }
+
+        // ---- SET-THEMES: update day-of-week tweet themes ----
+        if (mode === 'set-themes') {
+            const { themes } = req.body;
+            if (!themes || typeof themes !== 'object') {
+                return res.status(400).json({ error: 'themes object required, e.g. { monday: "motivation", tuesday: "community spotlight" }' });
+            }
+            const validDays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            for (const [day, theme] of Object.entries(themes)) {
+                if (!validDays.includes(day.toLowerCase())) {
+                    return res.status(400).json({ error: `Invalid day: ${day}` });
+                }
+                if (typeof theme !== 'string') {
+                    return res.status(400).json({ error: `Theme for ${day} must be a string` });
+                }
+                await kvHset('drak:tweet_themes', day.toLowerCase(), theme.trim(), kvUrl, kvToken);
+            }
+            const updated = await kvHgetall('drak:tweet_themes', kvUrl, kvToken) || {};
+            return res.status(200).json({ success: true, themes: updated });
+        }
+
         return res.status(400).json({ error: 'Invalid mode' });
 
     } catch (error) {
