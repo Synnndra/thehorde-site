@@ -183,70 +183,87 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'You need at least 1 Orc to consult the advisor' });
     }
 
-    // Fetch live DAO data for context injection
+    // Determine which context to inject based on user message + recent history
+    const allText = (message + ' ' + (Array.isArray(history) ? history.map(h => h.content).join(' ') : '')).toLowerCase();
+    const wantsDao = /\b(dao|vote|voting|proposal|governance|quorum|multisig|treasury)\b/.test(allText);
+    const wantsMarket = /\b(floor|price|buy|sell|listed|market|sol|cost|expensive|cheap|worth|value|holders?|supply|staked?|enlisted)\b/.test(allText);
+    const wantsDiscord = /\b(discord|community|chat|recap|summary|news|update|latest|happening|going on|what's new|whats new)\b/.test(allText);
+    const wantsKnowledge = /\b(roadmap|burn|season|primevil|merch|store|knightfall|ghostar|infinite fun|candy|jonny|bridge|eth|staking|mutation)\b/.test(allText);
+    // If nothing specific matched, inject a light summary of everything
+    const nothingMatched = !wantsDao && !wantsMarket && !wantsDiscord && !wantsKnowledge;
+
     let liveContext = '';
-    try {
-        const proposalIndex = await kvGet('dao:proposal_index', kvUrl, kvToken);
-        if (proposalIndex && Array.isArray(proposalIndex)) {
-            const activeProposals = [];
-            // Check last 10 proposals for active ones
-            const recent = proposalIndex.slice(-10);
-            for (const id of recent) {
-                const prop = await kvGet(`dao:proposal:${id}`, kvUrl, kvToken);
-                if (prop && prop.status === 'active') {
-                    activeProposals.push(`"${prop.title}" (${prop.forVotes} for, ${prop.againstVotes} against, ends ${new Date(prop.endsAt).toLocaleDateString()})`);
+
+    // Fetch DAO proposals (if relevant or general query)
+    if (wantsDao || nothingMatched) {
+        try {
+            const proposalIndex = await kvGet('dao:proposal_index', kvUrl, kvToken);
+            if (proposalIndex && Array.isArray(proposalIndex)) {
+                const activeProposals = [];
+                const recent = proposalIndex.slice(-10);
+                for (const id of recent) {
+                    const prop = await kvGet(`dao:proposal:${id}`, kvUrl, kvToken);
+                    if (prop && prop.status === 'active') {
+                        activeProposals.push(`"${prop.title}" (${prop.forVotes} for, ${prop.againstVotes} against, ends ${new Date(prop.endsAt).toLocaleDateString()})`);
+                    }
+                }
+                if (activeProposals.length > 0) {
+                    liveContext += '\n\n=== LIVE: ACTIVE DAO PROPOSALS ===\n' + activeProposals.join('\n');
+                } else if (wantsDao) {
+                    liveContext += '\n\n=== LIVE: DAO STATUS ===\nNo active proposals right now.';
                 }
             }
-            if (activeProposals.length > 0) {
-                liveContext += '\n\n=== LIVE: ACTIVE DAO PROPOSALS ===\n' + activeProposals.join('\n');
-            } else {
-                liveContext += '\n\n=== LIVE: DAO STATUS ===\nNo active proposals right now.';
-            }
+        } catch (err) {
+            console.error('Error fetching live DAO data:', err);
         }
-    } catch (err) {
-        console.error('Error fetching live DAO data:', err);
     }
 
-    // Fetch live market data from cached holders leaderboard
-    try {
-        const holdersData = await kvGet('holders:leaderboard', kvUrl, kvToken);
-        if (holdersData) {
-            const parts = [];
-            if (holdersData.floorPrice != null) parts.push(`Floor Price: ${holdersData.floorPrice} SOL`);
-            if (holdersData.totalOrcs) parts.push(`Total Orcs: ${holdersData.totalOrcs}`);
-            if (holdersData.totalHolders) parts.push(`Unique Holders: ${holdersData.totalHolders}`);
-            if (holdersData.enlistedCount) parts.push(`Enlisted (Staked): ${holdersData.enlistedCount}`);
-            if (holdersData.listedForSale) parts.push(`Listed for Sale: ${holdersData.listedForSale.length}`);
-            if (holdersData.avgHold) parts.push(`Avg Orcs per Holder: ${holdersData.avgHold}`);
-            if (parts.length > 0) {
-                liveContext += '\n\n=== LIVE: ORC MARKET DATA (The Horde only — NOT the full MidEvils collection) ===\n' + parts.join('\n') + '\nNote: This data is for Orc NFTs only. Drak does NOT have live MidEvils collection-wide floor/market data.';
+    // Fetch market data (if relevant or general query)
+    if (wantsMarket || nothingMatched) {
+        try {
+            const holdersData = await kvGet('holders:leaderboard', kvUrl, kvToken);
+            if (holdersData) {
+                const parts = [];
+                if (holdersData.floorPrice != null) parts.push(`Floor Price: ${holdersData.floorPrice} SOL`);
+                if (holdersData.totalOrcs) parts.push(`Total Orcs: ${holdersData.totalOrcs}`);
+                if (holdersData.totalHolders) parts.push(`Unique Holders: ${holdersData.totalHolders}`);
+                if (holdersData.enlistedCount) parts.push(`Enlisted (Staked): ${holdersData.enlistedCount}`);
+                if (holdersData.listedForSale) parts.push(`Listed for Sale: ${holdersData.listedForSale.length}`);
+                if (holdersData.avgHold) parts.push(`Avg Orcs per Holder: ${holdersData.avgHold}`);
+                if (parts.length > 0) {
+                    liveContext += '\n\n=== LIVE: ORC MARKET DATA (The Horde only — NOT the full MidEvils collection) ===\n' + parts.join('\n') + '\nNote: This data is for Orc NFTs only. Drak does NOT have live MidEvils collection-wide floor/market data.';
+                }
             }
+        } catch (err) {
+            console.error('Error fetching market data:', err);
         }
-    } catch (err) {
-        console.error('Error fetching market data:', err);
     }
 
-    // Fetch latest Discord summary
-    try {
-        const discordSummary = await kvGet('discord:daily_summary', kvUrl, kvToken);
-        if (discordSummary && discordSummary.summary) {
-            const age = Date.now() - (discordSummary.updatedAt || 0);
-            if (age < 48 * 60 * 60 * 1000) { // Only use if less than 48h old
-                liveContext += `\n\n=== LIVE: DISCORD RECAP (${discordSummary.date}) ===\n${discordSummary.summary}`;
+    // Fetch Discord summary (if relevant)
+    if (wantsDiscord || nothingMatched) {
+        try {
+            const discordSummary = await kvGet('discord:daily_summary', kvUrl, kvToken);
+            if (discordSummary && discordSummary.summary) {
+                const age = Date.now() - (discordSummary.updatedAt || 0);
+                if (age < 48 * 60 * 60 * 1000) {
+                    liveContext += `\n\n=== LIVE: DISCORD RECAP (${discordSummary.date}) ===\n${discordSummary.summary}`;
+                }
             }
+        } catch (err) {
+            console.error('Error fetching Discord summary:', err);
         }
-    } catch (err) {
-        console.error('Error fetching Discord summary:', err);
     }
 
-    // Fetch Discord knowledge base (compiled from backfill)
-    try {
-        const knowledgeBase = await kvGet('discord:knowledge_base', kvUrl, kvToken);
-        if (knowledgeBase && knowledgeBase.content) {
-            liveContext += `\n\n=== DISCORD COMMUNITY KNOWLEDGE ===\n${knowledgeBase.content}`;
+    // Fetch Discord knowledge base (if relevant)
+    if (wantsKnowledge) {
+        try {
+            const knowledgeBase = await kvGet('discord:knowledge_base', kvUrl, kvToken);
+            if (knowledgeBase && knowledgeBase.content) {
+                liveContext += `\n\n=== DISCORD COMMUNITY KNOWLEDGE ===\n${knowledgeBase.content}`;
+            }
+        } catch (err) {
+            console.error('Error fetching Discord knowledge base:', err);
         }
-    } catch (err) {
-        console.error('Error fetching Discord knowledge base:', err);
     }
 
     const systemPrompt = ORC_SYSTEM_PROMPT + liveContext;
@@ -254,9 +271,9 @@ export default async function handler(req, res) {
     // Build conversation for Claude
     var messages = [];
 
-    // Add conversation history (last 6 messages, validated)
+    // Add conversation history (last 10 messages, validated)
     if (Array.isArray(history)) {
-        var validHistory = history.slice(-6).filter(function(h) {
+        var validHistory = history.slice(-10).filter(function(h) {
             return h && (h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string' && h.content.length <= 500;
         }).map(function(h) {
             // Strip asterisk emotes from assistant history so model doesn't mimic them
