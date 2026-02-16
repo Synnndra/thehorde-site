@@ -2,7 +2,7 @@
 // Called by cron (daily) or admin trigger. Does NOT post — only creates a draft.
 import { timingSafeEqual } from 'crypto';
 import Anthropic from '@anthropic-ai/sdk';
-import { kvGet, kvHset } from '../../lib/swap-utils.js';
+import { kvGet, kvHset, kvHgetall } from '../../lib/swap-utils.js';
 import { generateDraftId } from '../../lib/x-utils.js';
 
 const TWEET_SYSTEM_PROMPT = `You are Drak, the battle-scarred orc war chief of The Horde — a 330-member Orc SubDAO within the MidEvils NFT collection on Solana.
@@ -63,11 +63,12 @@ export default async function handler(req, res) {
         // Gather live context from KV
         let context = '';
 
-        const [discordSummary, knowledgeBase, proposalIndex, holdersData] = await Promise.all([
+        const [discordSummary, knowledgeBase, proposalIndex, holdersData, adminFacts] = await Promise.all([
             kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null),
             kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null),
             kvGet('dao:proposal_index', kvUrl, kvToken).catch(() => null),
-            kvGet('holders:leaderboard', kvUrl, kvToken).catch(() => null)
+            kvGet('holders:leaderboard', kvUrl, kvToken).catch(() => null),
+            kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null)
         ]);
 
         // Discord recap
@@ -107,6 +108,12 @@ export default async function handler(req, res) {
             if (parts.length > 0) {
                 context += `\nORC MARKET DATA:\n${parts.join(', ')}`;
             }
+        }
+
+        // Admin-curated knowledge
+        if (adminFacts && Object.keys(adminFacts).length > 0) {
+            const facts = Object.values(adminFacts).map(f => '- ' + f.text);
+            context += `\nADMIN KNOWLEDGE BASE:\n${facts.join('\n')}`;
         }
 
         // Build user message
