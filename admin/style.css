@@ -162,6 +162,29 @@ header h1 {
     font-size: 1rem;
     color: var(--color-accent);
     margin-bottom: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+}
+
+.card h2::after {
+    content: '\25B2';
+    font-size: 0.6rem;
+    transition: transform 0.2s;
+}
+
+.card.collapsed h2 {
+    margin-bottom: 0;
+}
+
+.card.collapsed h2::after {
+    transform: rotate(180deg);
+}
+
+.card.collapsed > *:not(h2) {
+    display: none;
 }
 
 /* Health Stoplight */

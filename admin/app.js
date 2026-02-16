@@ -1261,6 +1261,28 @@
     // Refresh history (same as refresh drafts — history is auto-rendered)
     tweetHistoryBtn.addEventListener('click', loadTweetDrafts);
 
+    // ---- Collapsible Cards ----
+
+    var DEFAULT_COLLAPSED = ['health-section', 'stats-section', 'search-section', 'badges-section', 'offers-section'];
+
+    function initCollapsibleCards() {
+        var cards = document.querySelectorAll('.card[id]');
+        cards.forEach(function (card) {
+            var saved = sessionStorage.getItem('card_' + card.id);
+            if (saved === 'collapsed' || (saved === null && DEFAULT_COLLAPSED.indexOf(card.id) !== -1)) {
+                card.classList.add('collapsed');
+            }
+            var h2 = card.querySelector('h2');
+            if (!h2) return;
+            h2.addEventListener('click', function () {
+                card.classList.toggle('collapsed');
+                sessionStorage.setItem('card_' + card.id, card.classList.contains('collapsed') ? 'collapsed' : 'open');
+            });
+        });
+    }
+
+    initCollapsibleCards();
+
     // ---- Init ----
 
     if (getSecret()) {
