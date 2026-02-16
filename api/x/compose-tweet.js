@@ -40,6 +40,7 @@ CONTEXT:
 - MidEvils marketplace: magiceden.io/marketplace/midevils
 - Reference real community data or X research when provided — don't force it if nothing relevant
 - When X RESEARCH is provided, you can react to trending topics, reply to sentiment, or riff on what others are saying
+- When IMAGES are attached from the knowledge base, study them — they may contain maps, art, infographics, or community content worth referencing in the tweet
 
 OUTPUT: Return valid JSON with these fields:
 {
@@ -140,10 +141,27 @@ export default async function handler(req, res) {
             }
         }
 
-        // Admin-curated knowledge
+        // Admin-curated knowledge (text + images)
+        const factImages = [];
         if (adminFacts && Object.keys(adminFacts).length > 0) {
-            const facts = Object.values(adminFacts).map(f => '- ' + f.text);
+            const factEntries = Object.values(adminFacts);
+            const facts = factEntries.map(f => `- [${f.category || 'general'}] ${f.text}`);
             context += `\nADMIN KNOWLEDGE BASE:\n${facts.join('\n')}`;
+
+            // Collect images from facts for multimodal input
+            for (const f of factEntries) {
+                if (f.imageBase64 && typeof f.imageBase64 === 'string') {
+                    // imageBase64 is stored as data URL: "data:image/jpeg;base64,..."
+                    const match = f.imageBase64.match(/^data:(image\/[a-z+]+);base64,(.+)$/i);
+                    if (match) {
+                        factImages.push({
+                            label: f.text.slice(0, 100),
+                            mediaType: match[1],
+                            data: match[2]
+                        });
+                    }
+                }
+            }
         }
 
         // X Research — pull recent tweets, using cache if fresh enough (6 hours)
@@ -211,13 +229,37 @@ export default async function handler(req, res) {
             userMessage += `\n\n${researchContext}`;
         }
 
-        // Call Claude
+        // Call Claude — use multimodal if knowledge base has images
         const client = new Anthropic({ apiKey: anthropicApiKey });
+
+        let messageContent;
+        if (factImages.length > 0) {
+            // Build multimodal content: text first, then images with labels
+            messageContent = [{ type: 'text', text: userMessage }];
+            // Cap at 5 images to keep request size reasonable
+            for (const img of factImages.slice(0, 5)) {
+                messageContent.push({
+                    type: 'text',
+                    text: `[Knowledge base image for: "${img.label}"]`
+                });
+                messageContent.push({
+                    type: 'image',
+                    source: {
+                        type: 'base64',
+                        media_type: img.mediaType,
+                        data: img.data
+                    }
+                });
+            }
+        } else {
+            messageContent = userMessage;
+        }
+
         const response = await client.messages.create({
             model: 'claude-sonnet-4-5-20250929',
             max_tokens: 300,
             system: TWEET_SYSTEM_PROMPT,
-            messages: [{ role: 'user', content: userMessage }]
+            messages: [{ role: 'user', content: messageContent }]
         });
 
         let rawOutput = response.content[0]?.text?.trim() || '';
