@@ -3,23 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Proposal | DAO Voting | The Horde</title>
-    <meta name="description" content="View and vote on a DAO proposal.">
-    <meta property="og:title" content="DAO Proposal | The Horde">
-    <meta property="og:description" content="View and vote on a DAO proposal.">
+    <title>Orc Advisor | The Horde</title>
+    <meta name="description" content="Consult Drak, the battle-scarred orc war chief. AI-powered advisor for MidEvils holders.">
+    <meta property="og:title" content="Orc Advisor | The Horde">
+    <meta property="og:description" content="Consult Drak, the battle-scarred orc war chief. AI-powered advisor for MidEvils holders.">
     <meta property="og:image" content="https://midhorde.com/orclogo.jpg">
-    <meta property="og:url" content="https://midhorde.com/dao/proposal">
+    <meta property="og:url" content="https://midhorde.com/orc-advisor">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="DAO Proposal | The Horde">
-    <meta name="twitter:description" content="View and vote on a DAO proposal.">
+    <meta name="twitter:title" content="Orc Advisor | The Horde">
+    <meta name="twitter:description" content="Consult Drak, the battle-scarred orc war chief. AI-powered advisor for MidEvils holders.">
     <meta name="twitter:image" content="https://midhorde.com/orclogo.jpg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/shared/base.css">
     <link rel="stylesheet" href="/shared/nav.css">
-    <link rel="stylesheet" href="/dao/style.css">
+    <link rel="stylesheet" href="/orc-advisor/style.css">
     <link rel="icon" href="/orclogo.jpg" type="image/jpeg">
 </head>
 <body>
@@ -42,7 +42,7 @@
                 <a href="/swap">MidSwap</a>
                 <a href="/dao">DAO</a>
                 <a href="/collage-maker">Collage Maker</a>
-                <a href="/orc-advisor">Orc Advisor</a>
+                <a href="/orc-advisor" class="nav-active">Orc Advisor</a>
             </div>
         </div>
         <div class="nav-group">
@@ -57,36 +57,48 @@
         <button id="nav-link-x" class="nav-link-x" title="Link X">Link X</button>
     </nav>
 
-    <div class="container" id="main-content">
-        <div class="detail-top-bar">
-            <a href="/dao" class="back-link">&larr; Back to Proposals</a>
-            <button class="copy-link-btn" id="copyLinkBtn" title="Copy proposal link">Copy Link</button>
+    <div class="advisor-container" id="main-content">
+        <div class="advisor-layout">
+            <div class="orc-panel">
+                <img id="orcImage" class="orc-portrait idle" src="/orc-advisor/orc-idle.png" alt="Drak, the Orc Advisor">
+                <div class="orc-nameplate">Drak</div>
+            </div>
+            <div class="chat-panel">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="chat-placeholder" id="chatPlaceholder">
+                        <p>Connect your wallet to consult the advisor.</p>
+                    </div>
+                </div>
+                <div class="chat-input-bar" id="chatInputBar">
+                    <input type="text" id="chatInput" placeholder="Speak to the advisor..." disabled autocomplete="off" maxlength="500">
+                    <button id="chatSendBtn" disabled>Send</button>
+                </div>
+            </div>
         </div>
 
-        <section class="wallet-section">
+        <div class="wallet-bar" id="walletBar">
             <div class="wallet-status" id="walletStatus">
+                <span class="status-dot"></span>
                 <span class="status-text">Not Connected</span>
             </div>
-            <button id="connectWalletBtn" class="connect-btn">Connect Wallet</button>
-            <button id="disconnectWalletBtn" class="disconnect-btn" style="display: none;">Disconnect</button>
-            <span class="voting-power" id="votingPower" style="display: none;"></span>
-        </section>
+            <button id="connectWalletBtn" class="wallet-btn">Connect Wallet</button>
+            <button id="disconnectWalletBtn" class="wallet-btn wallet-btn-disconnect" style="display:none;">Disconnect</button>
+            <button id="voiceToggleBtn" class="voice-toggle" title="Toggle voice" style="display:none;">
+                <span class="voice-icon">&#9835;</span>
+                <span class="voice-label">Voice On</span>
+            </button>
+        </div>
 
-        <div id="errorMsg" class="error-msg" style="display: none;"></div>
-        <div id="successMsg" class="success-msg" style="display: none;"></div>
-        <div id="loadingMsg" class="loading" style="display: none;">Loading proposal...</div>
-
-        <div id="proposalDetail"></div>
-
-        <footer class="dao-footer">
-            <p>The Horde DAO &copy; 2026 | <a href="/">Back to Home</a></p>
+        <footer class="advisor-footer">
+            <p>The Horde &copy; 2026 | <a href="/">Back to Home</a></p>
             <p class="subdao-disclaimer">This is a SubDAO-led project and is not an official MidEvils main project. Funds raised and assets here are managed by the SubDAO via its multisig treasury.</p>
         </footer>
     </div>
 
+    <!-- Wallet selection modal gets appended to body by JS -->
+
     <script src="/shared/nav.js"></script>
-    <script src="/dao/wallet.js"></script>
-    <script src="/dao/app.js"></script>
+    <script src="/orc-advisor/app.js"></script>
     <script defer src="/ambient-player.js"></script>
     <script defer src="/_vercel/insights/script.js"></script>
 </body>

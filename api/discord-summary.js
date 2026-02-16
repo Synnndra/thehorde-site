@@ -2,6 +2,7 @@
 // Reads the last 24h of messages from configured channels, summarizes with Claude, posts embeds.
 import { timingSafeEqual } from 'crypto';
 import Anthropic from '@anthropic-ai/sdk';
+import { kvSet } from '../lib/swap-utils.js';
 
 const DISCORD_API = 'https://discord.com/api/v10';
 const EMBED_COLOR = 0xc9a227; // gold, matches site theme
@@ -156,6 +157,18 @@ export default async function handler(req, res) {
             if (!postRes.ok) {
                 const errText = await postRes.text();
                 throw new Error(`Discord post failed ${postRes.status}: ${errText}`);
+            }
+
+            // Save summary to KV for Orc Advisor context
+            const kvUrl = process.env.KV_REST_API_URL;
+            const kvToken = process.env.KV_REST_API_TOKEN;
+            if (kvUrl && kvToken) {
+                await kvSet('discord:daily_summary', {
+                    date: dateStr,
+                    summary: summary,
+                    messageCount: humanMessages.length,
+                    updatedAt: Date.now()
+                }, kvUrl, kvToken);
             }
 
             console.log(`Channel ${channelId}: summarized ${humanMessages.length} messages`);
