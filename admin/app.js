@@ -74,6 +74,7 @@
                 loadAll();
                 loadBadges();
                 loadKnowledgeFacts();
+                loadResearchAccounts();
             } else {
                 loginError.textContent = res.status === 403 ? 'Invalid secret.' : 'Login failed.';
                 loginError.hidden = false;
@@ -633,6 +634,43 @@
 
     knowledgeRefreshBtn.addEventListener('click', loadKnowledgeFacts);
 
+    // ---- Monitored X Accounts ----
+
+    var researchAccountsInput = document.getElementById('research-accounts-input');
+    var researchAccountsSave = document.getElementById('research-accounts-save');
+
+    async function loadResearchAccounts() {
+        try {
+            var data = await fetchDrakKnowledge({ mode: 'list-accounts' });
+            if (!data) return;
+            var accounts = data.accounts || [];
+            researchAccountsInput.value = accounts.join('\n');
+        } catch (err) {
+            console.error('Load research accounts failed:', err);
+        }
+    }
+
+    researchAccountsSave.addEventListener('click', async function () {
+        var errEl = document.getElementById('research-accounts-error');
+        var successEl = document.getElementById('research-accounts-success');
+        errEl.hidden = true;
+        successEl.hidden = true;
+
+        var raw = researchAccountsInput.value.trim();
+        var accounts = raw.split(/[\n,]+/).map(function (h) { return h.trim().replace(/^@/, ''); }).filter(Boolean);
+
+        try {
+            var data = await fetchDrakKnowledge({ mode: 'set-accounts', accounts: accounts });
+            if (!data) return;
+            successEl.textContent = 'Saved ' + data.accounts.length + ' accounts.';
+            successEl.hidden = false;
+            researchAccountsInput.value = data.accounts.join('\n');
+        } catch (err) {
+            errEl.textContent = err.message;
+            errEl.hidden = false;
+        }
+    });
+
     // ---- Tweet Management ----
 
     var API_TWEET_ADMIN = '/api/x/tweet-admin';
@@ -1135,6 +1173,7 @@
         loadAll();
         loadBadges();
         loadKnowledgeFacts();
+        loadResearchAccounts();
         loadTweetDrafts();
     } else {
         showLogin();

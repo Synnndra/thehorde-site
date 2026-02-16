@@ -1,6 +1,6 @@
 // Vercel Serverless Function - Admin Drak Knowledge Base Management
 import { timingSafeEqual } from 'crypto';
-import { getClientIp, isRateLimitedKV, kvHset, kvHget, kvHdel, kvHgetall } from '../lib/swap-utils.js';
+import { getClientIp, isRateLimitedKV, kvGet, kvSet, kvHset, kvHget, kvHdel, kvHgetall } from '../lib/swap-utils.js';
 import { randomBytes } from 'crypto';
 
 const KNOWLEDGE_KEY = 'drak:knowledge';
@@ -105,6 +105,28 @@ export default async function handler(req, res) {
             }
             await kvHdel(KNOWLEDGE_KEY, factId, KV_REST_API_URL, KV_REST_API_TOKEN);
             return res.status(200).json({ success: true });
+        }
+
+        // Mode: list research accounts
+        if (mode === 'list-accounts') {
+            const accounts = await kvGet('drak:research_accounts', KV_REST_API_URL, KV_REST_API_TOKEN).catch(() => null);
+            return res.status(200).json({ accounts: Array.isArray(accounts) ? accounts : [] });
+        }
+
+        // Mode: set research accounts
+        if (mode === 'set-accounts') {
+            const { accounts } = req.body;
+            if (!Array.isArray(accounts)) {
+                return res.status(400).json({ error: 'accounts must be an array of handles' });
+            }
+            const cleaned = accounts
+                .map(h => String(h).trim().replace(/^@/, ''))
+                .filter(h => h.length > 0 && h.length <= 50);
+            if (cleaned.length > 50) {
+                return res.status(400).json({ error: 'Max 50 accounts' });
+            }
+            await kvSet('drak:research_accounts', cleaned, KV_REST_API_URL, KV_REST_API_TOKEN);
+            return res.status(200).json({ success: true, accounts: cleaned });
         }
 
         return res.status(400).json({ error: 'Invalid mode' });

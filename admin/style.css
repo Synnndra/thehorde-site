@@ -557,6 +557,34 @@ tr.txlog-row td {
     border-color: var(--color-primary);
 }
 
+.subsection-hint {
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    margin-bottom: 0.5rem;
+}
+
+#research-accounts-input {
+    width: 100%;
+    max-width: 400px;
+    background: var(--color-bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    padding: 0.6rem 0.8rem;
+    resize: vertical;
+    outline: none;
+}
+
+#research-accounts-input:focus {
+    border-color: var(--color-primary);
+}
+
+.knowledge-form-actions {
+    margin-top: 0.5rem;
+}
+
 /* Tweet Management */
 .tweet-subsection {
     margin-bottom: 1.25rem;

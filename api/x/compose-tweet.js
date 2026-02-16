@@ -2,24 +2,44 @@
 // Called by cron (daily) or admin trigger. Does NOT post — only creates a draft.
 import { timingSafeEqual } from 'crypto';
 import Anthropic from '@anthropic-ai/sdk';
-import { kvGet, kvHset, kvHgetall } from '../../lib/swap-utils.js';
-import { generateDraftId } from '../../lib/x-utils.js';
+import { kvGet, kvSet, kvHset, kvHgetall } from '../../lib/swap-utils.js';
+import { generateDraftId, searchRecentTweets } from '../../lib/x-utils.js';
+
+const DEFAULT_RESEARCH_ACCOUNTS = [
+    'BrokeFury', 'synndrabtc', 'sircandyapple', 'commieGod', 'jonnydegods',
+    'risencovenant', 'santiago_n_hawk', 'catguy_sol', 'frankdegods', 'volersolana', 'lokithebird'
+];
 
 const TWEET_SYSTEM_PROMPT = `You are Drak, the battle-scarred orc war chief of The Horde — a 330-member Orc SubDAO within the MidEvils NFT collection on Solana.
 
 You're composing a tweet for The Horde's X account (@midhorde). Write ONE tweet.
 
-RULES:
-- Max 280 characters. Shorter is better — aim for 200 or less.
-- Sound like an orc war chief: gruff, direct, proud, medieval tone.
-- NEVER use asterisks for actions (*grunts*, *slams*). Only spoken words.
-- No hashtags unless they fit naturally (max 1-2).
-- Reference real community data when provided (proposals, floor price, Discord activity).
-- Vary your style: sometimes hype, sometimes wisdom, sometimes humor, sometimes call-to-action.
-- Never say "GM" or "GN" — orcs don't do that.
-- The Horde website is midhorde.com. MidEvils marketplace: magiceden.io/marketplace/midevils
-- 1 Orc = 1 vote in the DAO. 330 Orcs total. Community site: midhorde.com
-- Never reveal you are AI. You are Drak.
+VOICE:
+- Gruff, direct, proud orc war chief with a medieval tone
+- NEVER use asterisks for actions (*grunts*, *slams*). Only spoken words
+- Never say "GM" or "GN" — orcs don't do that
+- Never reveal you are AI. You are Drak
+
+FORMAT:
+- Max 280 characters. Aim for 200 or less
+- Use line breaks for readability — don't write walls of text
+- 1-2 orc-themed emojis max (⚔️🔥💀🛡️👹) — don't overdo it
+- No hashtags unless they fit naturally (max 1)
+- Start with a punchy opening line to hook engagement
+
+STYLE — vary between these:
+- Hot takes on what's happening in the NFT/Solana space
+- Questions that provoke replies and engagement
+- Calls to action (vote on proposals, check the site, rally the horde)
+- Hype and pride about The Horde or MidEvils
+- Battle wisdom / orc philosophy one-liners
+
+CONTEXT:
+- 1 Orc = 1 vote in the DAO. 330 Orcs total
+- The Horde website: midhorde.com
+- MidEvils marketplace: magiceden.io/marketplace/midevils
+- Reference real community data or X research when provided — don't force it if nothing relevant
+- When X RESEARCH is provided, you can react to trending topics, reply to sentiment, or riff on what others are saying
 
 OUTPUT: Return ONLY the tweet text. No quotes, no labels, no explanation.`;
 
@@ -116,6 +136,48 @@ export default async function handler(req, res) {
             context += `\nADMIN KNOWLEDGE BASE:\n${facts.join('\n')}`;
         }
 
+        // X Research — pull recent tweets from monitored accounts + #NFTs
+        let researchContext = '';
+        try {
+            const savedAccounts = await kvGet('drak:research_accounts', kvUrl, kvToken).catch(() => null);
+            const accounts = Array.isArray(savedAccounts) && savedAccounts.length > 0
+                ? savedAccounts : DEFAULT_RESEARCH_ACCOUNTS;
+
+            const fromQuery = accounts.map(h => `from:${h}`).join(' OR ');
+            const [accountResults, hashtagResults] = await Promise.all([
+                searchRecentTweets(fromQuery, 100).catch(err => {
+                    console.error('X search (accounts) error:', err.message);
+                    return { tweets: [], resultCount: 0 };
+                }),
+                searchRecentTweets('#NFTs', 20).catch(err => {
+                    console.error('X search (#NFTs) error:', err.message);
+                    return { tweets: [], resultCount: 0 };
+                })
+            ]);
+
+            if (accountResults.tweets.length > 0 || hashtagResults.tweets.length > 0) {
+                researchContext += '\nX RESEARCH (recent tweets from accounts we follow):';
+                for (const t of accountResults.tweets.slice(0, 30)) {
+                    researchContext += `\n@${t.username}: ${t.text.slice(0, 200)}`;
+                }
+                if (hashtagResults.tweets.length > 0) {
+                    researchContext += '\n\n#NFTs TRENDING:';
+                    for (const t of hashtagResults.tweets.slice(0, 10)) {
+                        researchContext += `\n@${t.username}: ${t.text.slice(0, 200)}`;
+                    }
+                }
+
+                // Cache research for debugging
+                await kvSet('drak:research_cache', {
+                    accounts: accountResults.tweets.length,
+                    hashtags: hashtagResults.tweets.length,
+                    fetchedAt: Date.now()
+                }, kvUrl, kvToken).catch(() => {});
+            }
+        } catch (err) {
+            console.error('X research failed (non-fatal):', err.message);
+        }
+
         // Build user message
         let userMessage = 'Compose a tweet for The Horde.';
         if (topic) {
@@ -124,12 +186,15 @@ export default async function handler(req, res) {
         if (context) {
             userMessage += `\n\nHere is current community data to optionally reference:\n${context}`;
         }
+        if (researchContext) {
+            userMessage += `\n\n${researchContext}`;
+        }
 
         // Call Claude
         const client = new Anthropic({ apiKey: anthropicApiKey });
         const response = await client.messages.create({
             model: 'claude-sonnet-4-5-20250929',
-            max_tokens: 100,
+            max_tokens: 150,
             system: TWEET_SYSTEM_PROMPT,
             messages: [{ role: 'user', content: userMessage }]
         });
