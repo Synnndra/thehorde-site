@@ -913,8 +913,11 @@ header::after {
 }
 
 .drak-cta-img {
-    width: 90px;
-    height: 90px;
+    width: 90px !important;
+    height: 90px !important;
+    min-width: 90px;
+    max-width: 90px;
+    flex-shrink: 0;
     object-fit: cover;
     border-radius: 50%;
     border: 2px solid var(--color-primary);
