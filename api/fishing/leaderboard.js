@@ -190,45 +190,57 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'The leaderboard is currently locked.' });
             }
 
-            const { wallet, gameToken } = req.body;
+            const { wallet, castToken } = req.body;
 
             if (!wallet) {
                 return res.status(400).json({ error: 'Wallet required' });
             }
 
-            // Validate game session token
-            if (!gameToken || typeof gameToken !== 'string') {
-                return res.status(400).json({ error: 'Game token required' });
-            }
-            const sessionData = await redisGet(`game_session:${gameToken}`);
-            if (!sessionData) {
-                return res.status(400).json({ error: 'Invalid or expired game token' });
-            }
-            const session = typeof sessionData === 'string' ? JSON.parse(sessionData) : sessionData;
-            if (session.game !== 'fishing') {
-                return res.status(400).json({ error: 'Invalid game token' });
-            }
-
-            // Check minimum game duration (4 seconds for fishing)
-            const elapsed = Date.now() - session.startedAt;
-            if (elapsed < 4000) {
-                return res.status(400).json({ error: 'Game session too short' });
-            }
-
-            // Delete token so it can't be reused
-            await fetch(`${KV_URL}/del/game_session:${gameToken}`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${KV_TOKEN}` }
-            });
-
-            // Validate wallet
+            // Validate wallet format
             const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
             if (!base58Regex.test(wallet)) {
                 return res.status(400).json({ error: 'Invalid wallet address' });
             }
 
+            let seed;
+
+            if (castToken) {
+                // Secure flow: cast token from cooldown endpoint (wallet-bound)
+                if (typeof castToken !== 'string') {
+                    return res.status(400).json({ error: 'Invalid cast token' });
+                }
+                const castKey = `cast_ready:${castToken}`;
+                const castData = await redisGet(castKey);
+                if (!castData) {
+                    return res.status(400).json({ error: 'Invalid or expired cast token' });
+                }
+                const cast = typeof castData === 'string' ? JSON.parse(castData) : castData;
+
+                // Verify wallet matches the one that consumed the cast
+                if (cast.wallet !== wallet) {
+                    return res.status(400).json({ error: 'Wallet mismatch' });
+                }
+
+                // Check minimum game duration (4 seconds)
+                if (Date.now() - cast.startedAt < 4000) {
+                    return res.status(400).json({ error: 'Game session too short' });
+                }
+
+                // Consume cast token
+                await fetch(`${KV_URL}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(['DEL', castKey])
+                });
+
+                seed = cast.seed;
+
+            } else {
+                return res.status(400).json({ error: 'Cast token required' });
+            }
+
             // Generate fish server-side from session seed (anti-cheat)
-            const fish = generateFish(session.seed || 0);
+            const fish = generateFish(seed || 0);
 
             // Update total catches
             await redisZincrby(CATCHES_KEY, 1, wallet);

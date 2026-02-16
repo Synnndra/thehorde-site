@@ -230,7 +230,7 @@ const elements = {
 let userWallet = null;
 let walletSignature = null;
 let walletMessage = null;
-let gameToken = null; // Session token for authenticated API calls
+let currentCastToken = null; // Cast token from cooldown (wallet-bound, one-time)
 let selectedFisherman = null;
 let catches = [];
 let gameState = 'idle'; // idle, casting, waiting, bite, reeling
@@ -255,9 +255,9 @@ async function checkWalletCooldown(wallet) {
     }
 }
 
-// Mark wallet as played (server-side)
-async function markWalletAsPlayed() {
-    if (IS_LOCAL) return { success: true };
+// Mark wallet as played (server-side) — consumes game token, returns cast token
+async function markWalletAsPlayed(gameToken) {
+    if (IS_LOCAL) return { success: true, castToken: 'local' };
     try {
         const response = await fetch('/api/fishing/cooldown', {
             method: 'POST',
@@ -443,8 +443,9 @@ async function castLine() {
         return;
     }
 
-    // Get a game session token for authenticated API calls
-    if (!IS_LOCAL && !gameToken) {
+    // Get a fresh game session token for this cast
+    let gameToken = null;
+    if (!IS_LOCAL) {
         try {
             const tokenRes = await fetch('/api/game-session', {
                 method: 'POST',
@@ -452,19 +453,26 @@ async function castLine() {
                 body: JSON.stringify({ game: 'fishing' })
             });
             const tokenData = await tokenRes.json();
-            if (tokenData.token) {
-                gameToken = tokenData.token;
-            }
+            gameToken = tokenData.token || null;
         } catch (e) {
             console.error('Failed to get game session:', e);
         }
     }
 
-    // Use one cast (skip for unlimited wallets)
-    if (!isUnlimitedWallet) {
-        const result = await markWalletAsPlayed();
+    // Consume cast and get cast token (required for leaderboard submission)
+    currentCastToken = null;
+    if (!IS_LOCAL && gameToken) {
+        const result = await markWalletAsPlayed(gameToken);
+        if (result.castToken) {
+            currentCastToken = result.castToken;
+        }
         if (result.castsRemaining !== undefined) {
             castsRemaining = result.castsRemaining;
+        }
+        if (!result.success && !result.unlimited) {
+            updateStatus("No casts remaining! Come back tomorrow.");
+            elements.castBtn.disabled = true;
+            return;
         }
     }
 
@@ -653,12 +661,12 @@ async function catchFish() {
 
     let fish;
 
-    if (!IS_LOCAL) {
+    if (!IS_LOCAL && currentCastToken) {
         try {
             const leaderboardResponse = await fetch('/api/fishing/leaderboard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ wallet: userWallet, gameToken })
+                body: JSON.stringify({ wallet: userWallet, castToken: currentCastToken })
             });
 
             const leaderboardData = await leaderboardResponse.json();
@@ -672,8 +680,8 @@ async function catchFish() {
             console.error('API error:', error);
         }
 
-        // Token is consumed — clear so a new one is requested next cast
-        gameToken = null;
+        // Cast token is consumed
+        currentCastToken = null;
     }
 
     // Fallback to client-side generation for local dev or API failure
@@ -836,7 +844,7 @@ async function syncNavDiscordToWallet() {
     const localUsername = localStorage.getItem('discord_username');
     const localAvatar = localStorage.getItem('discord_avatar');
 
-    if (localId && localUsername && userWallet) {
+    if (localId && localUsername && userWallet && walletSignature && walletMessage) {
         try {
             await fetch('/api/fishing/discord-status', {
                 method: 'POST',
@@ -845,7 +853,9 @@ async function syncNavDiscordToWallet() {
                     wallet: userWallet,
                     discordId: localId,
                     username: localUsername,
-                    avatar: localAvatar || null
+                    avatar: localAvatar || null,
+                    signature: walletSignature,
+                    message: walletMessage
                 })
             });
         } catch (e) {

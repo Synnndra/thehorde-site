@@ -1,5 +1,7 @@
 // Check Discord Link Status for a Wallet
 import { isRateLimitedKV, getClientIp } from '../../lib/swap-utils.js';
+import bs58 from 'bs58';
+import nacl from 'tweetnacl';
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 
@@ -58,9 +60,30 @@ export default async function handler(req, res) {
     try {
         // POST - Sync nav Discord data to wallet-specific Redis key
         if (req.method === 'POST') {
-            const { discordId, username, avatar } = req.body;
+            const { discordId, username, avatar, signature, message } = req.body;
             if (!discordId || !username) {
                 return res.status(400).json({ error: 'Discord ID and username required' });
+            }
+
+            // Require wallet signature to prevent unauthenticated identity overwrites
+            if (!signature || !message) {
+                return res.status(401).json({ error: 'Wallet signature required' });
+            }
+            try {
+                const messageBytes = new TextEncoder().encode(message);
+                const signatureBytes = bs58.decode(signature);
+                const publicKeyBytes = bs58.decode(wallet);
+                const verified = nacl.sign.detached.verify(messageBytes, signatureBytes, publicKeyBytes);
+                if (!verified) {
+                    return res.status(401).json({ error: 'Invalid signature' });
+                }
+                // Verify wallet in signed message matches request wallet
+                const walletMatch = message.match(/Wallet: ([A-Za-z0-9]+)/);
+                if (!walletMatch || walletMatch[1] !== wallet) {
+                    return res.status(401).json({ error: 'Wallet mismatch in signed message' });
+                }
+            } catch (err) {
+                return res.status(401).json({ error: 'Signature verification failed' });
             }
 
             const linkData = {

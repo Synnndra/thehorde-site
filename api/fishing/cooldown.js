@@ -53,6 +53,20 @@ async function redisDel(key) {
     return response.json();
 }
 
+async function redisDecr(key) {
+    const response = await fetch(`${KV_URL}/decr/${key}`, {
+        headers: { Authorization: `Bearer ${KV_TOKEN}` }
+    });
+    const data = await response.json();
+    return data.result;
+}
+
+function generateCastToken() {
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
+    return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // Old format stored Date.now() timestamp — detect and reset
 function parseCastsUsed(raw) {
     const val = parseInt(raw) || 0;
@@ -225,14 +239,15 @@ export default async function handler(req, res) {
             });
         }
 
-        // POST - Use one cast
+        // POST - Use one cast, consume game token, return cast token
         if (req.method === 'POST') {
             // Validate game session token
             const gameToken = req.body?.gameToken;
             if (!gameToken || typeof gameToken !== 'string') {
                 return res.status(400).json({ error: 'Game token required' });
             }
-            const sessionData = await redisGet(`game_session:${gameToken}`);
+            const tokenKey = `game_session:${gameToken}`;
+            const sessionData = await redisGet(tokenKey);
             if (!sessionData) {
                 return res.status(400).json({ error: 'Invalid or expired game token' });
             }
@@ -241,18 +256,46 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'Invalid game token' });
             }
 
+            // Consume game token immediately — prevents reuse for draining other wallets
+            await redisDel(tokenKey);
+
+            // Generate cast token (binds wallet + seed for leaderboard)
+            const castTokenId = generateCastToken();
+            const castData = JSON.stringify({
+                wallet,
+                seed: session.seed || 0,
+                startedAt: session.startedAt
+            });
+
+            // Unlimited wallets: skip limit check, still issue cast token
+            if (UNLIMITED_WALLETS.includes(wallet)) {
+                await redisSetEx(`cast_ready:${castTokenId}`, 300, castData);
+                return res.status(200).json({
+                    success: true,
+                    unlimited: true,
+                    castToken: castTokenId,
+                    message: 'Unlimited access granted'
+                });
+            }
+
+            // Clean up old-format timestamp keys (legacy migration)
             const raw = await redisGet(cooldownKey);
-            let castsUsed = parseCastsUsed(raw);
-            // Reset old-format timestamp keys
             if (raw && parseInt(raw) > 100) {
                 await redisDel(cooldownKey);
-                castsUsed = 0;
+            }
+
+            // Atomic: increment FIRST, then check — eliminates race condition
+            const newCount = await redisIncr(cooldownKey);
+            if (newCount === 1) {
+                await redisExpire(cooldownKey, getSecondsUntilReset());
             }
 
             const bonusCasts = await getOrcCount(wallet);
             const maxCasts = MAX_CASTS_PER_DAY + bonusCasts;
 
-            if (castsUsed >= maxCasts) {
+            if (newCount > maxCasts) {
+                // Over limit — roll back the increment
+                await redisDecr(cooldownKey);
                 const ttl = await redisTtl(cooldownKey);
                 return res.status(200).json({
                     success: false,
@@ -262,15 +305,12 @@ export default async function handler(req, res) {
                 });
             }
 
-            // Increment cast count
-            const newCount = await redisIncr(cooldownKey);
-            // Set expiry to next 5pm PST reset
-            if (newCount === 1) {
-                await redisExpire(cooldownKey, getSecondsUntilReset());
-            }
+            // Cast is valid — store cast token for leaderboard submission
+            await redisSetEx(`cast_ready:${castTokenId}`, 300, castData);
 
             return res.status(200).json({
                 success: true,
+                castToken: castTokenId,
                 castsUsed: newCount,
                 castsRemaining: Math.max(0, maxCasts - newCount),
                 message: `Cast ${newCount}/${maxCasts}`
