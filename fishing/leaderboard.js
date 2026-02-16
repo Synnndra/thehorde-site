@@ -85,7 +85,7 @@ function displayLeaderboard(leaderboard) {
                 : '';
             displayName = `<span class="discord-name">${avatarImg}${escapeHTML(entry.discordName)}</span>`;
         } else {
-            displayName = `<span class="wallet-name">${entry.wallet}</span>`;
+            displayName = `<span class="wallet-name">${escapeHTML(entry.wallet)}</span>`;
         }
         return `
             <div class="leaderboard-entry">

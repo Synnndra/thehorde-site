@@ -18,6 +18,8 @@ import {
     MIN_ORCS_TO_VOTE
 } from '../../lib/dao-utils.js';
 
+export const config = { maxDuration: 30 };
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -131,9 +133,6 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'You have already voted on this proposal' });
         }
 
-        // Mark signature used
-        await markSignatureUsed(signature, kvUrl, kvToken);
-
         // Record vote (weight = eligible orcs only)
         const weight = eligibleOrcs.length;
         proposal.votes.push({
@@ -157,6 +156,9 @@ export default async function handler(req, res) {
         // Record Orc mints used (transfer protection)
         const updatedVotedOrcs = [...votedOrcs, ...eligibleOrcs];
         await kvSet(`dao:voted_orcs:${proposalId}`, updatedVotedOrcs, kvUrl, kvToken);
+
+        // Mark signature used (after all writes succeed to prevent wasted signatures on failure)
+        await markSignatureUsed(signature, kvUrl, kvToken);
 
         return res.status(200).json({
             success: true,

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://midhorde.com/sitemap.xml

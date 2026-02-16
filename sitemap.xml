@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://midhorde.com/</loc><priority>1.0</priority></url>
+  <url><loc>https://midhorde.com/orc-viewer</loc><priority>0.8</priority></url>
+  <url><loc>https://midhorde.com/holders</loc><priority>0.8</priority></url>
+  <url><loc>https://midhorde.com/my-horde</loc><priority>0.7</priority></url>
+  <url><loc>https://midhorde.com/create-orc</loc><priority>0.7</priority></url>
+  <url><loc>https://midhorde.com/swap</loc><priority>0.8</priority></url>
+  <url><loc>https://midhorde.com/dao</loc><priority>0.8</priority></url>
+  <url><loc>https://midhorde.com/collage-maker</loc><priority>0.6</priority></url>
+  <url><loc>https://midhorde.com/orc-advisor</loc><priority>0.7</priority></url>
+  <url><loc>https://midhorde.com/minigame</loc><priority>0.6</priority></url>
+  <url><loc>https://midhorde.com/orc-run</loc><priority>0.6</priority></url>
+  <url><loc>https://midhorde.com/fishing</loc><priority>0.6</priority></url>
+</urlset>

@@ -31,38 +31,44 @@ function generateOfferId() {
     return `offer_${randomBytes(16).toString('hex')}`;
 }
 
-// Check if wallet owns a MidEvils Orc
+// Check if wallet owns a MidEvils Orc (paginated for wallets with 1000+ assets)
 async function ownsOrc(walletAddress, heliusApiKey) {
     if (!heliusApiKey) return false;
 
     try {
-        const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                jsonrpc: '2.0',
-                id: 'orc-check',
-                method: 'getAssetsByOwner',
-                params: { ownerAddress: walletAddress, page: 1, limit: 1000 }
-            })
-        });
+        let page = 1;
+        while (true) {
+            const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 'orc-check',
+                    method: 'getAssetsByOwner',
+                    params: { ownerAddress: walletAddress, page, limit: 1000 }
+                })
+            });
 
-        const data = await response.json();
-        const items = data.result?.items || [];
+            const data = await response.json();
+            const items = data.result?.items || [];
 
-        for (const item of items) {
-            const collections = (item.grouping || [])
-                .filter(g => g.group_key === 'collection')
-                .map(g => g.group_value);
+            for (const item of items) {
+                const collections = (item.grouping || [])
+                    .filter(g => g.group_key === 'collection')
+                    .map(g => g.group_value);
 
-            const isMidEvil = collections.includes(ALLOWED_COLLECTIONS[0]);
-            const isGraveyard = collections.includes(ALLOWED_COLLECTIONS[1]);
-            const name = (item.content?.metadata?.name || '').toLowerCase();
-            const isBurnt = item.burnt === true;
+                const isMidEvil = collections.includes(ALLOWED_COLLECTIONS[0]);
+                const isGraveyard = collections.includes(ALLOWED_COLLECTIONS[1]);
+                const name = (item.content?.metadata?.name || '').toLowerCase();
+                const isBurnt = item.burnt === true;
 
-            if (isMidEvil && !isGraveyard && !isBurnt && name.includes('orc')) {
-                return true;
+                if (isMidEvil && !isGraveyard && !isBurnt && name.includes('orc')) {
+                    return true;
+                }
             }
+
+            if (items.length < 1000) break;
+            page++;
         }
         return false;
     } catch (err) {
@@ -99,6 +105,8 @@ async function verifyNftCollections(nftIds, heliusApiKey) {
     const assets = new Map(results.filter(r => r.asset).map(r => [r.nftId, r.asset]));
     return { valid: invalidNfts.length === 0, invalidNfts, assets };
 }
+
+export const config = { maxDuration: 60 };
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {

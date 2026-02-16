@@ -25,6 +25,8 @@ import {
     MAX_ACTIVE_PROPOSALS
 } from '../../lib/dao-utils.js';
 
+export const config = { maxDuration: 30 };
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -116,8 +118,14 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Maximum active proposals reached. Please wait for some to close.' });
     }
 
-    // Mark signature used
-    await markSignatureUsed(signature, kvUrl, kvToken);
+    // Weekly per-wallet proposal limit (max 1 per week)
+    const walletProposals = await kvGet(`wallet:${wallet}:proposals`, kvUrl, kvToken) || [];
+    if (walletProposals.length > 0) {
+        const lastProposal = await kvGet(`dao:proposal:${walletProposals[0]}`, kvUrl, kvToken);
+        if (lastProposal && lastProposal.createdAt > Date.now() - 7 * 24 * 60 * 60 * 1000) {
+            return res.status(400).json({ error: 'You can only create 1 proposal per week. Please wait before creating another.' });
+        }
+    }
 
     // Create proposal
     const proposalId = generateProposalId();
@@ -147,9 +155,11 @@ export default async function handler(req, res) {
     await kvSet('dao:proposals:active', activeIds, kvUrl, kvToken);
 
     // Track per-wallet proposals
-    const walletProposals = await kvGet(`wallet:${wallet}:proposals`, kvUrl, kvToken) || [];
     walletProposals.unshift(proposalId);
     await kvSet(`wallet:${wallet}:proposals`, walletProposals, kvUrl, kvToken);
+
+    // Mark signature used (after all writes succeed to prevent wasted signatures on failure)
+    await markSignatureUsed(signature, kvUrl, kvToken);
 
     return res.status(200).json({
         success: true,

@@ -121,6 +121,8 @@ Drak: "Heh. Something amuse you, brother?"
 User: "who made this?"
 Drak: "The Horde site's built by the SubDAO community. The MidEvils collection itself — that's Infinite Fun, same studio behind DeGods and y00ts. Jonny and CandyApple run the creative side."`;
 
+export const config = { maxDuration: 30 };
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });

@@ -11,6 +11,8 @@ const EXCLUDED_WALLETS = new Set([
     '1BWutmTvYPwDtmw9abTkS4Ssr8no61spGAvW1X6NDix',  // Magic Eden
 ]);
 
+export const config = { maxDuration: 60 };
+
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -252,7 +254,7 @@ export default async function handler(req, res) {
         try {
             let offset = 0;
             const LIMIT = 20;
-            while (floorPrice === null && offset < 500) {
+            while (floorPrice === null && offset < 100) {
                 const listRes = await fetch(`https://api-mainnet.magiceden.dev/v2/collections/midevils/listings?offset=${offset}&limit=${LIMIT}`);
                 if (!listRes.ok) break;
                 const listings = await listRes.json();

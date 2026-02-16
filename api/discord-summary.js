@@ -10,6 +10,8 @@ const MIN_MESSAGES = 5;       // skip channels with fewer messages
 const MAX_MESSAGES = 500;     // cap per channel to stay within limits
 const BATCH_SIZE = 100;       // Discord API max per request
 
+export const config = { maxDuration: 60 };
+
 export default async function handler(req, res) {
     if (req.method !== 'GET' && req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
