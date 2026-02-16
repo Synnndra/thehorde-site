@@ -35,6 +35,37 @@
             </div>
         </header>
 
+        <!-- Tweet Queue -->
+        <section class="card" id="tweets-section">
+            <h2>Tweet Queue</h2>
+
+            <!-- Compose -->
+            <div class="tweet-subsection">
+                <h3>Compose Tweet</h3>
+                <form id="tweet-compose-form" class="tweet-form">
+                    <input type="text" id="tweet-topic-input" placeholder="Topic (optional — leave blank for auto)">
+                    <button type="submit">Compose</button>
+                </form>
+                <p id="tweet-compose-status" class="success-text" hidden></p>
+                <p id="tweet-compose-error" class="error-text" hidden></p>
+            </div>
+
+            <!-- Pending Drafts -->
+            <div class="tweet-subsection">
+                <h3>Pending Drafts</h3>
+                <button id="tweet-refresh-btn" class="btn-small">Refresh</button>
+                <div id="tweet-drafts-list"></div>
+                <p id="tweet-drafts-empty" class="empty-text" hidden>No drafts.</p>
+            </div>
+
+            <!-- Posted History -->
+            <div class="tweet-subsection">
+                <h3>Posted History</h3>
+                <button id="tweet-history-btn" class="btn-small">Refresh</button>
+                <div id="tweet-history-list"></div>
+            </div>
+        </section>
+
         <!-- Health Stoplight -->
         <section class="card" id="health-section">
             <h2>System Health</h2>

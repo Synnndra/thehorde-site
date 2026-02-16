@@ -466,12 +466,488 @@
         }
     });
 
+    // ---- Tweet Management ----
+
+    var API_TWEET_ADMIN = '/api/x/tweet-admin';
+    var tweetComposeForm = document.getElementById('tweet-compose-form');
+    var tweetTopicInput = document.getElementById('tweet-topic-input');
+    var tweetRefreshBtn = document.getElementById('tweet-refresh-btn');
+    var tweetHistoryBtn = document.getElementById('tweet-history-btn');
+
+    // Emoji data: [emoji, keywords] — ~500 curated emojis
+    var EMOJI_DATA = [
+        // ===== Orc / Medieval / Fantasy =====
+        ['⚔️','swords battle fight war'],['🛡️','shield defend protect'],['🏰','castle fortress stronghold'],['👹','ogre orc monster'],['🧌','troll orc creature'],['🪓','axe weapon chop'],['🗡️','dagger sword blade'],['💀','skull death dead'],['🔥','fire flame hot burn'],['⚡','lightning bolt power thunder'],['👑','crown king royal'],['🐉','dragon beast fire'],['🧙','wizard mage magic sorcerer'],['🏹','bow arrow archer'],['💎','gem diamond jewel'],['🪙','coin gold money'],['⛓️','chains bound shackle'],['🍺','beer mead drink tavern ale'],['🐺','wolf beast howl'],['🦅','eagle hawk bird'],['🧝','elf elven'],['🧛','vampire dark night'],['🧟','zombie undead'],['🧞','genie djinn lamp'],['🦇','bat vampire night'],['🕷️','spider web creepy'],['🕸️','spiderweb web trap'],['🐍','snake serpent viper'],['🦂','scorpion sting poison'],['🪨','rock stone boulder'],['🌋','volcano eruption lava'],['🏚️','haunted house abandoned'],['⚰️','coffin death burial'],['🪦','gravestone tombstone rip'],['🔮','crystal ball magic fortune'],['🧿','evil eye nazar amulet'],['🗿','moai stone face statue'],['⛏️','pickaxe mine dig'],['🪤','trap mouse catch'],['🏴‍☠️','pirate flag skull'],
+        // ===== Smileys & Faces =====
+        ['😀','smile happy grin'],['😃','happy smile open'],['😄','grin smile laugh'],['😁','beam grin teeth'],['😆','laugh squint haha'],['😅','sweat smile nervous'],['🤣','rofl laugh rolling lol'],['😂','tears joy laugh crying'],['🙂','slight smile'],['😉','wink flirt'],['😊','blush smile happy'],['😇','angel innocent halo'],['🥰','love smile hearts'],['😍','heart eyes love'],['🤩','star struck excited wow'],['😘','kiss blow love'],['😗','kiss pucker'],['😚','kiss blush'],['😙','kiss smile'],['🥲','smile tear happy sad'],['😋','yummy delicious tongue'],['😛','tongue out playful'],['😜','wink tongue crazy'],['🤪','zany crazy wild silly'],['😝','tongue squint playful'],['🤑','money face rich'],['🤗','hug arms open'],['🤭','oops giggle hand'],['🫢','gasp shock surprise hand'],['🫣','peek shy cover'],['🤫','shh quiet secret'],['🤔','thinking hmm wonder'],['🫡','salute respect honor'],['🤐','zip mouth shut secret'],['🤨','raised eyebrow skeptical sus'],['😐','neutral straight face'],['😑','expressionless blank'],['😶','speechless silent no mouth'],['🫥','dotted face invisible'],['😏','smirk sly'],['😒','unamused annoyed'],['🙄','eye roll whatever'],['😬','grimace awkward cringe'],['😮‍💨','sigh exhale relief'],['🤥','lie pinocchio nose'],['🫠','melting face hot'],['😌','relieved calm peace'],['😔','pensive sad down'],['😪','sleepy tired tear'],['🤤','drool hungry'],['😴','sleep zzz snore'],['😷','mask sick flu'],['🤒','thermometer sick fever'],['🤕','bandage hurt injured'],['🤢','nausea sick green'],['🤮','vomit throw up sick'],['🥵','hot sweating heat'],['🥶','cold frozen ice freeze'],['🥴','woozy dizzy drunk'],['😵','dizzy knocked out'],['😵‍💫','spiral dizzy confused'],['🤯','mind blown explode head'],['🤠','cowboy hat yeehaw'],['🥳','party celebrate birthday'],['🥸','disguise glasses nose'],['😎','cool sunglasses'],['🤓','nerd glasses geek'],['🧐','monocle inspect curious'],['😕','confused unsure'],['🫤','mouth diagonal unsure'],['😟','worried concerned'],['🙁','frown sad'],['☹️','frown sad unhappy'],['😮','open mouth surprise oh'],['😯','hushed surprised'],['😲','astonished shocked wow'],['😳','flushed embarrassed blush'],['🥺','pleading puppy eyes please'],['🥹','hold back tears touched'],['😦','frown open worried'],['😧','anguished distressed'],['😨','fearful scared afraid'],['😰','anxious cold sweat'],['😥','sad relieved sweat'],['😢','crying tear sad'],['😭','sobbing cry wail loud'],['😱','scream shock horror'],['😖','confounded frustrated'],['😣','persevere struggle'],['😞','disappointed let down'],['😓','downcast sweat sad'],['😩','weary tired exhausted'],['😫','tired fed up'],['🥱','yawn bored tired sleepy'],['😤','angry steam mad huff'],['😡','angry rage fury red'],['😠','mad angry grr'],['🤬','swearing cursing angry'],['😈','devil evil smirk imp'],['👿','angry devil imp'],['👻','ghost spooky boo'],['🤡','clown joke circus'],['💩','poop crap'],['👽','alien ufo space'],['🤖','robot bot ai machine'],['😺','cat smile happy'],['😸','cat grin'],['😹','cat joy laugh tears'],['😻','cat heart eyes love'],['😼','cat smirk wry'],['😽','cat kiss'],['🙀','cat weary shocked'],['😿','cat cry sad'],['😾','cat angry mad'],
+        // ===== People & Gestures =====
+        ['👋','wave hello hi bye'],['🤚','raised hand back stop'],['🖐️','hand fingers spread'],['✋','hand raised stop high five'],['🖖','vulcan spock trek'],['🫱','right hand'],['🫲','left hand'],['🫳','palm down hand'],['🫴','palm up hand'],['👌','ok good perfect fine'],['🤌','pinch italian chef kiss'],['🤏','pinch small tiny'],['✌️','peace victory two'],['🤞','fingers crossed luck hope'],['🫰','hand index thumb'],['🤟','love you sign ily'],['🤘','rock on metal horns'],['🤙','call me shaka hang loose'],['👈','point left'],['👉','point right'],['👆','point up'],['👇','point down'],['☝️','index up one'],['🫵','point at you'],['👍','thumbs up good yes like'],['👎','thumbs down bad no dislike'],['✊','fist solidarity raised'],['👊','punch fist bump'],['🤛','left fist bump'],['🤜','right fist bump'],['👏','clap applause bravo'],['🙌','raised hands celebrate hooray'],['🫶','heart hands love'],['👐','open hands jazz'],['🤲','palms up together prayer'],['🤝','handshake deal alliance'],['🙏','pray please thanks namaste'],['✍️','writing pen hand'],['💅','nail polish sassy'],['🤳','selfie phone camera'],['💪','strong muscle flex power bicep'],['🦾','mechanical arm prosthetic robot'],['🦿','mechanical leg prosthetic'],['🧠','brain smart think mind'],['👀','eyes look watch see'],['👁️','eye see look'],['👅','tongue lick taste'],['👄','lips mouth kiss'],['🫦','biting lip nervous flirt'],['🗣️','speaking head talk voice'],['👤','silhouette person shadow'],['👥','two people group'],
+        // ===== Hearts & Love =====
+        ['❤️','heart love red'],['🧡','orange heart'],['💛','yellow heart'],['💚','green heart'],['💙','blue heart'],['💜','purple heart'],['🖤','black heart dark'],['🤍','white heart pure'],['🤎','brown heart'],['❤️‍🔥','heart fire passion'],['❤️‍🩹','mending heart heal'],['💔','broken heart sad'],['❣️','heart exclamation'],['💕','two hearts love'],['💞','revolving hearts love'],['💓','heartbeat pulse'],['💗','growing heart love'],['💖','sparkling heart love'],['💘','cupid arrow heart love'],['💝','ribbon heart gift love'],['💟','heart decoration'],['♥️','heart suit card'],
+        // ===== Animals & Nature =====
+        ['🐶','dog puppy woof'],['🐱','cat kitty meow'],['🐭','mouse rat'],['🐹','hamster cute'],['🐰','rabbit bunny'],['🦊','fox clever sly'],['🐻','bear grizzly'],['🐼','panda bear'],['🐻‍❄️','polar bear arctic'],['🐨','koala bear'],['🐯','tiger cat wild'],['🦁','lion king mane'],['🐮','cow moo'],['🐷','pig oink'],['🐸','frog toad ribbit'],['🐵','monkey face'],['🙈','see no evil monkey'],['🙉','hear no evil monkey'],['🙊','speak no evil monkey'],['🐒','monkey chimp'],['🦍','gorilla ape'],['🦧','orangutan ape'],['🐔','chicken hen'],['🐧','penguin cold ice'],['🐦','bird tweet'],['🦜','parrot bird colorful'],['🦆','duck quack'],['🦢','swan elegant white'],['🦉','owl night wise hoot'],['🦩','flamingo pink bird'],['🐊','crocodile alligator'],['🐢','turtle slow shell'],['🦎','lizard reptile'],['🐙','octopus tentacle'],['🦑','squid ocean'],['🦀','crab ocean pinch'],['🦞','lobster ocean'],['🐠','tropical fish'],['🐟','fish ocean'],['🐬','dolphin ocean smart'],['🐳','whale ocean splash'],['🦈','shark ocean danger'],['🐋','whale humpback'],['🐾','paw print animal'],['🦋','butterfly insect pretty'],['🐛','bug caterpillar insect'],['🐝','bee honey buzz wasp'],['🐞','ladybug ladybird'],['🦗','cricket insect chirp'],['🪲','beetle insect bug'],['🌸','cherry blossom flower pink spring'],['🌺','hibiscus flower'],['🌻','sunflower yellow'],['🌹','rose flower red love'],['🌷','tulip flower spring'],['🌼','blossom flower yellow'],['🥀','wilted flower dead'],['💐','bouquet flowers gift'],['🌿','herb leaf green'],['🍀','four leaf clover luck'],['🍁','maple leaf fall autumn'],['🍂','fallen leaf autumn'],['🌲','evergreen tree pine'],['🌳','tree deciduous oak'],['🌴','palm tree tropical beach'],['🌵','cactus desert'],['🍄','mushroom fungus toad'],['🪵','wood log timber'],
+        // ===== Food & Drink =====
+        ['🍎','apple red fruit'],['🍊','orange tangerine fruit'],['🍋','lemon yellow citrus'],['🍌','banana yellow fruit'],['🍉','watermelon fruit summer'],['🍇','grapes wine purple'],['🍓','strawberry berry red'],['🫐','blueberry berry'],['🍑','peach fruit'],['🍒','cherry fruit red'],['🥭','mango fruit tropical'],['🍍','pineapple fruit tropical'],['🥝','kiwi fruit green'],['🍅','tomato red'],['🥑','avocado guac green'],['🌶️','hot pepper chili spicy'],['🌽','corn cob maize'],['🥔','potato spud'],['🧅','onion'],['🧄','garlic'],['🍔','burger hamburger fast food'],['🍕','pizza slice'],['🌮','taco mexican'],['🌯','burrito wrap mexican'],['🥪','sandwich sub'],['🍗','chicken leg drumstick'],['🥩','steak meat cut'],['🍖','meat bone'],['🍣','sushi japanese fish'],['🍜','ramen noodle soup'],['🍝','spaghetti pasta'],['🍰','cake shortcake dessert'],['🎂','birthday cake candle'],['🧁','cupcake muffin'],['🍩','donut doughnut'],['🍪','cookie biscuit'],['🍫','chocolate bar candy'],['🍬','candy sweet'],['🍭','lollipop candy'],['🍦','ice cream cone'],['☕','coffee tea cup hot'],['🍵','tea green cup'],['🧋','boba bubble tea'],['🥤','cup straw drink soda'],['🍷','wine glass red'],['🍸','cocktail martini drink'],['🍹','tropical drink cocktail'],['🍻','cheers beer mugs clink'],['🥂','champagne toast celebrate'],['🥃','whiskey tumbler drink'],
+        // ===== Activities & Sports =====
+        ['⚽','soccer football ball'],['🏀','basketball ball'],['🏈','football american ball'],['⚾','baseball ball'],['🎾','tennis ball racket'],['🏐','volleyball ball'],['🏉','rugby ball'],['🎱','billiards pool eight ball'],['🏓','ping pong table tennis'],['🏸','badminton shuttlecock'],['🏒','hockey ice stick'],['🥊','boxing glove fight'],['🥋','martial arts karate'],['⛳','golf flag hole'],['🎣','fishing rod hook'],['🏄','surfing wave'],['🏊','swimming pool water'],['🚴','cycling bike bicycle'],['🏋️','weight lifting gym strong'],['🤸','cartwheel gymnastics'],['⛷️','skiing snow mountain'],['🏂','snowboard winter'],['🎮','game controller video gaming'],['🕹️','joystick arcade game'],['🎲','dice game chance roll'],['🧩','puzzle piece jigsaw'],['🎰','slot machine casino gamble'],['🎳','bowling pins ball'],['🎯','target bullseye aim dart'],['🏆','trophy winner champion cup'],['🥇','gold medal first place'],['🥈','silver medal second'],['🥉','bronze medal third'],['🏅','medal sports award'],['🎖️','military medal honor'],['🎗️','ribbon awareness'],
+        // ===== Travel & Places =====
+        ['🚗','car automobile drive'],['🚕','taxi cab yellow'],['🏎️','race car fast speed'],['🚓','police car cop'],['🚑','ambulance emergency'],['🚒','fire truck engine'],['🚀','rocket launch moon space'],['✈️','airplane plane fly travel'],['🛸','ufo flying saucer alien'],['🚁','helicopter chopper'],['⛵','sailboat boat wind'],['🚢','ship boat cruise'],['🏠','house home'],['🏡','garden house home'],['🏢','office building'],['🏗️','construction crane build'],['🏭','factory industrial'],['🗼','tokyo tower'],['🗽','statue liberty nyc'],['⛩️','shrine torii japan'],['🕌','mosque islam'],['⛪','church christian'],['🏔️','mountain snow peak'],['⛰️','mountain peak'],['🌅','sunrise morning sun'],['🌄','sunrise mountain dawn'],['🌆','cityscape evening dusk'],['🌇','sunset city'],['🌃','night stars city'],['🌉','bridge night city'],['🎡','ferris wheel carnival'],['🎢','roller coaster ride'],['🗺️','world map earth'],['🧭','compass direction navigate'],
+        // ===== Objects =====
+        ['⌚','watch time wrist'],['📱','phone mobile cell'],['💻','laptop computer'],['⌨️','keyboard type'],['🖥️','desktop computer monitor'],['🖨️','printer print'],['🖱️','mouse computer click'],['💾','floppy disk save'],['💿','cd disc'],['📷','camera photo'],['📸','camera flash photo'],['📹','video camera record'],['🎬','clapper board movie film'],['📺','tv television screen'],['📻','radio'],['🎙️','microphone studio podcast'],['🎤','mic karaoke sing'],['🎧','headphone music listen'],['🎵','music note sound'],['🎶','music notes melody song'],['🎸','guitar rock music'],['🥁','drum beat music'],['🎺','trumpet horn music'],['🎷','saxophone jazz music'],['🎹','piano keys music'],['🪘','drum african'],['📚','books stack read study'],['📖','book open read'],['📝','memo note write pencil'],['✏️','pencil write draw'],['🖊️','pen write ink'],['🖋️','fountain pen calligraphy'],['📌','pin push tack'],['📎','paperclip clip attach'],['🔒','lock secure locked'],['🔓','unlock open'],['🔑','key access unlock'],['🗝️','old key skeleton vintage'],['🔨','hammer tool build'],['🪚','saw cut tool'],['🔧','wrench tool fix'],['🔩','nut bolt screw'],['⚙️','gear settings cog'],['🧲','magnet attract'],['💣','bomb explosion'],['🧨','firecracker dynamite explosive'],['🪄','magic wand spell'],['🏺','amphora vase ancient'],['🧪','test tube science lab'],['🔬','microscope science lab'],['🔭','telescope space astronomy'],['💊','pill medicine drug'],['💉','syringe needle vaccine'],['🩸','blood drop red'],['🛒','shopping cart store'],['🎁','gift present wrapped'],['🎀','ribbon bow pink'],['🎈','balloon party'],['🎉','party popper celebrate confetti'],['🎊','confetti ball celebrate'],['🎭','theater masks drama'],['🎨','art palette paint'],['🧵','thread sew stitch'],['🪡','sewing needle stitch'],['📦','package box delivery'],['📫','mailbox letter mail'],['📬','mailbox flag mail'],['✉️','envelope letter email mail'],['📜','scroll parchment ancient document'],['📃','page curl document'],['📄','page document file'],['📰','newspaper news press'],['🏷️','label tag price'],['🔖','bookmark mark save'],['💡','light bulb idea'],['🔦','flashlight torch light'],['🕯️','candle flame light'],['🪔','lamp oil diya'],['🧯','fire extinguisher safety'],['🛢️','oil drum barrel'],['💵','dollar bill money cash'],['💴','yen bill money'],['💶','euro bill money'],['💷','pound bill money'],['🪬','hamsa hand protection'],['📿','prayer beads rosary'],['🧿','evil eye nazar amulet'],['⏰','alarm clock time wake'],['⏳','hourglass sand time'],['⌛','hourglass done time'],['🔔','bell notification alert ring'],['🔕','bell silent mute no'],['📡','satellite dish signal'],['🧰','toolbox tools fix'],['🗜️','clamp vise compress'],
+        // ===== Crypto / Web3 / Finance =====
+        ['💰','money bag rich wealth'],['📈','chart up green pump bull'],['📉','chart down red dump bear'],['📊','graph data stats analytics'],['🔗','link chain connect'],['🌐','globe world web internet'],['🏦','bank finance defi'],['💸','money fly spend send'],['🧱','brick build block chain'],['⛓️‍💥','chain broken free'],['🪙','token coin crypto'],['💳','credit card payment'],['🧾','receipt transaction'],['📋','clipboard list data'],['🔐','locked key secure encrypt'],
+        // ===== Symbols & Arrows =====
+        ['✅','check yes done complete'],['❌','cross no wrong cancel'],['⚠️','warning alert caution'],['🚫','prohibited forbidden no'],['⛔','no entry stop forbidden'],['🔴','red circle stop'],['🟢','green circle go'],['🟡','yellow circle caution'],['🔵','blue circle'],['🟣','purple circle'],['🟤','brown circle'],['⚫','black circle'],['⚪','white circle'],['🟥','red square'],['🟩','green square'],['🟨','yellow square'],['🟦','blue square'],['🟪','purple square'],['⬛','black square'],['⬜','white square'],['➡️','arrow right next'],['⬅️','arrow left back previous'],['⬆️','arrow up'],['⬇️','arrow down'],['↗️','arrow up right'],['↘️','arrow down right'],['↙️','arrow down left'],['↪️','arrow curve right'],['↩️','arrow curve left'],['🔄','arrows cycle refresh'],['🔃','arrows clockwise'],['🔁','repeat loop again'],['🔀','shuffle random mix'],['▶️','play start forward'],['⏸️','pause stop break'],['⏹️','stop square'],['⏭️','skip next forward'],['⏩','fast forward'],['⏪','rewind back'],['🔹','diamond blue small'],['🔸','diamond orange small'],['🔶','diamond orange large'],['🔷','diamond blue large'],['▪️','square black small'],['◾','square dark medium small'],['•','bullet dot point'],['—','dash em long'],['…','ellipsis dots'],['‼️','double exclamation'],['⁉️','exclamation question'],['❓','question red'],['❔','question white'],['❗','exclamation red'],['❕','exclamation white'],['〰️','wavy dash'],['©️','copyright'],['®️','registered trademark'],['™️','trademark'],['#️⃣','hash number pound'],['*️⃣','asterisk star'],['0️⃣','zero number'],['1️⃣','one number'],['2️⃣','two number'],['3️⃣','three number'],['4️⃣','four number'],['5️⃣','five number'],['6️⃣','six number'],['7️⃣','seven number'],['8️⃣','eight number'],['9️⃣','nine number'],['🔟','ten number keycap'],
+        // ===== Weather & Sky =====
+        ['☀️','sun sunny bright'],['🌤️','sun cloud partly'],['⛅','cloud sun partly'],['🌥️','cloud sun behind'],['☁️','cloud overcast'],['🌦️','rain sun cloud'],['🌧️','rain cloud'],['⛈️','thunder storm cloud lightning'],['🌩️','lightning cloud storm'],['🌨️','snow cloud winter'],['❄️','snowflake cold winter ice'],['🌪️','tornado twister storm'],['🌫️','fog mist haze'],['🌈','rainbow colors arc'],['🌙','crescent moon night'],['🌕','full moon night'],['🌑','new moon dark'],['⭐','star favorite night'],['🌟','sparkle shine glow star'],['✨','sparkles magic shine glitter'],['💫','dizzy star shooting'],['☄️','comet meteor space'],['🌠','shooting star wish'],['🌌','milky way galaxy space'],['☔','umbrella rain'],['💧','water drop drip'],['🌊','wave ocean water surf'],['💨','wind dash gust blow'],
+        // ===== Flags =====
+        ['🏁','checkered flag finish race'],['🚩','red flag warning'],['🏳️','white flag surrender'],['🏴','black flag pirate'],['🏳️‍🌈','rainbow flag pride lgbtq'],['🇺🇸','usa america us flag'],['🇬🇧','uk britain england flag'],['🇯🇵','japan flag'],['🇰🇷','korea south flag'],['🇩🇪','germany flag'],['🇫🇷','france flag'],['🇪🇸','spain flag'],['🇮🇹','italy flag'],['🇧🇷','brazil flag'],['🇲🇽','mexico flag'],['🇨🇦','canada flag'],['🇦🇺','australia flag'],['🇮🇳','india flag'],['🇨🇳','china flag'],['🇷🇺','russia flag'],['🇹🇷','turkey flag'],['🇸🇦','saudi arabia flag'],['🇦🇪','uae emirates flag'],['🇳🇬','nigeria flag'],['🇿🇦','south africa flag'],['🇸🇬','singapore flag'],['🇹🇭','thailand flag'],['🇻🇳','vietnam flag'],['🇵🇭','philippines flag'],['🇮🇩','indonesia flag']
+    ];
+
+    async function fetchTweetAdmin(body) {
+        var secret = getSecret();
+        var res = await fetch(API_TWEET_ADMIN, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ secret: secret, ...body })
+        });
+        if (res.status === 403) {
+            sessionStorage.removeItem('admin_secret');
+            showLogin();
+            return null;
+        }
+        var data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.detail || 'Request failed');
+        return data;
+    }
+
+    function buildEditorHtml(textareaId, displayText, editable) {
+        var len = displayText.length;
+        var pct = Math.min(100, Math.round((len / 280) * 100));
+        var barColor = len > 280 ? '#e74c3c' : len > 240 ? '#f1c40f' : '#2ecc40';
+
+        var html = '';
+        if (editable) {
+            html += '<div class="tweet-toolbar">' +
+                '<button type="button" class="toolbar-btn tweet-emoji-toggle" title="Emoji picker">😀 Emoji</button>' +
+                '<label class="toolbar-btn tweet-image-label" title="Attach image">🖼️ Image<input type="file" class="tweet-image-input" accept="image/png,image/jpeg,image/gif,image/webp" hidden></label>' +
+                '<button type="button" class="toolbar-btn tweet-linebreak-btn" title="Insert line break">↵ Break</button>' +
+                '<button type="button" class="toolbar-btn tweet-undo-btn" title="Undo">↩ Undo</button>' +
+                '<button type="button" class="toolbar-btn tweet-clear-btn" title="Clear">✕ Clear</button>' +
+                '</div>';
+            html += '<div class="tweet-emoji-picker" hidden></div>';
+            html += '<div class="tweet-image-preview" hidden><img class="tweet-image-thumb"><button type="button" class="tweet-image-remove toolbar-btn">✕ Remove</button></div>';
+        }
+        html += '<textarea class="tweet-edit-area" id="' + textareaId + '"' + (!editable ? ' readonly' : '') + '>' + escapeHtml(displayText) + '</textarea>';
+        html += '<div class="tweet-char-bar">' +
+            '<div class="tweet-char-bar-fill" style="width:' + pct + '%;background:' + barColor + '"></div>' +
+            '</div>';
+        html += '<div class="tweet-char-count"><span class="char-count-num" style="color:' + (len > 280 ? '#e44' : '') + '">' + len + '</span>/280</div>';
+        html += '<div class="tweet-preview"><div class="tweet-preview-label">Preview</div>' +
+            '<div class="tweet-preview-content">' +
+            '<div class="tweet-preview-header"><strong>@midhorde</strong> <span class="tweet-preview-handle">· just now</span></div>' +
+            '<div class="tweet-preview-text">' + formatTweetPreview(displayText) + '</div>' +
+            '</div></div>';
+        return html;
+    }
+
+    function formatTweetPreview(text) {
+        var safe = escapeHtml(text);
+        // Convert newlines to <br>
+        safe = safe.replace(/\n/g, '<br>');
+        return safe;
+    }
+
+    function updateEditorState(card) {
+        var textarea = card.querySelector('.tweet-edit-area');
+        if (!textarea) return;
+        var len = textarea.value.length;
+        var pct = Math.min(100, Math.round((len / 280) * 100));
+        var barColor = len > 280 ? '#e74c3c' : len > 240 ? '#f1c40f' : '#2ecc40';
+
+        var countEl = card.querySelector('.char-count-num');
+        if (countEl) {
+            countEl.textContent = len;
+            countEl.style.color = len > 280 ? '#e44' : '';
+        }
+        var barFill = card.querySelector('.tweet-char-bar-fill');
+        if (barFill) {
+            barFill.style.width = pct + '%';
+            barFill.style.background = barColor;
+        }
+        var previewText = card.querySelector('.tweet-preview-text');
+        if (previewText) {
+            previewText.innerHTML = formatTweetPreview(textarea.value);
+        }
+    }
+
+    function buildEmojiPickerContent(pickerEl) {
+        if (pickerEl.children.length > 0) return; // already built
+        // Search input
+        var searchWrap = document.createElement('div');
+        searchWrap.className = 'emoji-search-wrap';
+        searchWrap.innerHTML = '<input type="text" class="emoji-search-input" placeholder="Search emoji...">';
+        pickerEl.appendChild(searchWrap);
+        // Emoji grid
+        var grid = document.createElement('div');
+        grid.className = 'emoji-grid';
+        EMOJI_DATA.forEach(function (pair) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'emoji-btn';
+            btn.textContent = pair[0];
+            btn.title = pair[1];
+            btn.dataset.keywords = pair[1];
+            grid.appendChild(btn);
+        });
+        pickerEl.appendChild(grid);
+    }
+
+    // Emoji search filtering
+    document.addEventListener('input', function (e) {
+        if (!e.target.classList.contains('emoji-search-input')) return;
+        var query = e.target.value.toLowerCase().trim();
+        var picker = e.target.closest('.tweet-emoji-picker');
+        if (!picker) return;
+        var buttons = picker.querySelectorAll('.emoji-btn');
+        buttons.forEach(function (btn) {
+            if (!query) { btn.hidden = false; return; }
+            var kw = (btn.dataset.keywords || '') + ' ' + btn.textContent;
+            btn.hidden = kw.toLowerCase().indexOf(query) === -1;
+        });
+    });
+
+    async function loadTweetDrafts() {
+        var listEl = document.getElementById('tweet-drafts-list');
+        var emptyEl = document.getElementById('tweet-drafts-empty');
+        var historyEl = document.getElementById('tweet-history-list');
+        try {
+            var data = await fetchTweetAdmin({ mode: 'list' });
+            if (!data) return;
+
+            listEl.innerHTML = '';
+            var drafts = data.drafts || [];
+
+            // Split into pending/failed vs posted/rejected
+            var pending = drafts.filter(function (d) { return d.status === 'pending' || d.status === 'failed'; });
+            var posted = drafts.filter(function (d) { return d.status === 'posted' || d.status === 'rejected'; });
+
+            if (pending.length === 0) {
+                emptyEl.hidden = false;
+            } else {
+                emptyEl.hidden = true;
+            }
+
+            pending.forEach(function (d) {
+                var card = buildDraftCard(d, true);
+                listEl.appendChild(card);
+            });
+
+            // Render posted/rejected into history
+            historyEl.innerHTML = '';
+            if (posted.length === 0) {
+                historyEl.innerHTML = '<p class="empty-text">No posted tweets yet.</p>';
+            } else {
+                posted.forEach(function (d) {
+                    var item = document.createElement('div');
+                    item.className = 'tweet-history-item';
+                    var displayText = d.editedText || d.text || '';
+                    var statusLabel = d.status === 'rejected'
+                        ? '<span class="badge badge-failed">rejected</span> '
+                        : '';
+                    item.innerHTML =
+                        '<span class="tweet-history-text">' + statusLabel + escapeHtml(displayText) + '</span>' +
+                        '<span class="tweet-history-meta">' + formatDate(d.postedAt || d.createdAt) +
+                        (d.tweetId ? ' &middot; <a href="https://x.com/midhorde/status/' + escapeHtml(d.tweetId) + '" target="_blank" rel="noopener">View</a>' : '') +
+                        ' &middot; <button class="tweet-delete-btn btn-small" data-draft-id="' + escapeHtml(d.id) + '">Delete</button>' +
+                        '</span>';
+                    historyEl.appendChild(item);
+                });
+            }
+        } catch (err) {
+            console.error('Load tweet drafts failed:', err);
+        }
+    }
+
+    function buildDraftCard(d, editable) {
+        var card = document.createElement('div');
+        card.className = 'tweet-draft-card';
+        card.dataset.id = d.id;
+
+        var statusClass = 'badge-' + (d.status || 'pending');
+        var dateStr = formatDate(d.createdAt);
+        var displayText = d.editedText || d.text || '';
+        var textareaId = 'ta-' + d.id;
+
+        var html = '<div class="tweet-draft-header">' +
+            '<span class="badge ' + statusClass + '">' + escapeHtml(d.status || '') + '</span>' +
+            '<span class="tweet-draft-source">' + escapeHtml(d.source || '') + '</span>' +
+            '<span class="tweet-draft-date">' + dateStr + '</span>' +
+            '</div>';
+
+        if (d.topic) {
+            html += '<div class="tweet-draft-topic">Topic: ' + escapeHtml(d.topic) + '</div>';
+        }
+
+        html += '<div class="tweet-editor-wrap">' + buildEditorHtml(textareaId, displayText, editable) + '</div>';
+
+        if (editable) {
+            html += '<div class="tweet-draft-actions">';
+            html += '<button class="tweet-approve-btn" data-draft-id="' + escapeHtml(d.id) + '">Approve & Post</button>';
+            html += '<button class="tweet-reject-btn btn-danger" data-draft-id="' + escapeHtml(d.id) + '">Reject</button>';
+            html += '<button class="tweet-delete-btn btn-small" data-draft-id="' + escapeHtml(d.id) + '">Delete</button>';
+            html += '</div>';
+        }
+
+        if (d.error) {
+            html += '<div class="tweet-draft-error">Error: ' + escapeHtml(d.error) + '</div>';
+        }
+
+        card.innerHTML = html;
+        return card;
+    }
+
+    // Live update on textarea input
+    document.addEventListener('input', function (e) {
+        if (!e.target.classList.contains('tweet-edit-area')) return;
+        var card = e.target.closest('.tweet-draft-card');
+        if (card) updateEditorState(card);
+    });
+
+    // Emoji toggle
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.tweet-emoji-toggle');
+        if (!btn) return;
+        var card = btn.closest('.tweet-draft-card');
+        if (!card) return;
+        var picker = card.querySelector('.tweet-emoji-picker');
+        if (!picker) return;
+        buildEmojiPickerContent(picker);
+        picker.hidden = !picker.hidden;
+    });
+
+    // Emoji insert
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.emoji-btn');
+        if (!btn) return;
+        var card = btn.closest('.tweet-draft-card');
+        if (!card) return;
+        var textarea = card.querySelector('.tweet-edit-area');
+        if (!textarea) return;
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        var emoji = btn.textContent;
+        textarea.value = textarea.value.slice(0, start) + emoji + textarea.value.slice(end);
+        textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
+        textarea.focus();
+        updateEditorState(card);
+    });
+
+    // Line break button
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.tweet-linebreak-btn');
+        if (!btn) return;
+        var card = btn.closest('.tweet-draft-card');
+        if (!card) return;
+        var textarea = card.querySelector('.tweet-edit-area');
+        if (!textarea) return;
+        var start = textarea.selectionStart;
+        textarea.value = textarea.value.slice(0, start) + '\n' + textarea.value.slice(textarea.selectionEnd);
+        textarea.selectionStart = textarea.selectionEnd = start + 1;
+        textarea.focus();
+        updateEditorState(card);
+    });
+
+    // Undo button
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.tweet-undo-btn');
+        if (!btn) return;
+        var card = btn.closest('.tweet-draft-card');
+        if (!card) return;
+        var textarea = card.querySelector('.tweet-edit-area');
+        if (!textarea) return;
+        textarea.focus();
+        document.execCommand('undo');
+        updateEditorState(card);
+    });
+
+    // Clear button
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.tweet-clear-btn');
+        if (!btn) return;
+        var card = btn.closest('.tweet-draft-card');
+        if (!card) return;
+        var textarea = card.querySelector('.tweet-edit-area');
+        if (!textarea) return;
+        if (!confirm('Clear all text?')) return;
+        textarea.value = '';
+        textarea.focus();
+        updateEditorState(card);
+    });
+
+    // Image file input
+    document.addEventListener('change', function (e) {
+        if (!e.target.classList.contains('tweet-image-input')) return;
+        var card = e.target.closest('.tweet-draft-card');
+        if (!card) return;
+        var file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 4 * 1024 * 1024) {
+            alert('Image must be under 4MB');
+            e.target.value = '';
+            return;
+        }
+        var reader = new FileReader();
+        reader.onload = function () {
+            var previewWrap = card.querySelector('.tweet-image-preview');
+            var thumb = card.querySelector('.tweet-image-thumb');
+            if (previewWrap && thumb) {
+                thumb.src = reader.result;
+                previewWrap.hidden = false;
+                // Store base64 and mime on the card for later
+                card.dataset.imageBase64 = reader.result.split(',')[1];
+                card.dataset.imageMime = file.type;
+            }
+            // Update preview
+            var previewImg = card.querySelector('.tweet-preview-image');
+            if (!previewImg) {
+                var previewContent = card.querySelector('.tweet-preview-content');
+                if (previewContent) {
+                    var img = document.createElement('img');
+                    img.className = 'tweet-preview-image';
+                    img.src = reader.result;
+                    previewContent.appendChild(img);
+                }
+            } else {
+                previewImg.src = reader.result;
+            }
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Remove image
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.tweet-image-remove');
+        if (!btn) return;
+        var card = btn.closest('.tweet-draft-card');
+        if (!card) return;
+        var previewWrap = card.querySelector('.tweet-image-preview');
+        if (previewWrap) previewWrap.hidden = true;
+        var input = card.querySelector('.tweet-image-input');
+        if (input) input.value = '';
+        delete card.dataset.imageBase64;
+        delete card.dataset.imageMime;
+        var previewImg = card.querySelector('.tweet-preview-image');
+        if (previewImg) previewImg.remove();
+    });
+
+    // Approve button
+    document.addEventListener('click', async function (e) {
+        var btn = e.target.closest('.tweet-approve-btn');
+        if (!btn) return;
+        var draftId = btn.dataset.draftId;
+        var card = btn.closest('.tweet-draft-card');
+        var textarea = card.querySelector('.tweet-edit-area');
+        var editedText = textarea ? textarea.value.trim() : '';
+
+        if (editedText.length > 280) {
+            alert('Tweet too long (' + editedText.length + '/280)');
+            return;
+        }
+        if (!confirm('Post this tweet to @midhorde?')) return;
+
+        btn.disabled = true;
+        btn.textContent = 'Posting...';
+        try {
+            var body = { mode: 'approve', draftId: draftId, text: editedText };
+            if (card.dataset.imageBase64) {
+                body.imageBase64 = card.dataset.imageBase64;
+                body.imageMimeType = card.dataset.imageMime || 'image/png';
+            }
+            var data = await fetchTweetAdmin(body);
+            if (data) {
+                loadTweetDrafts();
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Approve & Post';
+        }
+    });
+
+    // Reject button
+    document.addEventListener('click', async function (e) {
+        var btn = e.target.closest('.tweet-reject-btn');
+        if (!btn) return;
+        var draftId = btn.dataset.draftId;
+        if (!confirm('Reject this draft?')) return;
+
+        try {
+            await fetchTweetAdmin({ mode: 'reject', draftId: draftId });
+            loadTweetDrafts();
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    });
+
+    // Delete button
+    document.addEventListener('click', async function (e) {
+        var btn = e.target.closest('.tweet-delete-btn');
+        if (!btn) return;
+        var draftId = btn.dataset.draftId;
+        if (!confirm('Permanently delete this draft?')) return;
+
+        try {
+            await fetchTweetAdmin({ mode: 'delete', draftId: draftId });
+            loadTweetDrafts();
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    });
+
+    // Compose form
+    tweetComposeForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var statusEl = document.getElementById('tweet-compose-status');
+        var errEl = document.getElementById('tweet-compose-error');
+        statusEl.hidden = true;
+        errEl.hidden = true;
+
+        var topic = tweetTopicInput.value.trim() || null;
+        var submitBtn = tweetComposeForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Composing...';
+
+        try {
+            var data = await fetchTweetAdmin({ mode: 'compose', topic: topic });
+            if (!data) return;
+            statusEl.textContent = 'Draft composed: "' + (data.draft?.text || '').slice(0, 60) + '..."';
+            statusEl.hidden = false;
+            tweetTopicInput.value = '';
+            loadTweetDrafts();
+        } catch (err) {
+            errEl.textContent = err.message;
+            errEl.hidden = false;
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Compose';
+        }
+    });
+
+    // Refresh drafts
+    tweetRefreshBtn.addEventListener('click', loadTweetDrafts);
+
+    // Refresh history (same as refresh drafts — history is auto-rendered)
+    tweetHistoryBtn.addEventListener('click', loadTweetDrafts);
+
     // ---- Init ----
 
     if (getSecret()) {
         showDashboard();
         loadAll();
         loadBadges();
+        loadTweetDrafts();
     } else {
         showLogin();
     }
