@@ -202,99 +202,91 @@ export default async function handler(req, res) {
 
     let liveContext = '';
 
-    // Fetch DAO proposals (if relevant or general query)
-    if (wantsDao || nothingMatched) {
+    // Fetch all live context in parallel — each source is independent
+    const contextFetches = {
+        proposals: (wantsDao || nothingMatched)
+            ? kvGet('dao:proposal_index', kvUrl, kvToken).catch(() => null) : null,
+        market: (wantsMarket || nothingMatched)
+            ? kvGet('holders:leaderboard', kvUrl, kvToken).catch(() => null) : null,
+        discord: (wantsDiscord || nothingMatched)
+            ? kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null) : null,
+        knowledge: wantsKnowledge
+            ? kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null) : null,
+        adminFacts: kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null)
+    };
+
+    const [proposalIndex, holdersData, discordSummary, knowledgeBase, adminFacts] = await Promise.all([
+        contextFetches.proposals,
+        contextFetches.market,
+        contextFetches.discord,
+        contextFetches.knowledge,
+        contextFetches.adminFacts
+    ]);
+
+    // DAO proposals — fetch individual proposals in parallel
+    if (proposalIndex && Array.isArray(proposalIndex)) {
         try {
-            const proposalIndex = await kvGet('dao:proposal_index', kvUrl, kvToken);
-            if (proposalIndex && Array.isArray(proposalIndex)) {
-                const activeProposals = [];
-                const recent = proposalIndex.slice(-10);
-                const proposals = await Promise.all(
-                    recent.map(id => kvGet(`dao:proposal:${id}`, kvUrl, kvToken).catch(() => null))
-                );
-                for (const prop of proposals) {
-                    if (prop && prop.status === 'active') {
-                        activeProposals.push(`"${prop.title}" (${prop.forVotes} for, ${prop.againstVotes} against, ends ${new Date(prop.endsAt).toLocaleDateString()})`);
-                    }
-                }
-                if (activeProposals.length > 0) {
-                    liveContext += '\n\n=== LIVE: ACTIVE DAO PROPOSALS ===\n' + activeProposals.join('\n');
-                } else if (wantsDao) {
-                    liveContext += '\n\n=== LIVE: DAO STATUS ===\nNo active proposals right now.';
+            const recent = proposalIndex.slice(-10);
+            const proposals = await Promise.all(
+                recent.map(id => kvGet(`dao:proposal:${id}`, kvUrl, kvToken).catch(() => null))
+            );
+            const activeProposals = [];
+            for (const prop of proposals) {
+                if (prop && prop.status === 'active') {
+                    activeProposals.push(`"${prop.title}" (${prop.forVotes} for, ${prop.againstVotes} against, ends ${new Date(prop.endsAt).toLocaleDateString()})`);
                 }
             }
+            if (activeProposals.length > 0) {
+                liveContext += '\n\n=== LIVE: ACTIVE DAO PROPOSALS ===\n' + activeProposals.join('\n');
+            } else if (wantsDao) {
+                liveContext += '\n\n=== LIVE: DAO STATUS ===\nNo active proposals right now.';
+            }
         } catch (err) {
-            console.error('Error fetching live DAO data:', err);
+            console.error('Error fetching proposals:', err);
         }
     }
 
-    // Fetch market data (if relevant or general query)
-    if (wantsMarket || nothingMatched) {
-        try {
-            const holdersData = await kvGet('holders:leaderboard', kvUrl, kvToken);
-            if (holdersData) {
-                const parts = [];
-                if (holdersData.floorPrice != null) parts.push(`Floor Price: ${holdersData.floorPrice} SOL`);
-                if (holdersData.totalOrcs) parts.push(`Total Orcs: ${holdersData.totalOrcs}`);
-                if (holdersData.totalHolders) parts.push(`Unique Holders: ${holdersData.totalHolders}`);
-                if (holdersData.enlistedCount) parts.push(`Enlisted (Staked): ${holdersData.enlistedCount}`);
-                if (holdersData.listedForSale) parts.push(`Listed for Sale: ${holdersData.listedForSale.length}`);
-                if (holdersData.avgHold) parts.push(`Avg Orcs per Holder: ${holdersData.avgHold}`);
-                if (parts.length > 0) {
-                    liveContext += '\n\n=== LIVE: ORC MARKET DATA (The Horde only — NOT the full MidEvils collection) ===\n' + parts.join('\n') + '\nNote: This data is for Orc NFTs only. Drak does NOT have live MidEvils collection-wide floor/market data.';
-                }
-            }
-        } catch (err) {
-            console.error('Error fetching market data:', err);
+    // Market data
+    if (holdersData) {
+        const parts = [];
+        if (holdersData.floorPrice != null) parts.push(`Floor Price: ${holdersData.floorPrice} SOL`);
+        if (holdersData.totalOrcs) parts.push(`Total Orcs: ${holdersData.totalOrcs}`);
+        if (holdersData.totalHolders) parts.push(`Unique Holders: ${holdersData.totalHolders}`);
+        if (holdersData.enlistedCount) parts.push(`Enlisted (Staked): ${holdersData.enlistedCount}`);
+        if (holdersData.listedForSale) parts.push(`Listed for Sale: ${holdersData.listedForSale.length}`);
+        if (holdersData.avgHold) parts.push(`Avg Orcs per Holder: ${holdersData.avgHold}`);
+        if (parts.length > 0) {
+            liveContext += '\n\n=== LIVE: ORC MARKET DATA (The Horde only — NOT the full MidEvils collection) ===\n' + parts.join('\n') + '\nNote: This data is for Orc NFTs only. Drak does NOT have live MidEvils collection-wide floor/market data.';
         }
     }
 
-    // Fetch Discord summary (if relevant)
-    if (wantsDiscord || nothingMatched) {
-        try {
-            const discordSummary = await kvGet('discord:daily_summary', kvUrl, kvToken);
-            if (discordSummary && discordSummary.summary) {
-                const age = Date.now() - (discordSummary.updatedAt || 0);
-                if (age < 48 * 60 * 60 * 1000) {
-                    liveContext += `\n\n=== LIVE: DISCORD RECAP (${discordSummary.date}) ===\n${discordSummary.summary}`;
-                }
-            }
-        } catch (err) {
-            console.error('Error fetching Discord summary:', err);
+    // Discord summary
+    if (discordSummary && discordSummary.summary) {
+        const age = Date.now() - (discordSummary.updatedAt || 0);
+        if (age < 48 * 60 * 60 * 1000) {
+            liveContext += `\n\n=== LIVE: DISCORD RECAP (${discordSummary.date}) ===\n${discordSummary.summary}`;
         }
     }
 
-    // Fetch Discord knowledge base (if relevant)
-    if (wantsKnowledge) {
-        try {
-            const knowledgeBase = await kvGet('discord:knowledge_base', kvUrl, kvToken);
-            if (knowledgeBase && knowledgeBase.content) {
-                liveContext += `\n\n=== DISCORD COMMUNITY KNOWLEDGE ===\n${knowledgeBase.content}`;
-            }
-        } catch (err) {
-            console.error('Error fetching Discord knowledge base:', err);
-        }
+    // Discord knowledge base
+    if (knowledgeBase && knowledgeBase.content) {
+        liveContext += `\n\n=== DISCORD COMMUNITY KNOWLEDGE ===\n${knowledgeBase.content}`;
     }
 
-    // Always inject admin-curated knowledge base
-    try {
-        const adminFacts = await kvHgetall('drak:knowledge', kvUrl, kvToken);
-        if (adminFacts && Object.keys(adminFacts).length > 0) {
-            const facts = Object.values(adminFacts);
-            const grouped = {};
-            for (const f of facts) {
-                const cat = f.category || 'general';
-                if (!grouped[cat]) grouped[cat] = [];
-                grouped[cat].push(f.text);
-            }
-            let section = '\n\n=== ADMIN KNOWLEDGE BASE ===';
-            for (const [cat, texts] of Object.entries(grouped)) {
-                section += '\n[' + cat.toUpperCase() + ']\n' + texts.map(t => '- ' + t).join('\n');
-            }
-            liveContext += section;
+    // Admin-curated knowledge base (text only — skip image data to save bandwidth)
+    if (adminFacts && Object.keys(adminFacts).length > 0) {
+        const facts = Object.values(adminFacts);
+        const grouped = {};
+        for (const f of facts) {
+            const cat = f.category || 'general';
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push(f.text);
         }
-    } catch (err) {
-        console.error('Error fetching admin knowledge:', err);
+        let section = '\n\n=== ADMIN KNOWLEDGE BASE ===';
+        for (const [cat, texts] of Object.entries(grouped)) {
+            section += '\n[' + cat.toUpperCase() + ']\n' + texts.map(t => '- ' + t).join('\n');
+        }
+        liveContext += section;
     }
 
     // Build conversation for Claude
