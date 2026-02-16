@@ -146,39 +146,50 @@ export default async function handler(req, res) {
             context += `\nADMIN KNOWLEDGE BASE:\n${facts.join('\n')}`;
         }
 
-        // X Research — pull recent tweets from monitored accounts + #NFTs
+        // X Research — pull recent tweets, using cache if fresh enough (6 hours)
+        const RESEARCH_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
         let researchContext = '';
         try {
-            const savedAccounts = await kvGet('drak:research_accounts', kvUrl, kvToken).catch(() => null);
-            const accounts = Array.isArray(savedAccounts) && savedAccounts.length > 0
-                ? savedAccounts : DEFAULT_RESEARCH_ACCOUNTS;
+            const cached = await kvGet('drak:research_cache', kvUrl, kvToken).catch(() => null);
+            const cacheAge = cached?.fetchedAt ? Date.now() - cached.fetchedAt : Infinity;
 
-            const fromQuery = accounts.map(h => `from:${h}`).join(' OR ');
-            const [accountResults, hashtagResults] = await Promise.all([
-                searchRecentTweets(fromQuery, 100).catch(err => {
-                    console.error('X search (accounts) error:', err.message);
-                    return { tweets: [], resultCount: 0 };
-                }),
-                searchRecentTweets('#NFTs', 20).catch(err => {
-                    console.error('X search (#NFTs) error:', err.message);
-                    return { tweets: [], resultCount: 0 };
-                })
-            ]);
+            if (cached?.researchText && cacheAge < RESEARCH_CACHE_TTL) {
+                // Use cached research
+                researchContext = cached.researchText;
+            } else {
+                // Fetch fresh from X API
+                const savedAccounts = await kvGet('drak:research_accounts', kvUrl, kvToken).catch(() => null);
+                const accounts = Array.isArray(savedAccounts) && savedAccounts.length > 0
+                    ? savedAccounts : DEFAULT_RESEARCH_ACCOUNTS;
 
-            if (accountResults.tweets.length > 0 || hashtagResults.tweets.length > 0) {
-                researchContext += '\nX RESEARCH (recent tweets from accounts we follow):';
-                for (const t of accountResults.tweets.slice(0, 30)) {
-                    researchContext += `\n@${t.username}: ${t.text.slice(0, 200)}`;
-                }
-                if (hashtagResults.tweets.length > 0) {
-                    researchContext += '\n\n#NFTs TRENDING:';
-                    for (const t of hashtagResults.tweets.slice(0, 10)) {
+                const fromQuery = accounts.map(h => `from:${h}`).join(' OR ');
+                const [accountResults, hashtagResults] = await Promise.all([
+                    searchRecentTweets(fromQuery, 100).catch(err => {
+                        console.error('X search (accounts) error:', err.message);
+                        return { tweets: [], resultCount: 0 };
+                    }),
+                    searchRecentTweets('#NFTs', 20).catch(err => {
+                        console.error('X search (#NFTs) error:', err.message);
+                        return { tweets: [], resultCount: 0 };
+                    })
+                ]);
+
+                if (accountResults.tweets.length > 0 || hashtagResults.tweets.length > 0) {
+                    researchContext += '\nX RESEARCH (recent tweets from accounts we follow):';
+                    for (const t of accountResults.tweets.slice(0, 30)) {
                         researchContext += `\n@${t.username}: ${t.text.slice(0, 200)}`;
+                    }
+                    if (hashtagResults.tweets.length > 0) {
+                        researchContext += '\n\n#NFTs TRENDING:';
+                        for (const t of hashtagResults.tweets.slice(0, 10)) {
+                            researchContext += `\n@${t.username}: ${t.text.slice(0, 200)}`;
+                        }
                     }
                 }
 
-                // Cache research for debugging
+                // Cache research text + metadata
                 await kvSet('drak:research_cache', {
+                    researchText: researchContext,
                     accounts: accountResults.tweets.length,
                     hashtags: hashtagResults.tweets.length,
                     fetchedAt: Date.now()

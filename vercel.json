@@ -14,10 +14,6 @@
     },
     {
       "path": "/api/x/compose-tweet",
-      "schedule": "0 22 * * *"
-    },
-    {
-      "path": "/api/x/compose-tweet",
       "schedule": "0 3 * * *"
     }
   ],
