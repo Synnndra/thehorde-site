@@ -509,23 +509,27 @@
 
             facts.forEach(function (f) {
                 var card = document.createElement('div');
-                card.className = 'knowledge-fact-card';
+                card.className = 'knowledge-fact-card collapsed';
                 card.dataset.factId = f.id;
                 var imageHtml = '';
                 if (f.imageBase64) {
                     imageHtml = '<div class="knowledge-fact-image"><img src="data:image/png;base64,' + f.imageBase64 + '" alt="Fact image"></div>';
                 }
+                var preview = f.text.length > 60 ? f.text.slice(0, 60) + '...' : f.text;
                 card.innerHTML =
                     '<div class="knowledge-fact-header">' +
                         '<span class="knowledge-fact-category cat-' + escapeHtml(f.category || 'general') + '">' + escapeHtml(f.category || 'general') + '</span>' +
+                        '<span class="knowledge-fact-preview">' + escapeHtml(preview) + '</span>' +
                         '<span class="knowledge-fact-date">' + formatDate(f.createdAt) + '</span>' +
                     '</div>' +
-                    imageHtml +
-                    '<div class="knowledge-fact-text">' + escapeHtml(f.text) + '</div>' +
-                    '<div class="knowledge-fact-actions">' +
-                        '<button class="knowledge-edit-btn btn-small" data-fact-id="' + escapeHtml(f.id) + '">Edit</button>' +
-                        (f.imageBase64 ? '<button class="knowledge-remove-image-btn btn-small" data-fact-id="' + escapeHtml(f.id) + '">Remove Image</button>' : '') +
-                        '<button class="knowledge-delete-btn btn-small btn-danger" data-fact-id="' + escapeHtml(f.id) + '">Delete</button>' +
+                    '<div class="knowledge-fact-body">' +
+                        imageHtml +
+                        '<div class="knowledge-fact-text">' + escapeHtml(f.text) + '</div>' +
+                        '<div class="knowledge-fact-actions">' +
+                            '<button class="knowledge-edit-btn btn-small" data-fact-id="' + escapeHtml(f.id) + '">Edit</button>' +
+                            (f.imageBase64 ? '<button class="knowledge-remove-image-btn btn-small" data-fact-id="' + escapeHtml(f.id) + '">Remove Image</button>' : '') +
+                            '<button class="knowledge-delete-btn btn-small btn-danger" data-fact-id="' + escapeHtml(f.id) + '">Delete</button>' +
+                        '</div>' +
                     '</div>';
                 listEl.appendChild(card);
             });
@@ -533,6 +537,17 @@
             console.error('Load knowledge failed:', err);
         }
     }
+
+    // Toggle fact card expand/collapse
+    document.addEventListener('click', function (e) {
+        var header = e.target.closest('.knowledge-fact-header');
+        if (!header) return;
+        // Don't toggle if clicking a button inside header
+        if (e.target.closest('button')) return;
+        var card = header.closest('.knowledge-fact-card');
+        if (!card) return;
+        card.classList.toggle('collapsed');
+    });
 
     // Image upload for add-fact form
     var knowledgeImageInput = document.getElementById('knowledge-image-input');

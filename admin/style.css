@@ -559,6 +559,28 @@ tr.txlog-row td {
     gap: 0.5rem;
     margin-bottom: 0.4rem;
     flex-wrap: wrap;
+    cursor: pointer;
+}
+
+.knowledge-fact-preview {
+    flex: 1;
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.knowledge-fact-card:not(.collapsed) .knowledge-fact-preview {
+    display: none;
+}
+
+.knowledge-fact-card.collapsed .knowledge-fact-header {
+    margin-bottom: 0;
+}
+
+.knowledge-fact-card.collapsed .knowledge-fact-body {
+    display: none;
 }
 
 .knowledge-fact-category {
