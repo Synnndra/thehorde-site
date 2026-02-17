@@ -12,7 +12,7 @@ export const config = { maxDuration: 300 };
 
 const DISCORD_API = 'https://discord.com/api/v10';
 const BATCH_SIZE = 100;          // Discord API max per request
-const MESSAGES_PER_CHUNK = 300;  // Messages per Claude summarization call
+const MESSAGES_PER_CHUNK = 200;  // Messages per Claude summarization call
 const FETCH_LIMIT = 1000;        // Max messages per backfill call (keeps within 5min timeout)
 
 export default async function handler(req, res) {
@@ -184,8 +184,8 @@ export default async function handler(req, res) {
         for (const chunk of chunks) {
             const chatLog = chunk.join('\n');
             const aiRes = await anthropic.messages.create({
-                model: 'claude-haiku-4-5-20251001',
-                max_tokens: 2048,
+                model: 'claude-sonnet-4-5-20250929',
+                max_tokens: 4096,
                 system: `Extract ALL knowledge from this Discord chat log for the MidEvils NFT community. Include:
 
 PROJECT & TECHNICAL:

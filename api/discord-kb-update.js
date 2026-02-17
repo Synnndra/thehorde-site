@@ -9,7 +9,7 @@ export const config = { maxDuration: 300 };
 
 const DISCORD_API = 'https://discord.com/api/v10';
 const BATCH_SIZE = 100;
-const MESSAGES_PER_CHUNK = 300;
+const MESSAGES_PER_CHUNK = 200;
 const FETCH_LIMIT = 1000; // Per channel per run
 
 // Channels to keep updated
@@ -130,8 +130,8 @@ export default async function handler(req, res) {
             const chunkSummaries = [];
             for (const chunk of chunks) {
                 const aiRes = await anthropic.messages.create({
-                    model: 'claude-haiku-4-5-20251001',
-                    max_tokens: 2048,
+                    model: 'claude-sonnet-4-5-20250929',
+                    max_tokens: 4096,
                     system: `Extract ALL knowledge from this Discord chat log for the MidEvils NFT community. Include:
 
 PROJECT & TECHNICAL:
