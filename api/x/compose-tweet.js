@@ -317,6 +317,46 @@ export default async function handler(req, res) {
 
         await kvHset('x:drafts', draftId, draft, kvUrl, kvToken);
 
+        // DM admin on Discord about new draft
+        const botToken = process.env.DISCORD_BOT_TOKEN;
+        if (botToken) {
+            try {
+                const dmChannelRes = await fetch('https://discord.com/api/v10/users/@me/channels', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bot ${botToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ recipient_id: '445769305649446912' })
+                });
+                if (dmChannelRes.ok) {
+                    const dmChannel = await dmChannelRes.json();
+                    const preview = tweetText.length > 280 ? tweetText.slice(0, 280) + '...' : tweetText;
+                    const fields = [
+                        { name: 'Source', value: source, inline: true },
+                        { name: 'Approve it', value: '[Open admin panel](https://midhorde.com/admin)', inline: false }
+                    ];
+                    if (topic) fields.splice(1, 0, { name: 'Topic', value: String(topic).slice(0, 100), inline: true });
+                    if (imageIdea) fields.splice(-1, 0, { name: 'Image idea', value: imageIdea.slice(0, 200), inline: false });
+                    if (suggestedTags.length > 0) fields.splice(-1, 0, { name: 'Suggested tags', value: suggestedTags.join(', '), inline: false });
+
+                    await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bot ${botToken}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            embeds: [{
+                                title: '\u{1F4E3} New Tweet Draft',
+                                description: preview,
+                                color: 0x8B4513,
+                                fields,
+                                footer: { text: `Draft ${draftId}` },
+                                timestamp: new Date().toISOString()
+                            }]
+                        })
+                    });
+                }
+            } catch (err) {
+                console.error('Discord DM failed (non-fatal):', err.message);
+            }
+        }
+
         return res.status(200).json({ success: true, draft });
 
     } catch (err) {
