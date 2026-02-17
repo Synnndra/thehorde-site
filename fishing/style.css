@@ -622,6 +622,12 @@ body {
     box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
 }
 
+.select-box .leaderboard-link {
+    position: static;
+    display: inline-block;
+    margin-top: 16px;
+}
+
 /* Discord Link Box */
 .discord-link-box {
     position: absolute;
