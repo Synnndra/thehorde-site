@@ -132,17 +132,31 @@ export default async function handler(req, res) {
                 const aiRes = await anthropic.messages.create({
                     model: 'claude-haiku-4-5-20251001',
                     max_tokens: 2048,
-                    system: `Extract ALL factual knowledge from this Discord chat log for the MidEvils NFT community. Include:
-- Project announcements, updates, decisions
-- Lore, story elements, character details
-- Technical details about tools, games, blockchain
-- Community events, competitions, milestones
-- Partnerships or collaborations
-- Notable community members and their roles
-- Inside jokes, memes, cultural references
-- Any dates, numbers, or specific details
+                    system: `Extract ALL knowledge from this Discord chat log for the MidEvils NFT community. Include:
 
-Be thorough. Present as bullet points grouped by topic. Skip greetings, small talk, and meaningless chatter.`,
+PROJECT & TECHNICAL:
+- Announcements, updates, decisions, roadmap changes
+- Technical details about tools, games, blockchain, smart contracts
+- Lore, story elements, character details
+
+COMMUNITY & CULTURE:
+- Inside jokes, memes, recurring bits, catchphrases
+- Community events, competitions, milestones
+- Partnerships, collaborations, collabs with other projects
+
+PEOPLE & RELATIONSHIPS:
+- Who is active and what they are known for
+- Interpersonal dynamics: friendships, rivalries, alliances, conflicts
+- Arguments, drama, and beef between members — capture both sides
+- Who holds influence, who is respected, who is controversial
+- Specific incidents that shaped community opinion of someone
+
+MARKET & TRADING:
+- Floor price discussions, notable sales, trading sentiment
+- Who is buying, selling, accumulating, or dumping
+
+Keep specific names, dates, numbers, and quotes when notable.
+Skip only generic greetings (gm, gn) and one-word reactions.`,
                     messages: [{ role: 'user', content: `Extract knowledge from this chat log (${chunk.length} messages):\n\n${chunk.join('\n')}` }]
                 });
                 const summary = aiRes.content[0]?.text;
@@ -222,15 +236,26 @@ Be thorough. Present as bullet points grouped by topic. Skip greetings, small ta
             const mergeRes = await anthropic.messages.create({
                 model: 'claude-sonnet-4-5-20250929',
                 max_tokens: 8192,
-                system: `Merge these Discord channel knowledge bases into ONE comprehensive knowledge base for an AI character named Drak (an orc war chief) who answers questions about the MidEvils NFT community and The Horde SubDAO.
+                system: `Merge these Discord channel knowledge bases into ONE knowledge base for an AI character named Drak (an orc war chief) who answers questions about the MidEvils NFT community and The Horde SubDAO.
 
-Rules:
-- Deduplicate information that appears in multiple channels
-- Organize by topic (announcements, lore, governance, community culture, tools, events, partnerships, notable members)
-- Keep ALL unique facts, dates, numbers, names
-- Prioritize #announcements for official project info
-- Keep community culture and inside jokes from chat channels
-- Be concise but thorough. Maximum 5000 words.`,
+PRIORITY 1 — PEOPLE (give this the most space):
+- Member profiles: who they are, what they hold, how active they are
+- Relationships: friendships, rivalries, alliances, conflicts between members
+- Specific drama and beef — what happened, who was involved, how it resolved
+- Who is respected, controversial, influential, or a known troll
+- Notable quotes and moments that define someone's reputation
+
+PRIORITY 2 — COMMUNITY:
+- Inside jokes, memes, catchphrases, cultural references
+- Events, competitions, milestones
+- Trading sentiment, notable sales, accumulation patterns
+
+PRIORITY 3 — PROJECT:
+- Key announcements and decisions (brief — Drak already knows project basics)
+- Tools, games, governance updates
+- Lore and story elements
+
+Deduplicate across channels. Keep specific names, dates, numbers, and quotes. Maximum 5000 words.`,
                 messages: [{ role: 'user', content: `Merge these ${kbParts.length} channel knowledge bases:\n\n${channelList}` }]
             });
 
