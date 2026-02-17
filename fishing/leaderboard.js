@@ -66,6 +66,28 @@ async function fetchStats() {
     }
 }
 
+function renderEntry(entry, index) {
+    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+    const score = (currentType === 'weight' || currentType === 'score') ? parseFloat(entry.score).toFixed(1) : entry.score;
+    let displayName;
+    if (entry.discordName) {
+        const isValidAvatar = entry.discordAvatar && entry.discordAvatar.startsWith('https://cdn.discordapp.com/');
+        const avatarImg = isValidAvatar
+            ? `<img src="${escapeHTML(entry.discordAvatar)}" alt="" class="discord-avatar" onerror="this.style.display='none'">`
+            : '';
+        displayName = `<span class="discord-name">${avatarImg}${escapeHTML(entry.discordName)}</span>`;
+    } else {
+        displayName = `<span class="wallet-name">${escapeHTML(entry.wallet)}</span>`;
+    }
+    return `
+        <div class="leaderboard-entry">
+            <span class="lb-rank">${medal || entry.rank}</span>
+            <span class="lb-wallet">${displayName}</span>
+            <span class="lb-score">${score}</span>
+        </div>
+    `;
+}
+
 function displayLeaderboard(leaderboard) {
     const container = document.getElementById('leaderboardList');
 
@@ -74,27 +96,28 @@ function displayLeaderboard(leaderboard) {
         return;
     }
 
-    container.innerHTML = leaderboard.map((entry, index) => {
-        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
-        const score = (currentType === 'weight' || currentType === 'score') ? parseFloat(entry.score).toFixed(1) : entry.score;
-        let displayName;
-        if (entry.discordName) {
-            const isValidAvatar = entry.discordAvatar && entry.discordAvatar.startsWith('https://cdn.discordapp.com/');
-            const avatarImg = isValidAvatar
-                ? `<img src="${escapeHTML(entry.discordAvatar)}" alt="" class="discord-avatar" onerror="this.style.display='none'">`
-                : '';
-            displayName = `<span class="discord-name">${avatarImg}${escapeHTML(entry.discordName)}</span>`;
-        } else {
-            displayName = `<span class="wallet-name">${escapeHTML(entry.wallet)}</span>`;
-        }
-        return `
-            <div class="leaderboard-entry">
-                <span class="lb-rank">${medal || entry.rank}</span>
-                <span class="lb-wallet">${displayName}</span>
-                <span class="lb-score">${score}</span>
-            </div>
-        `;
-    }).join('');
+    const top10 = leaderboard.slice(0, 10);
+    const rest = leaderboard.slice(10);
+
+    let html = top10.map((entry, index) => renderEntry(entry, index)).join('');
+
+    if (rest.length > 0) {
+        html += `<div id="lbCollapsed" class="lb-collapsed" style="display:none;">`;
+        html += rest.map((entry, index) => renderEntry(entry, index + 10)).join('');
+        html += `</div>`;
+        html += `<button class="lb-show-more" id="lbShowMore">Show ${rest.length} more</button>`;
+    }
+
+    container.innerHTML = html;
+
+    if (rest.length > 0) {
+        document.getElementById('lbShowMore').addEventListener('click', function() {
+            const collapsed = document.getElementById('lbCollapsed');
+            const expanded = collapsed.style.display !== 'none';
+            collapsed.style.display = expanded ? 'none' : 'block';
+            this.textContent = expanded ? `Show ${rest.length} more` : 'Show less';
+        });
+    }
 }
 
 async function switchType(type) {
