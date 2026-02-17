@@ -13,3 +13,7 @@ plans/
 *.csv
 price-cache.json
 scripts/
+
+# Backfill scripts (contain secrets)
+backfill-*.sh
+backfill-log.txt
