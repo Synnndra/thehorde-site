@@ -1,6 +1,6 @@
-// Vercel Serverless Function — Weekly Discord Knowledge Base Update
+// Vercel Serverless Function — Daily Discord Knowledge Base Update
 // Fetches new messages from tracked channels, summarizes, and updates Drak's KB
-// Triggered by Vercel cron (weekly) or manually with CRON_SECRET auth
+// Triggered by Vercel cron (daily) or manually with CRON_SECRET auth
 import { timingSafeEqual } from 'crypto';
 import Anthropic from '@anthropic-ai/sdk';
 import { kvGet, kvSet } from '../lib/swap-utils.js';
@@ -15,6 +15,7 @@ const FETCH_LIMIT = 1000; // Per channel per run
 // Channels to keep updated
 const TRACKED_CHANNELS = [
     { id: '1408632599441834248', name: 'midevils-bst' },
+    { id: '1408631977061650594', name: 'mid-chat' },
     { id: '1405392744272232459', name: 'announcements' },
     { id: '1438567217787830333', name: 'the-horde' },
 ];
