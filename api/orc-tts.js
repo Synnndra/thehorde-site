@@ -46,6 +46,12 @@ export default async function handler(req, res) {
     if (!validateSolanaAddress(wallet)) {
         return res.status(400).json({ error: 'Invalid wallet address' });
     }
+
+    // Per-wallet rate limit: 30 TTS calls per hour (ElevenLabs cost control)
+    const walletLimited = await isRateLimitedKV(wallet, 'orc-tts-wallet', 30, 3600000, kvUrl, kvToken);
+    if (walletLimited) {
+        return res.status(429).json({ error: 'Voice limit reached. Try again later.' });
+    }
     if (typeof text !== 'string' || text.length > 1000) {
         return res.status(400).json({ error: 'Text too long' });
     }

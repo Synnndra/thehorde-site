@@ -297,13 +297,15 @@ export default async function handler(req, res) {
     var messages = [];
 
     // Add conversation history (last 10 messages, validated)
+    // Client-provided assistant messages are wrapped to prevent prompt injection
     if (Array.isArray(history)) {
         var validHistory = history.slice(-10).filter(function(h) {
             return h && (h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string' && h.content.length <= 500;
         }).map(function(h) {
-            // Strip asterisk emotes from assistant history so model doesn't mimic them
             if (h.role === 'assistant') {
-                return { role: h.role, content: h.content.replace(/\*[^*]+\*\s*/g, '') };
+                // Wrap assistant content so injected turns can't override instructions
+                var cleaned = h.content.replace(/\*[^*]+\*\s*/g, '');
+                return { role: 'assistant', content: '[Drak previously said]: ' + cleaned };
             }
             return h;
         });

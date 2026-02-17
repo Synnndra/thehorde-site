@@ -633,6 +633,16 @@ function fishGotAway() {
     gameState = 'idle';
     playSound('escape');
 
+    // Consume the cast token server-side so it can't be reused
+    if (currentCastToken) {
+        fetch('/api/fishing/escape', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ castToken: currentCastToken })
+        }).catch(() => {});
+        currentCastToken = null;
+    }
+
     elements.bobber.classList.remove('bite', 'bobbing', 'visible');
     elements.reelBtn.disabled = true;
     elements.castBtn.disabled = !(isUnlimitedWallet || castsRemaining > 0);
