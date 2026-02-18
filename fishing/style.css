@@ -1329,7 +1329,7 @@ body {
     50% { transform: rotate(90deg); }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px) and (orientation: portrait) {
     .rotate-prompt {
         display: flex;
     }
