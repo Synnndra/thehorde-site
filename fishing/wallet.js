@@ -266,7 +266,7 @@ function handlePhantomConnect(params, connectError) {
     var decrypted = nacl.box.open.after(encryptedData, nonce, sharedSecret);
     if (!decrypted) throw new Error('Failed to decrypt connect response');
 
-    var responseJSON = JSON.parse(nacl.util.decodeUTF8(decrypted));
+    var responseJSON = JSON.parse(nacl.util.encodeUTF8(decrypted));
     var walletAddress = responseJSON.public_key;
     var session = responseJSON.session;
 
@@ -323,7 +323,7 @@ function handlePhantomSign(params, connectError) {
     var decrypted = nacl.box.open.after(encryptedData, nonce, sharedSecret);
     if (!decrypted) throw new Error('Failed to decrypt sign response');
 
-    var responseJSON = JSON.parse(nacl.util.decodeUTF8(decrypted));
+    var responseJSON = JSON.parse(nacl.util.encodeUTF8(decrypted));
     var signature = responseJSON.signature;
 
     var wallet = localStorage.getItem('phantom_wallet');
