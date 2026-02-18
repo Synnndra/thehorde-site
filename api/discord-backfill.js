@@ -100,11 +100,8 @@ export default async function handler(req, res) {
         // Resume support — fetch messages after this snowflake
         let after = req.query.after || '0';
 
-        // If resuming, load existing data
-        let existingData = null;
-        if (after !== '0') {
-            existingData = await kvGet(`discord:backfill:${channelId}`, kvUrl, kvToken);
-        }
+        // Load cursor data (messageCount, batchCount — no summary blob loaded)
+        const cursorData = await kvGet(`discord:backfill:${channelId}`, kvUrl, kvToken) || {};
 
         // --- Fetch all messages ---
         const allMessages = [];
@@ -234,17 +231,18 @@ Skip only generic greetings (gm, gn) and one-word reactions.`,
             finalSummary = mergeRes.content[0]?.text || chunkSummaries.join('\n\n');
         }
 
-        // If resuming, append new summary (skip expensive Claude merge — compile deduplicates at the end)
-        if (existingData && existingData.summary) {
-            finalSummary = existingData.summary + '\n\n---\n\n' + finalSummary;
-        }
+        // --- Save batch summary separately (no unbounded append) ---
+        const batchCount = (cursorData.batchCount || 0) + 1;
+        await kvSet(`discord:backfill:${channelId}:batch:${batchCount}`,
+            finalSummary, kvUrl, kvToken);
 
-        // --- Save to KV ---
-        const totalMessages = (existingData?.messageCount || 0) + humanMessages.length;
+        // Update cursor (no summary blob — compile-recent handles compilation)
+        const totalMessages = (cursorData.messageCount || 0) + humanMessages.length;
         await kvSet(`discord:backfill:${channelId}`, {
-            summary: finalSummary,
             messageCount: totalMessages,
             lastMessageId: allMessages[allMessages.length - 1].id,
+            batchCount,
+            lastCompiledBatch: cursorData.lastCompiledBatch || 0,
             updatedAt: Date.now()
         }, kvUrl, kvToken);
 
@@ -253,6 +251,7 @@ Skip only generic greetings (gm, gn) and one-word reactions.`,
             channelId,
             messagesFetched: humanMessages.length,
             totalMessages,
+            batchCount,
             chunks: chunks.length,
             summaryLength: finalSummary.length,
             ...(needsMore ? {
@@ -260,6 +259,136 @@ Skip only generic greetings (gm, gn) and one-word reactions.`,
                 note: `Hit ${FETCH_LIMIT} message limit. Call again with &after=${after} to continue.`
             } : { complete: true }),
             preview: finalSummary.substring(0, 500) + '...'
+        });
+    }
+
+    // ==========================================
+    // ACTION: COMPILE RECENT BATCHES WITH OPUS
+    // ==========================================
+    if (action === 'compile-recent') {
+        const channelId = req.query.channel;
+        if (!channelId) {
+            return res.status(400).json({ error: 'Missing ?channel=ID' });
+        }
+
+        const cursorData = await kvGet(`discord:backfill:${channelId}`, kvUrl, kvToken);
+        if (!cursorData || !cursorData.batchCount) {
+            return res.status(200).json({ error: 'No batch data found' });
+        }
+
+        const lastCompiled = cursorData.lastCompiledBatch || 0;
+        const currentBatch = cursorData.batchCount;
+
+        if (lastCompiled >= currentBatch) {
+            return res.status(200).json({ message: 'All batches already compiled', batchCount: currentBatch });
+        }
+
+        // Read uncompiled batch summaries
+        const batchSummaries = [];
+        for (let i = lastCompiled + 1; i <= currentBatch; i++) {
+            const summary = await kvGet(`discord:backfill:${channelId}:batch:${i}`, kvUrl, kvToken);
+            if (summary) {
+                batchSummaries.push({ batch: i, summary: typeof summary === 'string' ? summary : JSON.stringify(summary) });
+            }
+        }
+
+        if (batchSummaries.length === 0) {
+            return res.status(200).json({ error: 'No uncompiled batch summaries found' });
+        }
+
+        const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+        const batchText = batchSummaries
+            .map(b => `=== Batch ${b.batch} ===\n${b.summary}`)
+            .join('\n\n');
+
+        // Read existing compiled KB (if any)
+        const existingKb = await kvGet(`discord:kb:${channelId}`, kvUrl, kvToken);
+        let compiledKb;
+
+        if (existingKb?.content) {
+            // Merge existing KB with new batch summaries
+            const mergeRes = await anthropic.messages.create({
+                model: 'claude-opus-4-6',
+                max_tokens: 8192,
+                system: `You are updating a knowledge base about the MidEvils NFT community Discord server. You have an existing compiled knowledge base and new batch summaries to incorporate.
+
+Rules:
+- Merge new information into the existing KB structure
+- Deduplicate — don't repeat facts already in the existing KB
+- ADD new facts, people, events, drama, culture that appear in the new summaries
+- UPDATE existing facts if new summaries have more recent or more detailed info
+- KEEP the existing KB's organizational structure
+- Prioritize: People & relationships > Community culture > Project info
+- Keep specific names, dates, numbers, quotes
+- Maximum 5000 words`,
+                messages: [{
+                    role: 'user',
+                    content: `EXISTING KNOWLEDGE BASE:\n${existingKb.content}\n\n---\n\nNEW BATCH SUMMARIES (${batchSummaries.length} batches):\n\n${batchText}`
+                }]
+            });
+            compiledKb = mergeRes.content[0]?.text;
+        } else {
+            // First compilation — no existing KB
+            const compileRes = await anthropic.messages.create({
+                model: 'claude-opus-4-6',
+                max_tokens: 8192,
+                system: `Compile a comprehensive knowledge base from these Discord channel batch summaries. This is for an AI character named Drak (an orc war chief) who answers questions about the MidEvils NFT community and The Horde SubDAO.
+
+PRIORITY 1 — PEOPLE (give this the most space):
+- Member profiles: who they are, what they hold, how active they are
+- Relationships: friendships, rivalries, alliances, conflicts between members
+- Drama and beef — what happened, who was involved, how it resolved
+- Who is respected, controversial, influential, or a known troll
+- Notable quotes and moments that define someone's reputation
+
+PRIORITY 2 — COMMUNITY:
+- Inside jokes, memes, catchphrases, cultural references
+- Events, competitions, milestones
+- Trading sentiment, notable sales, accumulation patterns
+
+PRIORITY 3 — PROJECT:
+- Key announcements and decisions (brief — Drak already knows project basics)
+- Tools, games, governance updates
+- Lore and story elements
+- Partnerships and collaborations
+
+Deduplicate across batches. Keep specific names, dates, numbers, quotes. Maximum 5000 words.`,
+                messages: [{
+                    role: 'user',
+                    content: `Compile from ${batchSummaries.length} batch summaries:\n\n${batchText}`
+                }]
+            });
+            compiledKb = compileRes.content[0]?.text;
+        }
+
+        if (!compiledKb) {
+            return res.status(500).json({ error: 'Compilation returned empty' });
+        }
+
+        // Save compiled KB
+        await kvSet(`discord:kb:${channelId}`, {
+            content: compiledKb,
+            channelName: req.query.name || channelId,
+            messageCount: cursorData.messageCount,
+            updatedAt: Date.now()
+        }, kvUrl, kvToken);
+
+        // Update cursor — set lastCompiledBatch (explicitly exclude old summary field)
+        await kvSet(`discord:backfill:${channelId}`, {
+            messageCount: cursorData.messageCount,
+            lastMessageId: cursorData.lastMessageId,
+            batchCount: cursorData.batchCount,
+            lastCompiledBatch: currentBatch,
+            updatedAt: Date.now()
+        }, kvUrl, kvToken);
+
+        return res.status(200).json({
+            success: true,
+            batchesCompiled: batchSummaries.length,
+            fromBatch: lastCompiled + 1,
+            toBatch: currentBatch,
+            kbLength: compiledKb.length,
+            hadExistingKb: !!existingKb?.content
         });
     }
 
@@ -363,6 +492,7 @@ Deduplicate across channels. Keep specific names, dates, numbers, and quotes. Be
         usage: {
             channels: 'GET ?action=channels — List all channels',
             backfill: 'GET ?action=backfill&channel=ID — Backfill one channel',
+            compileRecent: 'GET ?action=compile-recent&channel=ID — Compile recent batches with Opus',
             compile: 'GET ?action=compile — Merge all into knowledge base'
         }
     });
