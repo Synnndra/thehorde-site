@@ -73,11 +73,25 @@ export default async function handler(req, res) {
                 createdAt: Date.now()
             };
             if (imageUrl && typeof imageUrl === 'string') {
-                defs[badgeId].imageUrl = String(imageUrl).slice(0, 512);
+                defs[badgeId].imageUrl = imageUrl;
             }
 
             await kvSet(DEFS_KEY, defs, KV_REST_API_URL, KV_REST_API_TOKEN);
             return res.status(200).json({ success: true, badge: defs[badgeId] });
+        }
+
+        // Mode: delete a badge definition (keeps awarded data)
+        if (mode === 'delete') {
+            if (!badgeId) {
+                return res.status(400).json({ error: 'badgeId required' });
+            }
+            const defs = await kvGet(DEFS_KEY, KV_REST_API_URL, KV_REST_API_TOKEN) || {};
+            if (!defs[badgeId]) {
+                return res.status(404).json({ error: 'Badge not found' });
+            }
+            delete defs[badgeId];
+            await kvSet(DEFS_KEY, defs, KV_REST_API_URL, KV_REST_API_TOKEN);
+            return res.status(200).json({ success: true, deleted: badgeId });
         }
 
         // Mode: award a badge to wallets

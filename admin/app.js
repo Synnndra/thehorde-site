@@ -360,6 +360,11 @@
         }
     }
 
+    document.getElementById('badge-image-file').addEventListener('change', function () {
+        var nameEl = document.getElementById('badge-file-name');
+        nameEl.textContent = this.files[0] ? this.files[0].name : '';
+    });
+
     badgeCreateForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         var errEl = document.getElementById('badge-create-error');
@@ -376,6 +381,15 @@
                 icon: document.getElementById('badge-icon-input').value.trim() || '⭐'
             };
             var imageUrl = document.getElementById('badge-image-input').value.trim();
+            var imageFile = document.getElementById('badge-image-file').files[0];
+            if (imageFile) {
+                imageUrl = await new Promise(function (resolve, reject) {
+                    var reader = new FileReader();
+                    reader.onload = function () { resolve(reader.result); };
+                    reader.onerror = function () { reject(new Error('Failed to read image file')); };
+                    reader.readAsDataURL(imageFile);
+                });
+            }
             if (imageUrl) body.imageUrl = imageUrl;
             var data = await fetchBadgeAdmin(body);
             if (!data) return;

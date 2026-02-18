@@ -174,6 +174,11 @@
                     <input type="text" id="badge-desc-input" placeholder="Description (optional)" maxlength="256">
                     <input type="text" id="badge-icon-input" placeholder="Icon emoji (default: ⭐)" maxlength="8">
                     <input type="text" id="badge-image-input" placeholder="Image URL (optional)">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <label for="badge-image-file" style="cursor:pointer;padding:6px 14px;background:#5a3e1b;border:1px solid #8b6914;border-radius:4px;color:#c4a54d;font-family:'Cinzel',serif;font-size:0.85rem;">Upload Image</label>
+                        <input type="file" id="badge-image-file" accept="image/*" style="display:none;">
+                        <span id="badge-file-name" style="color:#999;font-size:0.8rem;"></span>
+                    </div>
                     <button type="submit">Create Badge</button>
                 </form>
                 <p id="badge-create-error" class="error-text" hidden></p>
