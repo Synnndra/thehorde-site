@@ -172,7 +172,11 @@
                     <input type="text" id="badge-id-input" placeholder="badge_id (lowercase, underscores)" required pattern="^[a-z0-9_]+$">
                     <input type="text" id="badge-name-input" placeholder="Display Name" required maxlength="64">
                     <input type="text" id="badge-desc-input" placeholder="Description (optional)" maxlength="256">
-                    <input type="text" id="badge-icon-input" placeholder="Icon emoji (default: ⭐)" maxlength="8">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <input type="text" id="badge-icon-input" placeholder="Icon emoji (default: ⭐)" maxlength="8" style="flex:1;">
+                        <button type="button" id="badge-emoji-toggle" style="cursor:pointer;padding:6px 14px;background:#5a3e1b;border:1px solid #8b6914;border-radius:4px;color:#c4a54d;font-family:'Cinzel',serif;font-size:0.85rem;">😀 Emoji</button>
+                    </div>
+                    <div id="badge-emoji-picker" class="tweet-emoji-picker" hidden></div>
                     <input type="text" id="badge-image-input" placeholder="Image URL (optional)">
                     <div style="display:flex;align-items:center;gap:8px;">
                         <label for="badge-image-file" style="cursor:pointer;padding:6px 14px;background:#5a3e1b;border:1px solid #8b6914;border-radius:4px;color:#c4a54d;font-family:'Cinzel',serif;font-size:0.85rem;">Upload Image</label>

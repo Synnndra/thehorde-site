@@ -365,6 +365,19 @@
         nameEl.textContent = this.files[0] ? this.files[0].name : '';
     });
 
+    // Badge emoji picker
+    var badgeEmojiPicker = document.getElementById('badge-emoji-picker');
+    document.getElementById('badge-emoji-toggle').addEventListener('click', function () {
+        buildEmojiPickerContent(badgeEmojiPicker);
+        badgeEmojiPicker.hidden = !badgeEmojiPicker.hidden;
+    });
+    badgeEmojiPicker.addEventListener('click', function (e) {
+        var btn = e.target.closest('.emoji-btn');
+        if (!btn) return;
+        document.getElementById('badge-icon-input').value = btn.textContent;
+        badgeEmojiPicker.hidden = true;
+    });
+
     badgeCreateForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         var errEl = document.getElementById('badge-create-error');
