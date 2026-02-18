@@ -234,7 +234,7 @@ function handlePhantomRedirect() {
         }
     } catch (err) {
         console.error('Phantom deeplink error:', err);
-        if (connectError) connectError.textContent = 'Connection failed. Please try again.';
+        if (connectError) connectError.textContent = 'Error: ' + err.message;
         cleanupPhantomState();
         window.history.replaceState({}, '', window.location.pathname);
     }
