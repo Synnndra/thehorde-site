@@ -182,22 +182,32 @@ function startPhantomDeeplink() {
     var connectError = document.getElementById('connectError');
     if (connectError) connectError.textContent = 'Connecting to Phantom...';
 
-    // Generate X25519 keypair for encryption
-    var keypair = nacl.box.keyPair();
-    localStorage.setItem('phantom_dapp_keypair', JSON.stringify({
-        publicKey: toBase58(keypair.publicKey),
-        secretKey: toBase58(keypair.secretKey)
-    }));
-    localStorage.setItem('phantom_state', 'connecting');
+    try {
+        if (typeof nacl === 'undefined') throw new Error('tweetnacl not loaded');
+        if (typeof nacl.box === 'undefined') throw new Error('nacl.box not available');
 
-    var params = new URLSearchParams({
-        app_url: 'https://midhorde.com',
-        dapp_encryption_public_key: toBase58(keypair.publicKey),
-        cluster: 'mainnet-beta',
-        redirect_link: 'https://midhorde.com/fishing/?phantom_action=connect'
-    });
+        // Generate X25519 keypair for encryption
+        var keypair = nacl.box.keyPair();
+        localStorage.setItem('phantom_dapp_keypair', JSON.stringify({
+            publicKey: toBase58(keypair.publicKey),
+            secretKey: toBase58(keypair.secretKey)
+        }));
+        localStorage.setItem('phantom_state', 'connecting');
 
-    window.location.href = 'phantom://v1/connect?' + params.toString();
+        var params = new URLSearchParams({
+            app_url: 'https://midhorde.com',
+            dapp_encryption_public_key: toBase58(keypair.publicKey),
+            cluster: 'mainnet-beta',
+            redirect_link: 'https://midhorde.com/fishing/?phantom_action=connect'
+        });
+
+        var url = 'phantom://v1/connect?' + params.toString();
+        if (connectError) connectError.textContent = 'Opening Phantom app...';
+        window.location.href = url;
+    } catch (err) {
+        console.error('Deeplink error:', err);
+        if (connectError) connectError.textContent = 'Error: ' + err.message;
+    }
 }
 
 function handlePhantomRedirect() {
