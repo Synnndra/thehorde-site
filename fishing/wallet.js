@@ -206,7 +206,7 @@ function startPhantomDeeplink() {
         window.location.href = url;
     } catch (err) {
         console.error('Deeplink error:', err);
-        if (connectError) connectError.textContent = 'Error: ' + err.message;
+        if (connectError) connectError.textContent = 'Failed to connect. Please try again.';
     }
 }
 
@@ -234,7 +234,7 @@ function handlePhantomRedirect() {
         }
     } catch (err) {
         console.error('Phantom deeplink error:', err);
-        if (connectError) connectError.textContent = 'Error: ' + err.message;
+        if (connectError) connectError.textContent = 'Failed to connect. Please try again.';
         cleanupPhantomState();
         window.history.replaceState({}, '', window.location.pathname);
     }

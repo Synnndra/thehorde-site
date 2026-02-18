@@ -1089,22 +1089,7 @@ body {
     }
 
     .catch-log {
-        top: 30px;
-        left: 4px;
-        width: 130px;
-        padding: 6px;
-        max-height: 180px;
-        font-size: 0.65rem;
-    }
-
-    .catch-log h3 {
-        font-size: 0.75rem;
-        margin-bottom: 4px;
-    }
-
-    .catch-list {
-        max-height: 140px;
-        gap: 4px;
+        display: none;
     }
 
     .catch-item {
