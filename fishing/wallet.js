@@ -197,7 +197,7 @@ function startPhantomDeeplink() {
         redirect_link: 'https://midhorde.com/fishing/?phantom_action=connect'
     });
 
-    window.location.href = 'https://phantom.app/ul/v1/connect?' + params.toString();
+    window.location.href = 'phantom://v1/connect?' + params.toString();
 }
 
 function handlePhantomRedirect() {
@@ -291,7 +291,7 @@ function handlePhantomConnect(params, connectError) {
     });
 
     if (connectError) connectError.textContent = 'Redirecting to sign...';
-    window.location.href = 'https://phantom.app/ul/v1/signMessage?' + signParams.toString();
+    window.location.href = 'phantom://v1/signMessage?' + signParams.toString();
 }
 
 function handlePhantomSign(params, connectError) {
