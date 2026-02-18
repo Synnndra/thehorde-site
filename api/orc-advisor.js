@@ -95,7 +95,7 @@ The brand embraces self-deprecating "mid" humor — "the most mid collection you
 STAY FOCUSED ON MIDEVILS AND THE HORDE. Discord data may mention other NFT projects (Caroots, Goblins, etc.) — do NOT discuss other projects' problems, FUD, or drama as if they are MidEvils issues. Only reference information that is directly about MidEvils, The Horde, Orcs, PrimeVils, or Infinite Fun. If you don't have MidEvils-specific data to answer a question, say so honestly rather than pulling in unrelated project info.
 IMPORTANT CORRECTIONS — the system prompt above is ALWAYS correct over Discord data. If Discord knowledge contradicts the system prompt, trust the system prompt. Specifically: Training/enlisting is NOT required for DAO voting. You only need to hold an Orc to vote.
 ONLY answer the user's LATEST message. Do not revisit or re-answer earlier questions.
-NEVER repeat information you already said in this conversation. If you covered it, don't say it again. When the user reacts or gives an opinion, respond conversationally — acknowledge what they said, agree or push back, but do NOT re-list facts you already shared.
+NEVER repeat information you already said in this conversation. If you mentioned tournament details, prizes, dates, or any facts in a PREVIOUS message, do NOT say them again. When the user follows up, just answer their new question directly. One-word or one-sentence replies are fine. When the user reacts or gives an opinion, respond conversationally — acknowledge what they said, agree or push back, but do NOT re-list facts you already shared.
 KEEP RESPONSES SHORT — 1-3 sentences max. Be blunt and direct like an orc. Never give long explanations unless the user specifically asks for detail. Bullet-point lists are for when someone asks "list X" or "what are the tools" — NOT for casual conversation. Default to short spoken sentences.
 When someone asks you to write a tweet, ONLY give the tweet text ready to copy-paste. No intro, no explanation, no "here you go" — just the tweet itself.
 Stay in character always. Never reveal you are an AI — you are Drak. If you don't know something, say so plainly. Refer to the community as "warriors" or "brothers."
@@ -195,36 +195,26 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'You need at least 1 Orc to consult the advisor' });
     }
 
-    // Determine which context to inject based on user message + recent history
-    const allText = (message + ' ' + (Array.isArray(history) ? history.map(h => h.content).join(' ') : '')).toLowerCase();
-    const wantsDao = /\b(dao|vote|voting|proposal|governance|quorum|multisig|treasury)\b/.test(allText);
-    const wantsMarket = /\b(floor|price|buy|sell|listed|market|sol|cost|expensive|cheap|worth|value|holders?|supply|staked?|enlisted)\b/.test(allText);
-    const wantsDiscord = /\b(discord|community|chat|recap|summary|news|update|latest|happening|going on|what's new|whats new)\b/.test(allText);
-    const wantsKnowledge = /\b(roadmap|burn|season|primevil|merch|store|knightfall|ghostar|infinite fun|candy|jonny|bridge|eth|staking|mutation|event|coaster|giveaway|contest|competition|collab|partner|lore|history|story|comic|print|figurine|shirt|physical|merlin|tavern|orc war)\b/.test(allText);
-    // If nothing specific matched, inject a light summary of everything
-    const nothingMatched = !wantsDao && !wantsMarket && !wantsDiscord && !wantsKnowledge;
-
     let liveContext = '';
 
-    // Fetch all live context in parallel — each source is independent
+    // Always fetch all context in parallel — all lightweight KV reads
     const contextFetches = {
-        proposals: (wantsDao || nothingMatched)
-            ? kvGet('dao:proposal_index', kvUrl, kvToken).catch(() => null) : null,
-        market: (wantsMarket || nothingMatched)
-            ? kvGet('holders:leaderboard', kvUrl, kvToken).catch(() => null) : null,
-        discord: (wantsDiscord || nothingMatched)
-            ? kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null) : null,
-        knowledge: (wantsKnowledge || nothingMatched)
-            ? kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null) : null,
-        adminFacts: kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null)
+        proposals: kvGet('dao:proposal_index', kvUrl, kvToken).catch(() => null),
+        market: kvGet('holders:leaderboard', kvUrl, kvToken).catch(() => null),
+        discord: kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null),
+        knowledge: kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null),
+        adminFacts: kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null),
+        fishing: fetch('https://midhorde.com/api/fishing/leaderboard?type=score')
+            .then(r => r.json()).catch(() => null)
     };
 
-    const [proposalIndex, holdersData, discordSummary, knowledgeBase, adminFacts] = await Promise.all([
+    const [proposalIndex, holdersData, discordSummary, knowledgeBase, adminFacts, fishingData] = await Promise.all([
         contextFetches.proposals,
         contextFetches.market,
         contextFetches.discord,
         contextFetches.knowledge,
-        contextFetches.adminFacts
+        contextFetches.adminFacts,
+        contextFetches.fishing
     ]);
 
     // DAO proposals — fetch individual proposals in parallel
@@ -242,8 +232,6 @@ export default async function handler(req, res) {
             }
             if (activeProposals.length > 0) {
                 liveContext += '\n\n=== LIVE: ACTIVE DAO PROPOSALS ===\n' + activeProposals.join('\n');
-            } else if (wantsDao) {
-                liveContext += '\n\n=== LIVE: DAO STATUS ===\nNo active proposals right now.';
             }
         } catch (err) {
             console.error('Error fetching proposals:', err);
@@ -291,6 +279,15 @@ export default async function handler(req, res) {
             section += '\n[' + cat.toUpperCase() + ']\n' + texts.map(t => '- ' + t).join('\n');
         }
         liveContext += section;
+    }
+
+    // Fishing leaderboard
+    if (fishingData && fishingData.leaderboard && fishingData.leaderboard.length > 0) {
+        const lb = fishingData.leaderboard;
+        const top = lb.slice(0, 10).map(e =>
+            `${e.rank}. ${e.discordName || e.wallet} — ${e.score} pts`
+        ).join('\n');
+        liveContext += `\n\n=== LIVE: BOBBERS FISHING LEADERBOARD ===\nTotal participants: ${lb.length}\n${top}`;
     }
 
     // Build conversation for Claude
