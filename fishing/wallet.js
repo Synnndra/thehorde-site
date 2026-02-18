@@ -145,16 +145,196 @@ function toBase58(bytes) {
     return str;
 }
 
+function fromBase58(str) {
+    var alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    var bytes = [0];
+    for (var i = 0; i < str.length; i++) {
+        var value = alphabet.indexOf(str[i]);
+        if (value < 0) throw new Error('Invalid base58 character');
+        var carry = value;
+        for (var j = 0; j < bytes.length; j++) {
+            carry += bytes[j] * 58;
+            bytes[j] = carry & 0xff;
+            carry >>= 8;
+        }
+        while (carry > 0) {
+            bytes.push(carry & 0xff);
+            carry >>= 8;
+        }
+    }
+    // leading zeros
+    for (var i = 0; i < str.length && str[i] === '1'; i++) {
+        bytes.push(0);
+    }
+    return new Uint8Array(bytes.reverse());
+}
+
+// --- Phantom Universal Links (mobile deeplink flow) ---
+
+function cleanupPhantomState() {
+    ['phantom_dapp_keypair', 'phantom_session', 'phantom_shared_secret',
+     'phantom_wallet', 'phantom_state', 'phantom_sign_message'].forEach(function(k) {
+        localStorage.removeItem(k);
+    });
+}
+
+function startPhantomDeeplink() {
+    var connectError = document.getElementById('connectError');
+    if (connectError) connectError.textContent = 'Connecting to Phantom...';
+
+    // Generate X25519 keypair for encryption
+    var keypair = nacl.box.keyPair();
+    localStorage.setItem('phantom_dapp_keypair', JSON.stringify({
+        publicKey: toBase58(keypair.publicKey),
+        secretKey: toBase58(keypair.secretKey)
+    }));
+    localStorage.setItem('phantom_state', 'connecting');
+
+    var params = new URLSearchParams({
+        app_url: 'https://midhorde.com',
+        dapp_encryption_public_key: toBase58(keypair.publicKey),
+        cluster: 'mainnet-beta',
+        redirect_link: 'https://midhorde.com/fishing/?phantom_action=connect'
+    });
+
+    window.location.href = 'https://phantom.app/ul/v1/connect?' + params.toString();
+}
+
+function handlePhantomRedirect() {
+    var params = new URLSearchParams(window.location.search);
+    var action = params.get('phantom_action');
+    if (!action) return;
+
+    var connectError = document.getElementById('connectError');
+
+    // Check for error responses from Phantom
+    if (params.has('errorCode')) {
+        var errorMsg = decodeURIComponent(params.get('errorMessage') || 'Connection rejected');
+        if (connectError) connectError.textContent = errorMsg;
+        cleanupPhantomState();
+        window.history.replaceState({}, '', window.location.pathname);
+        return;
+    }
+
+    try {
+        if (action === 'connect') {
+            handlePhantomConnect(params, connectError);
+        } else if (action === 'sign') {
+            handlePhantomSign(params, connectError);
+        }
+    } catch (err) {
+        console.error('Phantom deeplink error:', err);
+        if (connectError) connectError.textContent = 'Connection failed. Please try again.';
+        cleanupPhantomState();
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+}
+
+function handlePhantomConnect(params, connectError) {
+    var phantomPubKeyB58 = params.get('phantom_encryption_public_key');
+    var nonceB58 = params.get('nonce');
+    var dataB58 = params.get('data');
+
+    if (!phantomPubKeyB58 || !nonceB58 || !dataB58) {
+        throw new Error('Missing connect response params');
+    }
+
+    // Recover our keypair from localStorage
+    var stored = JSON.parse(localStorage.getItem('phantom_dapp_keypair'));
+    if (!stored) throw new Error('Missing dapp keypair');
+
+    var ourSecretKey = fromBase58(stored.secretKey);
+    var phantomPubKey = fromBase58(phantomPubKeyB58);
+    var nonce = fromBase58(nonceB58);
+    var encryptedData = fromBase58(dataB58);
+
+    // Derive shared secret
+    var sharedSecret = nacl.box.before(phantomPubKey, ourSecretKey);
+    localStorage.setItem('phantom_shared_secret', toBase58(sharedSecret));
+
+    // Decrypt response
+    var decrypted = nacl.box.open.after(encryptedData, nonce, sharedSecret);
+    if (!decrypted) throw new Error('Failed to decrypt connect response');
+
+    var responseJSON = JSON.parse(nacl.util.decodeUTF8(decrypted));
+    var walletAddress = responseJSON.public_key;
+    var session = responseJSON.session;
+
+    localStorage.setItem('phantom_wallet', walletAddress);
+    localStorage.setItem('phantom_session', session);
+
+    // Build sign message (same format as desktop)
+    var timestamp = Date.now();
+    var message = 'Sign to play Bobbers\nWallet: ' + walletAddress + '\nTimestamp: ' + timestamp;
+    localStorage.setItem('phantom_sign_message', message);
+    localStorage.setItem('phantom_state', 'signing');
+
+    // Build signMessage request
+    var messageBytes = nacl.util.decodeUTF8(message);
+    var payload = JSON.stringify({
+        message: toBase58(messageBytes),
+        session: session
+    });
+
+    var freshNonce = nacl.randomBytes(24);
+    var encryptedPayload = nacl.box.after(
+        nacl.util.decodeUTF8(payload),
+        freshNonce,
+        sharedSecret
+    );
+
+    var signParams = new URLSearchParams({
+        dapp_encryption_public_key: stored.publicKey,
+        nonce: toBase58(freshNonce),
+        redirect_link: 'https://midhorde.com/fishing/?phantom_action=sign',
+        payload: toBase58(encryptedPayload)
+    });
+
+    if (connectError) connectError.textContent = 'Redirecting to sign...';
+    window.location.href = 'https://phantom.app/ul/v1/signMessage?' + signParams.toString();
+}
+
+function handlePhantomSign(params, connectError) {
+    var nonceB58 = params.get('nonce');
+    var dataB58 = params.get('data');
+
+    if (!nonceB58 || !dataB58) {
+        throw new Error('Missing sign response params');
+    }
+
+    var sharedSecretB58 = localStorage.getItem('phantom_shared_secret');
+    if (!sharedSecretB58) throw new Error('Missing shared secret');
+
+    var sharedSecret = fromBase58(sharedSecretB58);
+    var nonce = fromBase58(nonceB58);
+    var encryptedData = fromBase58(dataB58);
+
+    // Decrypt signature response
+    var decrypted = nacl.box.open.after(encryptedData, nonce, sharedSecret);
+    if (!decrypted) throw new Error('Failed to decrypt sign response');
+
+    var responseJSON = JSON.parse(nacl.util.decodeUTF8(decrypted));
+    var signature = responseJSON.signature;
+
+    var wallet = localStorage.getItem('phantom_wallet');
+    var message = localStorage.getItem('phantom_sign_message');
+
+    if (!wallet || !message) throw new Error('Missing wallet state');
+
+    // Clean up all deeplink state
+    cleanupPhantomState();
+    window.history.replaceState({}, '', window.location.pathname);
+
+    // Flow into normal game
+    onWalletConnected(wallet, signature, message);
+}
+
 async function connectWallet() {
     var wallets = getAvailableWallets();
 
     if (wallets.length === 0) {
         if (isMobileBrowser()) {
-            var connectError = document.getElementById('connectError');
-            var currentUrl = encodeURIComponent(window.location.href);
-            if (connectError) {
-                connectError.innerHTML = 'No wallet detected. <a href="https://phantom.app/ul/browse/' + currentUrl + '" style="color:var(--gold);">Open in Phantom</a>';
-            }
+            startPhantomDeeplink();
         } else {
             var connectError = document.getElementById('connectError');
             if (connectError) {
@@ -179,3 +359,15 @@ function onWalletConnected(wallet, signature, message) {
         handleWalletConnected(wallet, signature, message);
     }
 }
+
+// Handle Phantom deeplink redirects on page load
+(function() {
+    if (new URLSearchParams(window.location.search).has('phantom_action')) {
+        // Defer until DOM is ready so connectError element exists
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', handlePhantomRedirect);
+        } else {
+            handlePhantomRedirect();
+        }
+    }
+})();
