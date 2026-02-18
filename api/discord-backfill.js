@@ -13,7 +13,7 @@ export const config = { maxDuration: 300 };
 const DISCORD_API = 'https://discord.com/api/v10';
 const BATCH_SIZE = 100;          // Discord API max per request
 const MESSAGES_PER_CHUNK = 200;  // Messages per Claude summarization call
-const FETCH_LIMIT = 500;         // Max messages per backfill call (Sonnet extraction needs more time)
+const FETCH_LIMIT = 300;         // Keep under 300s timeout — fewer messages = fewer Claude chunks = no timeouts
 
 export default async function handler(req, res) {
     if (req.method !== 'GET' && req.method !== 'POST') {
