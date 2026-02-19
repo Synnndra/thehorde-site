@@ -768,21 +768,25 @@ function getRandomRarity() {
 // ============================================
 // UI UPDATES
 // ============================================
-function shareFishOnX() {
-    const fish = window._lastCaughtFish;
-    if (!fish) return;
-    const name = `${fish.color} ${fish.species}`;
-    const tweetText = `🎣 I just caught a ${fish.rarity} ${name} (${fish.weight}) in the Primordial Pit! +${fish.score} pts 🔥
+let _setShareFish;
+const shareFishOnX = (() => {
+    let _catch = null;
+    _setShareFish = (fish) => { _catch = fish; };
+    return () => {
+        if (!_catch) return;
+        const name = `${_catch.color} ${_catch.species}`;
+        const tweetText = `🎣 I just caught a ${_catch.rarity} ${name} (${_catch.weight}) in the Primordial Pit! +${_catch.score} pts 🔥
 
 Play now: https://midhorde.com/fishing/
 
-@MidEvilsNFT #MidEvils #PrimordialPit`;
-    const tweetUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
-    window.open(tweetUrl, '_blank', 'width=550,height=420');
-}
+@MidEvilsNFT @MidHorde #MidEvils #PrimordialPit`;
+        const tweetUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+        window.open(tweetUrl, '_blank', 'width=550,height=420');
+    };
+})();
 
 function displayCatch(fish) {
-    window._lastCaughtFish = fish;
+    _setShareFish(fish);
     elements.caughtFish.innerHTML = `
         <div class="fish-image">
             <img src="${fish.image}" alt="${fish.species}" width="150" height="150" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
