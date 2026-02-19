@@ -168,6 +168,18 @@ body {
     background: #555;
 }
 
+.btn-share-x {
+    background: #000;
+    color: #fff;
+    border: 1px solid #555;
+    margin-top: 8px;
+}
+
+.btn-share-x:hover {
+    background: #1a1a1a;
+    border-color: #fff;
+}
+
 .btn-cast {
     background: linear-gradient(135deg, #2d5a7b, #1e3a5f);
     color: white;

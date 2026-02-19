@@ -768,7 +768,21 @@ function getRandomRarity() {
 // ============================================
 // UI UPDATES
 // ============================================
+function shareFishOnX() {
+    const fish = window._lastCaughtFish;
+    if (!fish) return;
+    const name = `${fish.color} ${fish.species}`;
+    const tweetText = `🎣 I just caught a ${fish.rarity} ${name} (${fish.weight}) in the Primordial Pit! +${fish.score} pts 🔥
+
+Play now: https://midhorde.com/fishing/
+
+@MidEvilsNFT #MidEvils #PrimordialPit`;
+    const tweetUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+    window.open(tweetUrl, '_blank', 'width=550,height=420');
+}
+
 function displayCatch(fish) {
+    window._lastCaughtFish = fish;
     elements.caughtFish.innerHTML = `
         <div class="fish-image">
             <img src="${fish.image}" alt="${fish.species}" width="150" height="150" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
@@ -782,6 +796,7 @@ function displayCatch(fish) {
             ${fish.special !== 'None' ? `<span class="trait">${fish.special}</span>` : ''}
         </div>
         <div class="fish-score">+${fish.score} pts</div>
+        <button class="btn btn-share-x" onclick="shareFishOnX()">Share on 𝕏</button>
     `;
 
     elements.catchDisplay.style.display = 'flex';
