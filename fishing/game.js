@@ -800,9 +800,10 @@ function displayCatch(fish) {
             ${fish.special !== 'None' ? `<span class="trait">${fish.special}</span>` : ''}
         </div>
         <div class="fish-score">+${fish.score} pts</div>
-        <button class="btn btn-share-x" onclick="shareFishOnX()">Share on 𝕏</button>
+        <button class="btn btn-share-x" id="shareFishBtn">Share on 𝕏</button>
     `;
 
+    document.getElementById('shareFishBtn').addEventListener('click', shareFishOnX);
     elements.catchDisplay.style.display = 'flex';
     elements.fisherman.style.display = 'none';
 }
