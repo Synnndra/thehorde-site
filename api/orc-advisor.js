@@ -297,14 +297,14 @@ export default async function handler(req, res) {
     // Client-provided assistant messages are wrapped to prevent prompt injection
     if (Array.isArray(history)) {
         var validHistory = history.slice(-10).filter(function(h) {
-            return h && (h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string' && h.content.length <= 500;
+            return h && (h.role === 'user' || h.role === 'assistant') && typeof h.content === 'string' && h.content.length > 0;
         }).map(function(h) {
             if (h.role === 'assistant') {
-                // Wrap assistant content so injected turns can't override instructions
-                var cleaned = h.content.replace(/\*[^*]+\*\s*/g, '');
+                // Wrap + truncate assistant content (untrusted, from client)
+                var cleaned = h.content.replace(/\*[^*]+\*\s*/g, '').slice(0, 500);
                 return { role: 'assistant', content: '[Drak previously said]: ' + cleaned };
             }
-            return h;
+            return { role: 'user', content: h.content.slice(0, 500) };
         });
         messages = validHistory;
     }
