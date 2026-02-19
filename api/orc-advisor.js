@@ -324,7 +324,7 @@ export default async function handler(req, res) {
             }
         ];
         if (liveContext) {
-            systemBlocks.push({ type: 'text', text: liveContext });
+            systemBlocks.push({ type: 'text', text: liveContext, cache_control: { type: 'ephemeral' } });
         }
 
         const response = await client.messages.create({
