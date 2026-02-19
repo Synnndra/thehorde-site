@@ -31,6 +31,10 @@
     {
       "path": "/api/fishing/tournament-results",
       "schedule": "59 20 21 2 *"
+    },
+    {
+      "path": "/api/drak-review",
+      "schedule": "0 5,17 * * *"
     }
   ],
   "rewrites": [
@@ -90,7 +94,8 @@
     { "source": "/api/orc-advisor", "destination": "/api/orc-advisor.js" },
     { "source": "/api/drak-knowledge", "destination": "/api/drak-knowledge.js" },
     { "source": "/api/orc-tts", "destination": "/api/orc-tts.js" },
-    { "source": "/api/discord-kb-update", "destination": "/api/discord-kb-update.js" }
+    { "source": "/api/discord-kb-update", "destination": "/api/discord-kb-update.js" },
+    { "source": "/api/drak-review", "destination": "/api/drak-review.js" }
   ],
   "headers": [
     {

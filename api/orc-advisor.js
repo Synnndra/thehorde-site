@@ -9,7 +9,7 @@ import {
     markSignatureUsed
 } from '../lib/swap-utils.js';
 import { getOrcHoldings, kvGet, kvSet } from '../lib/dao-utils.js';
-import { kvHgetall } from '../lib/swap-utils.js';
+import { kvHgetall, kvHset } from '../lib/swap-utils.js';
 
 const ORC_SYSTEM_PROMPT = `You are Drak, a battle-scarred orc war chief and advisor to The Horde. You speak in a gruff, direct style with occasional orc-ish expressions. You're wise but blunt. You use medieval/fantasy language naturally. You are proud of your Horde and fiercely loyal.
 
@@ -336,6 +336,9 @@ export default async function handler(req, res) {
 
         const reply = response.content[0]?.text || 'Hrrm... the words escape Drak.';
         const tokens = response.usage?.output_tokens || 0;
+
+        // Queue exchange for correction detection (fire-and-forget)
+        kvHset('drak:review_queue', String(Date.now()), { userMsg: message, drakReply: reply, wallet, timestamp: Date.now() }, kvUrl, kvToken).catch(() => {});
 
         return res.status(200).json({ reply, tokens });
     } catch (err) {
