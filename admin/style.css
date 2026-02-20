@@ -46,9 +46,8 @@ h1, h2, h3 { font-family: var(--font-display); }
 /* Login */
 #login-screen {
     display: flex;
-    align-items: center;
     justify-content: center;
-    min-height: 100vh;
+    padding: 1.5rem 0;
 }
 
 .login-box {
