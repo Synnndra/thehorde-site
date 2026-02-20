@@ -107,12 +107,14 @@ export default async function handler(req, res) {
         // Gather live context from KV
         let context = '';
 
-        const [discordSummary, knowledgeBase, proposalIndex, holdersData, adminFacts] = await Promise.all([
+        const [discordSummary, knowledgeBase, proposalIndex, holdersData, adminFacts, recentDrafts, drakExchanges] = await Promise.all([
             kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null),
             kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null),
             kvGet('dao:proposal_index', kvUrl, kvToken).catch(() => null),
             kvGet('holders:leaderboard', kvUrl, kvToken).catch(() => null),
-            kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null)
+            kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null),
+            kvHgetall('x:drafts', kvUrl, kvToken).catch(() => null),
+            kvHgetall('drak:review_queue', kvUrl, kvToken).catch(() => null)
         ]);
 
         // Discord recap
@@ -125,7 +127,7 @@ export default async function handler(req, res) {
 
         // Knowledge base
         if (knowledgeBase?.content) {
-            context += `\nCOMMUNITY KNOWLEDGE:\n${knowledgeBase.content.slice(0, 500)}`;
+            context += `\nCOMMUNITY KNOWLEDGE:\n${knowledgeBase.content.slice(0, 2000)}`;
         }
 
         // Active proposals
@@ -175,6 +177,22 @@ export default async function handler(req, res) {
                     }
                 }
             }
+        }
+
+        // Recent tweet drafts — so it doesn't repeat themes
+        if (recentDrafts && Object.keys(recentDrafts).length > 0) {
+            const drafts = Object.values(recentDrafts)
+                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+                .slice(0, 10);
+            const draftTexts = drafts.map(d => `- ${d.text}`).join('\n');
+            context += `\nRECENT TWEETS (do NOT repeat these themes or phrases):\n${draftTexts}`;
+        }
+
+        // Recent Drak conversations — what the community is actually talking about
+        if (drakExchanges && Object.keys(drakExchanges).length > 0) {
+            const exchanges = Object.values(drakExchanges).slice(-10);
+            const convos = exchanges.map(e => `- Q: ${e.userMsg.slice(0, 100)}`).join('\n');
+            context += `\nWHAT THE COMMUNITY IS ASKING DRAK:\n${convos}`;
         }
 
         // X Research — pull recent tweets, using cache if fresh enough (6 hours)
