@@ -876,7 +876,7 @@ async function syncNavDiscordToWallet() {
 
     if (localId && localUsername && userWallet && walletSignature && walletMessage) {
         try {
-            await fetch('/api/fishing/discord-status', {
+            const resp = await fetch('/api/fishing/discord-status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -888,8 +888,12 @@ async function syncNavDiscordToWallet() {
                     message: walletMessage
                 })
             });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                console.error('Discord sync failed:', err.error || resp.status);
+            }
         } catch (e) {
-            // Sync is best-effort
+            console.error('Discord sync error:', e);
         }
     }
 }
