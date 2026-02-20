@@ -1016,6 +1016,10 @@
             html += '<div class="tweet-draft-topic">Topic: ' + escapeHtml(d.topic) + '</div>';
         }
 
+        if (d.quoteTweetId) {
+            html += '<div class="tweet-draft-topic">Quote tweet: <a href="https://x.com/' + escapeHtml(d.quotedUsername || 'i') + '/status/' + escapeHtml(d.quoteTweetId) + '" target="_blank" rel="noopener">@' + escapeHtml(d.quotedUsername || '?') + '</a></div>';
+        }
+
         html += '<div class="tweet-editor-wrap">' + buildEditorHtml(textareaId, displayText, editable) + '</div>';
 
         // Suggested tags
@@ -1381,9 +1385,174 @@
         }
     });
 
+    // ---- Suggested Engagement ----
+
+    var engagementFindBtn = document.getElementById('engagement-find-btn');
+
+    async function loadEngagementSuggestions() {
+        var listEl = document.getElementById('engagement-list');
+        var emptyEl = document.getElementById('engagement-empty');
+        var statusEl = document.getElementById('engagement-status');
+        statusEl.hidden = true;
+
+        engagementFindBtn.disabled = true;
+        engagementFindBtn.textContent = 'Searching...';
+
+        try {
+            var data = await fetchTweetAdmin({ mode: 'suggest-retweets' });
+            if (!data) return;
+
+            listEl.innerHTML = '';
+            var suggestions = data.suggestions || [];
+            var pending = suggestions.filter(function (s) { return s.status === 'pending'; });
+            var actioned = suggestions.filter(function (s) { return s.status !== 'pending'; });
+
+            if (pending.length === 0 && actioned.length === 0) {
+                emptyEl.hidden = false;
+                return;
+            }
+            emptyEl.hidden = true;
+
+            if (data.cached) {
+                statusEl.textContent = 'Showing cached results';
+                statusEl.hidden = false;
+            }
+
+            // Render pending first, then actioned
+            pending.forEach(function (s) { listEl.appendChild(buildEngagementCard(s)); });
+            actioned.forEach(function (s) { listEl.appendChild(buildEngagementCard(s)); });
+        } catch (err) {
+            statusEl.textContent = 'Error: ' + err.message;
+            statusEl.style.color = '#e44';
+            statusEl.hidden = false;
+        } finally {
+            engagementFindBtn.disabled = false;
+            engagementFindBtn.textContent = 'Find Posts';
+        }
+    }
+
+    function buildEngagementCard(s) {
+        var card = document.createElement('div');
+        card.className = 'engagement-card';
+        card.dataset.tweetId = s.tweetId;
+        card.dataset.suggestionId = s.id;
+
+        if (s.status !== 'pending') card.classList.add('actioned');
+
+        var html = '<div class="engagement-author">' +
+            '<a href="https://x.com/' + escapeHtml(s.username) + '/status/' + escapeHtml(s.tweetId) + '" target="_blank" rel="noopener">@' + escapeHtml(s.username) + '</a>';
+        if (s.status !== 'pending') {
+            html += ' <span class="engagement-status-badge ' + escapeHtml(s.status) + '">' + escapeHtml(s.status) + '</span>';
+        }
+        html += '</div>';
+
+        html += '<div class="engagement-text">' + escapeHtml(s.text) + '</div>';
+
+        if (s.metrics) {
+            html += '<div class="engagement-metrics">';
+            if (s.metrics.like_count != null) html += '<span class="engagement-metric">' + s.metrics.like_count + ' likes</span>';
+            if (s.metrics.retweet_count != null) html += '<span class="engagement-metric">' + s.metrics.retweet_count + ' RTs</span>';
+            if (s.metrics.reply_count != null) html += '<span class="engagement-metric">' + s.metrics.reply_count + ' replies</span>';
+            if (s.metrics.impression_count != null) html += '<span class="engagement-metric">' + s.metrics.impression_count + ' views</span>';
+            html += '</div>';
+        }
+
+        if (s.status === 'pending') {
+            html += '<div class="engagement-card-actions">' +
+                '<button class="eng-retweet-btn">Retweet</button>' +
+                '<button class="eng-like-btn">Like</button>' +
+                '<button class="eng-quote-btn">Quote Tweet</button>' +
+                '<button class="eng-dismiss-btn btn-small" style="background:var(--color-bg);border:1px solid var(--border);color:var(--color-text-dim);">Dismiss</button>' +
+                '</div>';
+        }
+
+        card.innerHTML = html;
+        return card;
+    }
+
+    // Engagement action handlers (delegated)
+    document.getElementById('engagement-list').addEventListener('click', async function (e) {
+        var card = e.target.closest('.engagement-card');
+        if (!card) return;
+        var tid = card.dataset.tweetId;
+        var sid = card.dataset.suggestionId;
+
+        // Retweet
+        if (e.target.closest('.eng-retweet-btn')) {
+            if (!confirm('Retweet this post as @midhorde?')) return;
+            var btn = e.target.closest('.eng-retweet-btn');
+            btn.disabled = true;
+            btn.textContent = 'Retweeting...';
+            try {
+                await fetchTweetAdmin({ mode: 'retweet', tweetId: tid });
+                card.classList.add('actioned');
+                card.querySelector('.engagement-card-actions').innerHTML = '<span class="engagement-status-badge retweeted">retweeted</span>';
+            } catch (err) {
+                alert('Error: ' + err.message);
+                btn.disabled = false;
+                btn.textContent = 'Retweet';
+            }
+            return;
+        }
+
+        // Like
+        if (e.target.closest('.eng-like-btn')) {
+            var btn = e.target.closest('.eng-like-btn');
+            btn.disabled = true;
+            btn.textContent = 'Liking...';
+            try {
+                await fetchTweetAdmin({ mode: 'like', tweetId: tid });
+                card.classList.add('actioned');
+                card.querySelector('.engagement-card-actions').innerHTML = '<span class="engagement-status-badge liked">liked</span>';
+            } catch (err) {
+                alert('Error: ' + err.message);
+                btn.disabled = false;
+                btn.textContent = 'Like';
+            }
+            return;
+        }
+
+        // Quote Tweet
+        if (e.target.closest('.eng-quote-btn')) {
+            var btn = e.target.closest('.eng-quote-btn');
+            btn.disabled = true;
+            btn.textContent = 'Creating draft...';
+            try {
+                await fetchTweetAdmin({ mode: 'quote-tweet', tweetId: tid });
+                card.classList.add('actioned');
+                card.querySelector('.engagement-card-actions').innerHTML = '<span class="engagement-status-badge quoted">quoted</span>';
+                // Refresh drafts so the new quote draft shows up
+                loadTweetDrafts();
+            } catch (err) {
+                alert('Error: ' + err.message);
+                btn.disabled = false;
+                btn.textContent = 'Quote Tweet';
+            }
+            return;
+        }
+
+        // Dismiss
+        if (e.target.closest('.eng-dismiss-btn')) {
+            try {
+                await fetchTweetAdmin({ mode: 'dismiss-suggestion', suggestionId: sid });
+                card.remove();
+                // Check if list is now empty
+                var listEl = document.getElementById('engagement-list');
+                if (listEl.children.length === 0) {
+                    document.getElementById('engagement-empty').hidden = false;
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+            return;
+        }
+    });
+
+    engagementFindBtn.addEventListener('click', loadEngagementSuggestions);
+
     // ---- Collapsible Cards ----
 
-    var DEFAULT_COLLAPSED = ['health-section', 'stats-section', 'search-section', 'badges-section', 'offers-section', 'metrics-section'];
+    var DEFAULT_COLLAPSED = ['health-section', 'stats-section', 'search-section', 'badges-section', 'offers-section', 'metrics-section', 'engagement-section'];
 
     function initCollapsibleCards() {
         var cards = document.querySelectorAll('.card[id]');
