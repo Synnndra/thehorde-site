@@ -72,10 +72,10 @@
                 sessionStorage.setItem('admin_secret', secret);
                 passwordInput.value = '';
                 showDashboard();
+                await loadResearchAccounts();
                 loadAll();
                 loadBadges();
                 loadKnowledgeFacts();
-                loadResearchAccounts();
             } else {
                 loginError.textContent = res.status === 403 ? 'Invalid secret.' : 'Login failed.';
                 loginError.hidden = false;
@@ -1343,11 +1343,12 @@
 
     if (getSecret()) {
         showDashboard();
-        loadAll();
+        loadResearchAccounts().then(function () {
+            loadAll();
+            loadTweetDrafts();
+        });
         loadBadges();
         loadKnowledgeFacts();
-        loadResearchAccounts();
-        loadTweetDrafts();
     } else {
         showLogin();
     }

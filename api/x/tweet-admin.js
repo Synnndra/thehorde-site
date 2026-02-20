@@ -74,6 +74,12 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'Tweet text is empty' });
             }
 
+            // Ensure @MidEvilsNFT is always included
+            let finalText = tweetText;
+            if (!finalText.toLowerCase().includes('@midevilsnft')) {
+                finalText = finalText.trimEnd() + '\n\n@MidEvilsNFT';
+            }
+
             // Post to X (upload media first if provided)
             try {
                 let mediaIds = null;
@@ -81,7 +87,7 @@ export default async function handler(req, res) {
                     const mediaId = await uploadMedia(imageBase64, imageMimeType || 'image/png');
                     mediaIds = [mediaId];
                 }
-                const result = await postTweet(tweetText, mediaIds);
+                const result = await postTweet(finalText, mediaIds);
 
                 draft.status = 'posted';
                 draft.editedText = text ? tweetText : null;
