@@ -35,6 +35,10 @@
     {
       "path": "/api/drak-review",
       "schedule": "0 5,17 * * *"
+    },
+    {
+      "path": "/api/x/tweet-metrics",
+      "schedule": "0 14 * * *"
     }
   ],
   "rewrites": [
@@ -58,6 +62,7 @@
     { "source": "/api/x/tweet-admin", "destination": "/api/x/tweet-admin.js" },
     { "source": "/api/x/queue-campaign", "destination": "/api/x/queue-campaign.js" },
     { "source": "/api/x/campaign-notify", "destination": "/api/x/campaign-notify.js" },
+    { "source": "/api/x/tweet-metrics", "destination": "/api/x/tweet-metrics.js" },
     { "source": "/api/swap/admin-txlog", "destination": "/api/swap/admin-txlog.js" },
     { "source": "/admin", "destination": "/admin/index.html" },
     { "source": "/minigame", "destination": "/minigame/index.html" },

@@ -205,16 +205,18 @@ export default async function handler(req, res) {
         knowledge: kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null),
         adminFacts: kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null),
         fishing: fetch('https://midhorde.com/api/fishing/leaderboard?type=score')
-            .then(r => r.json()).catch(() => null)
+            .then(r => r.json()).catch(() => null),
+        memory: kvGet(`drak:memory:${wallet}`, kvUrl, kvToken).catch(() => null)
     };
 
-    const [proposalIndex, holdersData, discordSummary, knowledgeBase, adminFacts, fishingData] = await Promise.all([
+    const [proposalIndex, holdersData, discordSummary, knowledgeBase, adminFacts, fishingData, walletMemory] = await Promise.all([
         contextFetches.proposals,
         contextFetches.market,
         contextFetches.discord,
         contextFetches.knowledge,
         contextFetches.adminFacts,
-        contextFetches.fishing
+        contextFetches.fishing,
+        contextFetches.memory
     ]);
 
     // DAO proposals — fetch individual proposals in parallel
@@ -290,6 +292,11 @@ export default async function handler(req, res) {
         liveContext += `\n\n=== LIVE: BOBBERS FISHING LEADERBOARD ===\nTotal participants: ${lb.length}\n${top}`;
     }
 
+    // Wallet memory — things Drak remembers about this holder
+    if (walletMemory && walletMemory.summary) {
+        liveContext += `\n\n=== YOU REMEMBER THIS HOLDER ===\nYou've spoken to this warrior before. Here's what you remember: ${walletMemory.summary}\nUse this naturally — don't announce "I remember you" unless it fits. Just let your knowledge of them color your responses.`;
+    }
+
     // Build conversation for Claude
     var messages = [];
 
@@ -339,6 +346,35 @@ export default async function handler(req, res) {
 
         // Queue exchange for correction detection (fire-and-forget)
         kvHset('drak:review_queue', String(Date.now()), { userMsg: message, drakReply: reply, wallet, timestamp: Date.now() }, kvUrl, kvToken).catch(() => {});
+
+        // Fire-and-forget: extract memory from this exchange via Haiku
+        (async () => {
+            try {
+                const existingSummary = walletMemory?.summary || '';
+                const memoryClient = new Anthropic({ apiKey: anthropicApiKey });
+                const extraction = await memoryClient.messages.create({
+                    model: 'claude-haiku-4-5-20251001',
+                    max_tokens: 150,
+                    system: 'You extract key facts about a user from their conversation with an orc advisor chatbot. Output a brief summary (max 300 chars) of what is worth remembering about this person — holdings, interests, opinions, preferences, notable interactions. If existing memory is provided, merge new info into it. Drop stale or trivial details. Output ONLY the summary text, nothing else.',
+                    messages: [{
+                        role: 'user',
+                        content: `Existing memory: ${existingSummary || '(none)'}\n\nUser said: ${message}\nDrak replied: ${reply}\n\nUpdated summary:`
+                    }]
+                });
+                const newSummary = extraction.content[0]?.text?.trim();
+                if (newSummary && newSummary.length > 5) {
+                    // Store memory with 30-day TTL
+                    const memoryKey = `drak:memory:${wallet}`;
+                    await kvSet(memoryKey, { summary: newSummary.slice(0, 300), updatedAt: Date.now() }, kvUrl, kvToken);
+                    // Set 30-day TTL via EXPIRE
+                    await fetch(`${kvUrl}/expire/${memoryKey}/2592000`, {
+                        headers: { 'Authorization': `Bearer ${kvToken}` }
+                    });
+                }
+            } catch (err) {
+                console.error('Memory extraction failed (non-fatal):', err.message);
+            }
+        })();
 
         return res.status(200).json({ reply, tokens });
     } catch (err) {

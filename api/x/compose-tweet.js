@@ -107,14 +107,15 @@ export default async function handler(req, res) {
         // Gather live context from KV
         let context = '';
 
-        const [discordSummary, knowledgeBase, proposalIndex, holdersData, adminFacts, recentDrafts, drakExchanges] = await Promise.all([
+        const [discordSummary, knowledgeBase, proposalIndex, holdersData, adminFacts, recentDrafts, drakExchanges, tweetMetrics] = await Promise.all([
             kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null),
             kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null),
             kvGet('dao:proposal_index', kvUrl, kvToken).catch(() => null),
             kvGet('holders:leaderboard', kvUrl, kvToken).catch(() => null),
             kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null),
             kvHgetall('x:drafts', kvUrl, kvToken).catch(() => null),
-            kvHgetall('drak:review_queue', kvUrl, kvToken).catch(() => null)
+            kvHgetall('drak:review_queue', kvUrl, kvToken).catch(() => null),
+            kvHgetall('x:tweet_metrics', kvUrl, kvToken).catch(() => null)
         ]);
 
         // Discord recap
@@ -193,6 +194,20 @@ export default async function handler(req, res) {
             const exchanges = Object.values(drakExchanges).slice(-10);
             const convos = exchanges.map(e => `- Q: ${e.userMsg.slice(0, 100)}`).join('\n');
             context += `\nWHAT THE COMMUNITY IS ASKING DRAK:\n${convos}`;
+        }
+
+        // Top performing tweets — so Drak can learn what resonates
+        if (tweetMetrics && Object.keys(tweetMetrics).length > 0) {
+            const sorted = Object.values(tweetMetrics)
+                .filter(m => m.engagement > 0)
+                .sort((a, b) => b.engagement - a.engagement)
+                .slice(0, 5);
+            if (sorted.length > 0) {
+                const topTweets = sorted.map(m =>
+                    `- "${m.text?.slice(0, 150)}" (${m.likes} likes, ${m.retweets} RTs, ${m.replies} replies)`
+                ).join('\n');
+                context += `\nTOP PERFORMING TWEETS (emulate this style/tone — these got the most engagement):\n${topTweets}`;
+            }
         }
 
         // X Research — pull recent tweets, using cache if fresh enough (6 hours)
