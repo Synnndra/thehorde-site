@@ -65,6 +65,7 @@
     { "source": "/api/x/tweet-metrics", "destination": "/api/x/tweet-metrics.js" },
     { "source": "/api/swap/admin-txlog", "destination": "/api/swap/admin-txlog.js" },
     { "source": "/admin", "destination": "/admin/index.html" },
+    { "source": "/admin/tweets", "destination": "/admin/tweets.html" },
     { "source": "/minigame", "destination": "/minigame/index.html" },
     { "source": "/swap", "destination": "/swap/index.html" },
     { "source": "/api/holders", "destination": "/api/holders.js" },
