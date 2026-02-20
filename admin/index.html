@@ -30,134 +30,11 @@
         <header>
             <h1>Admin Dashboard</h1>
             <div class="header-actions">
+                <a href="/admin/tweets" class="admin-nav-link">Tweets &rarr;</a>
                 <button id="refresh-btn" title="Refresh">&#x21bb; Refresh</button>
                 <button id="logout-btn">Logout</button>
             </div>
         </header>
-
-        <!-- Tweet Queue -->
-        <section class="card" id="tweets-section">
-            <h2>Tweet Queue</h2>
-
-            <!-- Compose -->
-            <div class="tweet-subsection">
-                <h3>Compose Tweet</h3>
-                <form id="tweet-compose-form" class="tweet-form">
-                    <input type="text" id="tweet-topic-input" placeholder="Topic (optional — leave blank for auto)">
-                    <button type="submit">Compose</button>
-                </form>
-                <p id="tweet-compose-status" class="success-text" hidden></p>
-                <p id="tweet-compose-error" class="error-text" hidden></p>
-            </div>
-
-            <!-- Pending Drafts -->
-            <div class="tweet-subsection">
-                <h3>Pending Drafts</h3>
-                <button id="tweet-refresh-btn" class="btn-small">Refresh</button>
-                <div id="tweet-drafts-list"></div>
-                <p id="tweet-drafts-empty" class="empty-text" hidden>No drafts.</p>
-            </div>
-
-            <!-- Posted History -->
-            <div class="tweet-subsection">
-                <h3>Posted History</h3>
-                <button id="tweet-history-btn" class="btn-small">Refresh</button>
-                <div id="tweet-history-list"></div>
-            </div>
-        </section>
-
-        <!-- Tweet Performance -->
-        <section class="card" id="metrics-section">
-            <h2>Tweet Performance</h2>
-            <div class="tweet-subsection">
-                <div class="metrics-actions">
-                    <button id="metrics-refresh-btn" class="btn-small">Refresh</button>
-                    <button id="metrics-fetch-btn" class="btn-small">Fetch Latest Metrics</button>
-                    <span id="metrics-fetch-status" class="success-text" style="font-size:0.8rem;" hidden></span>
-                </div>
-                <div class="table-wrap">
-                    <table id="metrics-table">
-                        <thead>
-                            <tr>
-                                <th>Tweet</th>
-                                <th>Likes</th>
-                                <th>RTs</th>
-                                <th>Replies</th>
-                                <th>Impressions</th>
-                                <th>Engagement</th>
-                                <th>Posted</th>
-                            </tr>
-                        </thead>
-                        <tbody id="metrics-body"></tbody>
-                    </table>
-                </div>
-                <p id="metrics-empty" class="empty-text" hidden>No metrics yet. Click "Fetch Latest Metrics" to pull data from X.</p>
-            </div>
-        </section>
-
-        <!-- Suggested Engagement -->
-        <section class="card" id="engagement-section">
-            <h2>Suggested Engagement</h2>
-            <div class="tweet-subsection">
-                <div class="engagement-actions">
-                    <button id="engagement-find-btn" class="btn-small">Find Posts</button>
-                    <span id="engagement-status" class="success-text" style="font-size:0.8rem;" hidden></span>
-                </div>
-                <div id="engagement-list"></div>
-                <p id="engagement-empty" class="empty-text" hidden>No suggestions. Click "Find Posts" to search.</p>
-            </div>
-        </section>
-
-        <!-- Knowledge Base -->
-        <section class="card" id="knowledge-section">
-            <h2>Drak Knowledge Base</h2>
-
-            <!-- Add Fact -->
-            <div class="knowledge-subsection">
-                <h3>Add Fact</h3>
-                <form id="knowledge-add-form" class="knowledge-form">
-                    <textarea id="knowledge-text-input" placeholder="Fact text (max 500 chars)" rows="3" maxlength="500" required></textarea>
-                    <select id="knowledge-category-input">
-                        <option value="general">General</option>
-                        <option value="project">Project</option>
-                        <option value="community">Community</option>
-                        <option value="market">Market</option>
-                        <option value="lore">Lore</option>
-                    </select>
-                    <label class="knowledge-image-label">
-                        <span class="btn-small">Attach Image</span>
-                        <input type="file" id="knowledge-image-input" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
-                    </label>
-                    <div id="knowledge-image-preview" class="knowledge-image-preview" hidden>
-                        <img id="knowledge-image-thumb">
-                        <button type="button" id="knowledge-image-remove" class="btn-small btn-danger">Remove</button>
-                    </div>
-                    <button type="submit">Add Fact</button>
-                </form>
-                <p id="knowledge-add-error" class="error-text" hidden></p>
-                <p id="knowledge-add-success" class="success-text" hidden></p>
-            </div>
-
-            <!-- Existing Facts -->
-            <div class="knowledge-subsection">
-                <h3>Existing Facts</h3>
-                <button id="knowledge-refresh-btn" class="btn-small">Refresh</button>
-                <div id="knowledge-list" class="knowledge-list"></div>
-                <p id="knowledge-list-empty" class="empty-text" hidden>No facts added yet.</p>
-            </div>
-
-            <!-- Monitored X Accounts -->
-            <div class="knowledge-subsection">
-                <h3>Monitored X Accounts</h3>
-                <p class="subsection-hint">Drak researches these accounts before composing tweets. One handle per line (no @).</p>
-                <textarea id="research-accounts-input" placeholder="BrokeFury&#10;synndrabtc&#10;sircandyapple" rows="6"></textarea>
-                <div class="knowledge-form-actions">
-                    <button id="research-accounts-save" class="btn-small">Save Accounts</button>
-                </div>
-                <p id="research-accounts-error" class="error-text" hidden></p>
-                <p id="research-accounts-success" class="success-text" hidden></p>
-            </div>
-        </section>
 
         <!-- Health Stoplight -->
         <section class="card" id="health-section">
@@ -285,6 +162,7 @@
         </section>
     </div>
 
+    <script src="/admin/emoji-data.js"></script>
     <script src="/admin/app.js"></script>
 </body>
 </html>

@@ -1190,6 +1190,25 @@ tr.txlog-row td {
 .engagement-status-badge.quoted { background: #2a3a5a; color: #8cc4ff; }
 .engagement-status-badge.dismissed { background: #3a3a3a; color: #999; }
 
+/* Admin Nav Link */
+.admin-nav-link {
+    color: var(--color-accent);
+    text-decoration: none;
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--color-accent);
+    border-radius: 4px;
+    transition: background 0.2s;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+}
+
+.admin-nav-link:hover {
+    background: rgba(201, 162, 39, 0.1);
+}
+
 /* Responsive */
 @media (max-width: 600px) {
     .stats-row { gap: 0.5rem; }
