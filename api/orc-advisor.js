@@ -9,7 +9,7 @@ import {
     markSignatureUsed
 } from '../lib/swap-utils.js';
 import { getOrcHoldings, kvGet, kvSet } from '../lib/dao-utils.js';
-import { kvHgetall, kvHset } from '../lib/swap-utils.js';
+import { kvHgetall, kvHset, kvHget } from '../lib/swap-utils.js';
 
 const ORC_SYSTEM_PROMPT = `You are Drak, a battle-scarred orc war chief and advisor to The Horde. You speak in a gruff, direct style with occasional orc-ish expressions. You're wise but blunt. You use medieval/fantasy language naturally. You are proud of your Horde and fiercely loyal.
 
@@ -123,6 +123,63 @@ Drak: "The Horde site's built by the SubDAO community. The MidEvils collection i
 
 export const config = { maxDuration: 30 };
 
+const DRAK_TOOLS = [
+    {
+        name: 'get_market_data',
+        description: 'Get current Orc NFT market stats including floor price, total supply, holders, enlisted count, listed count, and average hold.',
+        input_schema: { type: 'object', properties: {}, required: [] }
+    },
+    {
+        name: 'lookup_orc',
+        description: 'Look up a specific Orc by number. Returns traits, rarity rank and tier, current owner wallet, enlisted status.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                orc_number: { type: 'integer', description: 'Orc number (1-330)', minimum: 1, maximum: 330 }
+            },
+            required: ['orc_number']
+        }
+    },
+    {
+        name: 'check_wallet',
+        description: 'Look up a Solana wallet to see holder rank, orc count, each orc with rarity, linked Discord/X, and badges.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                wallet: { type: 'string', description: 'Solana wallet address' }
+            },
+            required: ['wallet']
+        }
+    },
+    {
+        name: 'get_proposals',
+        description: 'Get DAO proposals with vote tallies.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                status: { type: 'string', enum: ['active', 'all'], description: 'Filter by status (default: active)' }
+            },
+            required: []
+        }
+    },
+    {
+        name: 'get_leaderboard',
+        description: 'Get top 10 leaderboard for a Horde arcade game.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                game: { type: 'string', enum: ['fishing', 'tower_defense', 'orc_run'], description: 'Which game leaderboard to fetch' }
+            },
+            required: ['game']
+        }
+    },
+    {
+        name: 'search_community',
+        description: 'Get latest Discord community recap and knowledge base. Use when asked about community happenings, discussions, or what people are saying.',
+        input_schema: { type: 'object', properties: {}, required: [] }
+    }
+];
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -197,75 +254,11 @@ export default async function handler(req, res) {
 
     let liveContext = '';
 
-    // Always fetch all context in parallel — all lightweight KV reads
-    const contextFetches = {
-        proposals: kvGet('dao:proposal_index', kvUrl, kvToken).catch(() => null),
-        market: kvGet('holders:leaderboard', kvUrl, kvToken).catch(() => null),
-        discord: kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null),
-        knowledge: kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null),
-        adminFacts: kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null),
-        fishing: fetch('https://midhorde.com/api/fishing/leaderboard?type=score')
-            .then(r => r.json()).catch(() => null),
-        memory: kvGet(`drak:memory:${wallet}`, kvUrl, kvToken).catch(() => null)
-    };
-
-    const [proposalIndex, holdersData, discordSummary, knowledgeBase, adminFacts, fishingData, walletMemory] = await Promise.all([
-        contextFetches.proposals,
-        contextFetches.market,
-        contextFetches.discord,
-        contextFetches.knowledge,
-        contextFetches.adminFacts,
-        contextFetches.fishing,
-        contextFetches.memory
+    // Fetch only always-needed context (memory + admin facts)
+    const [adminFacts, walletMemory] = await Promise.all([
+        kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null),
+        kvGet(`drak:memory:${wallet}`, kvUrl, kvToken).catch(() => null)
     ]);
-
-    // DAO proposals — fetch individual proposals in parallel
-    if (proposalIndex && Array.isArray(proposalIndex)) {
-        try {
-            const recent = proposalIndex.slice(-10);
-            const proposals = await Promise.all(
-                recent.map(id => kvGet(`dao:proposal:${id}`, kvUrl, kvToken).catch(() => null))
-            );
-            const activeProposals = [];
-            for (const prop of proposals) {
-                if (prop && prop.status === 'active') {
-                    activeProposals.push(`"${prop.title}" (${prop.forVotes} for, ${prop.againstVotes} against, ends ${new Date(prop.endsAt).toLocaleDateString()})`);
-                }
-            }
-            if (activeProposals.length > 0) {
-                liveContext += '\n\n=== LIVE: ACTIVE DAO PROPOSALS ===\n' + activeProposals.join('\n');
-            }
-        } catch (err) {
-            console.error('Error fetching proposals:', err);
-        }
-    }
-
-    // Market data
-    if (holdersData) {
-        const parts = [];
-        if (holdersData.floorPrice != null) parts.push(`Floor Price: ${holdersData.floorPrice} SOL`);
-        if (holdersData.totalOrcs) parts.push(`Total Orcs: ${holdersData.totalOrcs}`);
-        if (holdersData.totalHolders) parts.push(`Unique Holders: ${holdersData.totalHolders}`);
-        if (holdersData.enlistedCount) parts.push(`Enlisted (Staked): ${holdersData.enlistedCount}`);
-        if (holdersData.listedForSale) parts.push(`Listed for Sale: ${holdersData.listedForSale.length}`);
-        if (holdersData.avgHold) parts.push(`Avg Orcs per Holder: ${holdersData.avgHold}`);
-        if (parts.length > 0) {
-            liveContext += '\n\n=== LIVE: ORC MARKET DATA (The Horde only — NOT the full MidEvils collection) ===\n' + parts.join('\n') + '\nNote: This data is for Orc NFTs only. Drak does NOT have live MidEvils collection-wide floor/market data.';
-        }
-    }
-
-    // Discord summary
-    if (discordSummary && discordSummary.summary) {
-        const age = Date.now() - (discordSummary.updatedAt || 0);
-        if (age < 48 * 60 * 60 * 1000) {
-            liveContext += `\n\n=== LIVE: DISCORD RECAP (${discordSummary.date}) ===\n${discordSummary.summary}`;
-        }
-    }
-
-    // Discord knowledge base
-    if (knowledgeBase && knowledgeBase.content) {
-        liveContext += `\n\n=== DISCORD COMMUNITY KNOWLEDGE ===\n${knowledgeBase.content}`;
-    }
 
     // Admin-curated knowledge base (text only — skip image data to save bandwidth)
     if (adminFacts && Object.keys(adminFacts).length > 0) {
@@ -283,19 +276,13 @@ export default async function handler(req, res) {
         liveContext += section;
     }
 
-    // Fishing leaderboard
-    if (fishingData && fishingData.leaderboard && fishingData.leaderboard.length > 0) {
-        const lb = fishingData.leaderboard;
-        const top = lb.slice(0, 10).map(e =>
-            `${e.rank}. ${e.discordName || e.wallet} — ${e.score} pts`
-        ).join('\n');
-        liveContext += `\n\n=== LIVE: BOBBERS FISHING LEADERBOARD ===\nTotal participants: ${lb.length}\n${top}`;
-    }
-
     // Wallet memory — things Drak remembers about this holder
     if (walletMemory && walletMemory.summary) {
         liveContext += `\n\n=== YOU REMEMBER THIS HOLDER ===\nYou've spoken to this warrior before. Here's what you remember: ${walletMemory.summary}\nUse this naturally — don't announce "I remember you" unless it fits. Just let your knowledge of them color your responses.`;
     }
+
+    // User context — Drak always knows who he's talking to
+    liveContext += `\n\nThe warrior you're speaking with: wallet ${wallet}, holds ${holdingsData.orcCount} orc(s).`;
 
     // Build conversation for Claude
     var messages = [];
@@ -334,14 +321,217 @@ export default async function handler(req, res) {
             systemBlocks.push({ type: 'text', text: liveContext, cache_control: { type: 'ephemeral' } });
         }
 
-        const response = await client.messages.create({
+        // Tool executor with shared leaderboard cache
+        let leaderboardCache = null;
+        async function getLeaderboardData() {
+            if (leaderboardCache) return leaderboardCache;
+            leaderboardCache = await kvGet('holders:leaderboard', kvUrl, kvToken).catch(() => null);
+            return leaderboardCache;
+        }
+        function getRarityTier(rank) {
+            if (rank <= 10) return 'Legendary';
+            if (rank <= 40) return 'Epic';
+            if (rank <= 115) return 'Rare';
+            return 'Common';
+        }
+
+        async function executeTool(name, input) {
+            try {
+                switch (name) {
+                    case 'get_market_data': {
+                        const data = await getLeaderboardData();
+                        if (!data) return { error: 'Market data unavailable' };
+                        return {
+                            floorPrice: data.floorPrice != null ? `${data.floorPrice} SOL` : 'unknown',
+                            totalOrcs: data.totalOrcs,
+                            totalHolders: data.totalHolders,
+                            enlistedCount: data.enlistedCount,
+                            listedCount: data.listedForSale?.length || 0,
+                            avgHold: data.avgHold,
+                            note: 'This data is for Orc NFTs only, NOT the full MidEvils collection.',
+                            updatedAt: data.updatedAt
+                        };
+                    }
+                    case 'lookup_orc': {
+                        const num = input.orc_number;
+                        const data = await getLeaderboardData();
+                        if (!data) return { error: 'Orc data unavailable' };
+                        for (const holder of data.holders || []) {
+                            for (const orc of holder.orcs || []) {
+                                if (orc.name === `Orc #${num}`) {
+                                    return {
+                                        name: orc.name,
+                                        traits: orc.traits,
+                                        rarityRank: orc.rarityRank,
+                                        rarityTier: getRarityTier(orc.rarityRank),
+                                        owner: holder.wallet,
+                                        enlisted: orc.isFrozen || false,
+                                        imageUrl: orc.imageUrl
+                                    };
+                                }
+                            }
+                        }
+                        for (const orc of data.listedForSale || []) {
+                            if (orc.name === `Orc #${num}`) {
+                                return {
+                                    name: orc.name,
+                                    rarityRank: orc.rarityRank,
+                                    rarityTier: getRarityTier(orc.rarityRank),
+                                    owner: 'Listed on Magic Eden',
+                                    enlisted: false,
+                                    imageUrl: orc.imageUrl
+                                };
+                            }
+                        }
+                        return { error: `Orc #${num} not found` };
+                    }
+                    case 'check_wallet': {
+                        const w = input.wallet;
+                        const data = await getLeaderboardData();
+                        if (!data) return { error: 'Holder data unavailable' };
+                        const holder = (data.holders || []).find(h => h.wallet === w);
+                        if (!holder) return { error: 'Wallet not found in holder rankings (may not hold any orcs)' };
+                        const [discord, xHandle, badges] = await Promise.all([
+                            kvHget('holders:discord_map:h', w, kvUrl, kvToken).catch(() => null),
+                            kvHget('holders:x_map:h', w, kvUrl, kvToken).catch(() => null),
+                            kvGet(`badges:wallet:${w}`, kvUrl, kvToken).catch(() => null)
+                        ]);
+                        return {
+                            rank: holder.rank,
+                            orcCount: holder.count,
+                            orcs: holder.orcs.map(o => ({
+                                name: o.name,
+                                rarityRank: o.rarityRank,
+                                rarityTier: getRarityTier(o.rarityRank),
+                                enlisted: o.isFrozen || false
+                            })),
+                            discord: discord || null,
+                            x: xHandle || null,
+                            badges: badges || []
+                        };
+                    }
+                    case 'get_proposals': {
+                        const proposalIndex = await kvGet('dao:proposal_index', kvUrl, kvToken).catch(() => null);
+                        if (!proposalIndex || !Array.isArray(proposalIndex)) return { error: 'No proposals found' };
+                        const recent = proposalIndex.slice(-10);
+                        const proposals = await Promise.all(
+                            recent.map(id => kvGet(`dao:proposal:${id}`, kvUrl, kvToken).catch(() => null))
+                        );
+                        const statusFilter = input.status || 'active';
+                        const results = proposals
+                            .filter(p => p && (statusFilter === 'all' || p.status === statusFilter))
+                            .map(p => ({
+                                title: p.title,
+                                status: p.status,
+                                forVotes: p.forVotes,
+                                againstVotes: p.againstVotes,
+                                endsAt: p.endsAt ? new Date(p.endsAt).toLocaleDateString() : null,
+                                creator: p.creator || null
+                            }));
+                        return results.length > 0 ? { proposals: results } : { message: `No ${statusFilter} proposals` };
+                    }
+                    case 'get_leaderboard': {
+                        const game = input.game;
+                        if (game === 'fishing') {
+                            const resp = await fetch('https://midhorde.com/api/fishing/leaderboard?type=score').catch(() => null);
+                            if (!resp || !resp.ok) return { error: 'Fishing leaderboard unavailable' };
+                            const fData = await resp.json();
+                            const lb = fData.leaderboard || [];
+                            return {
+                                game: 'Bobbers Fishing',
+                                totalParticipants: lb.length,
+                                top10: lb.slice(0, 10).map(e => ({
+                                    rank: e.rank,
+                                    name: e.discordName || e.wallet,
+                                    score: e.score
+                                }))
+                            };
+                        } else if (game === 'tower_defense') {
+                            const scores = await kvGet('horde:leaderboard', kvUrl, kvToken).catch(() => null);
+                            const parsed = scores ? (typeof scores === 'string' ? JSON.parse(scores) : scores) : [];
+                            return {
+                                game: 'Horde Tower Defense',
+                                top10: parsed.slice(0, 10).map((s, i) => ({
+                                    rank: i + 1,
+                                    name: s.name,
+                                    score: s.score,
+                                    map: s.map,
+                                    victory: s.victory
+                                }))
+                            };
+                        } else if (game === 'orc_run') {
+                            const scores = await kvGet('orcrun:leaderboard', kvUrl, kvToken).catch(() => null);
+                            const parsed = scores ? (typeof scores === 'string' ? JSON.parse(scores) : scores) : [];
+                            return {
+                                game: 'Orc Run',
+                                top10: parsed.slice(0, 10).map((s, i) => ({
+                                    rank: i + 1,
+                                    name: s.name,
+                                    score: s.score,
+                                    distance: s.distance
+                                }))
+                            };
+                        }
+                        return { error: 'Unknown game. Options: fishing, tower_defense, orc_run' };
+                    }
+                    case 'search_community': {
+                        const [summary, kb] = await Promise.all([
+                            kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null),
+                            kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null)
+                        ]);
+                        const result = {};
+                        if (summary && summary.summary) {
+                            const age = Date.now() - (summary.updatedAt || 0);
+                            if (age < 48 * 60 * 60 * 1000) {
+                                result.discordRecap = { date: summary.date, summary: summary.summary };
+                            }
+                        }
+                        if (kb && kb.content) {
+                            result.knowledgeBase = kb.content;
+                        }
+                        return Object.keys(result).length > 0 ? result : { message: 'No recent community data available' };
+                    }
+                    default:
+                        return { error: 'Unknown tool' };
+                }
+            } catch (err) {
+                console.error(`Tool ${name} error:`, err.message);
+                return { error: `Failed to execute ${name}` };
+            }
+        }
+
+        // Tool use loop — Claude decides what to look up
+        let response = await client.messages.create({
             model: 'claude-sonnet-4-5-20250929',
-            max_tokens: 350,
+            max_tokens: 500,
             system: systemBlocks,
-            messages: messages
+            messages,
+            tools: DRAK_TOOLS
         });
 
-        const reply = response.content[0]?.text || 'Hrrm... the words escape Drak.';
+        let iterations = 0;
+        while (response.stop_reason === 'tool_use' && iterations < 3) {
+            iterations++;
+            const toolUseBlocks = response.content.filter(b => b.type === 'tool_use');
+            const toolResults = await Promise.all(
+                toolUseBlocks.map(async (block) => {
+                    const result = await executeTool(block.name, block.input);
+                    return { type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(result) };
+                })
+            );
+            messages.push({ role: 'assistant', content: response.content });
+            messages.push({ role: 'user', content: toolResults });
+            response = await client.messages.create({
+                model: 'claude-sonnet-4-5-20250929',
+                max_tokens: 500,
+                system: systemBlocks,
+                messages,
+                tools: DRAK_TOOLS
+            });
+        }
+
+        const textBlock = response.content.find(b => b.type === 'text');
+        const reply = textBlock?.text || 'Hrrm... the words escape Drak.';
         const tokens = response.usage?.output_tokens || 0;
 
         // Queue exchange for correction detection (fire-and-forget)
