@@ -733,6 +733,18 @@ tr.txlog-row td {
     opacity: 0.4;
 }
 
+.tweet-tag-account {
+    background: #2a2a2a;
+    color: #aaa;
+    border-color: #444;
+    font-size: 0.75rem;
+}
+
+.tweet-tag-account:hover {
+    background: #3a3a3a;
+    color: #ccc;
+}
+
 .tweet-image-idea {
     font-size: 0.8rem;
     color: var(--color-text-dim);

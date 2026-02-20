@@ -17,6 +17,7 @@
     const offersEmpty = document.getElementById('offers-empty');
 
     let currentOffers = [];
+    let monitoredAccounts = [];
 
     // ---- Utilities ----
 
@@ -743,6 +744,7 @@
             var data = await fetchDrakKnowledge({ mode: 'list-accounts' });
             if (!data) return;
             var accounts = data.accounts || [];
+            monitoredAccounts = accounts;
             researchAccountsInput.value = accounts.join('\n');
         } catch (err) {
             console.error('Load research accounts failed:', err);
@@ -761,6 +763,7 @@
         try {
             var data = await fetchDrakKnowledge({ mode: 'set-accounts', accounts: accounts });
             if (!data) return;
+            monitoredAccounts = data.accounts;
             successEl.textContent = 'Saved ' + data.accounts.length + ' accounts.';
             successEl.hidden = false;
             researchAccountsInput.value = data.accounts.join('\n');
@@ -1021,6 +1024,17 @@
             html += '<span class="tweet-suggestion-label">Tag:</span>';
             d.suggestedTags.forEach(function (tag) {
                 html += '<button type="button" class="tweet-tag-pill" data-tag="' + escapeHtml(tag) + '">' + escapeHtml(tag) + '</button>';
+            });
+            html += '</div>';
+        }
+
+        // Monitored X accounts as tag pills
+        if (monitoredAccounts.length > 0 && editable) {
+            html += '<div class="tweet-suggestions">';
+            html += '<span class="tweet-suggestion-label">Accounts:</span>';
+            monitoredAccounts.forEach(function (handle) {
+                var tag = '@' + handle;
+                html += '<button type="button" class="tweet-tag-pill tweet-tag-account" data-tag="' + escapeHtml(tag) + '">' + escapeHtml(tag) + '</button>';
             });
             html += '</div>';
         }
