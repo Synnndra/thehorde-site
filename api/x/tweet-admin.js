@@ -1,7 +1,7 @@
 // Vercel Serverless Function - Admin Tweet Queue Management
 import { timingSafeEqual } from 'crypto';
 import {
-    kvHset, kvHget, kvHdel, kvHgetall, getClientIp, isRateLimitedKV
+    kvHset, kvHget, kvHdel, kvHgetall, kvGet, getClientIp, isRateLimitedKV
 } from '../../lib/swap-utils.js';
 import { postTweet, uploadMedia, generateDraftId, searchRecentTweets, retweetPost, likePost } from '../../lib/x-utils.js';
 
@@ -306,8 +306,14 @@ export default async function handler(req, res) {
                 }
             }
 
-            // Search X for community mentions
-            const query = '(from:sircandyapple OR from:jonnydegods OR @midhorde OR @MidEvilsNFT OR #MidEvils OR #TheHorde OR "midevils" OR "mid horde") -from:midhorde -is:retweet';
+            // Build search query from monitored accounts
+            const monitoredAccounts = await kvGet('drak:research_accounts', kvUrl, kvToken).catch(() => null);
+            const fromClauses = Array.isArray(monitoredAccounts) && monitoredAccounts.length > 0
+                ? monitoredAccounts.map(h => `from:${h}`).join(' OR ')
+                : '';
+            const baseClauses = '@midhorde OR @MidEvilsNFT OR #MidEvils OR #TheHorde OR "midevils" OR "mid horde"';
+            const allClauses = fromClauses ? `${fromClauses} OR ${baseClauses}` : baseClauses;
+            const query = `(${allClauses}) -from:midhorde -is:retweet`;
             const results = await searchRecentTweets(query, 20);
 
             // Build suggestions, preserving status of already-actioned ones
