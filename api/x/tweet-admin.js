@@ -459,6 +459,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Tweet admin error:', error);
-        return res.status(500).json({ error: 'Tweet operation failed' });
+        return res.status(500).json({ error: 'Tweet operation failed', detail: error.message });
     }
 }
