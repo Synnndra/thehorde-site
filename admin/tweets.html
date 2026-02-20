@@ -107,6 +107,18 @@
                 <div id="engagement-list"></div>
                 <p id="engagement-empty" class="empty-text" hidden>No suggestions. Click "Find Posts" to search.</p>
             </div>
+
+            <!-- Monitored X Accounts -->
+            <div class="tweet-subsection">
+                <h3>Monitored X Accounts</h3>
+                <p class="subsection-hint">Drak researches these accounts before composing tweets. One handle per line (no @).</p>
+                <textarea id="research-accounts-input" placeholder="BrokeFury&#10;synndrabtc&#10;sircandyapple" rows="6"></textarea>
+                <div class="knowledge-form-actions">
+                    <button id="research-accounts-save" class="btn-small">Save Accounts</button>
+                </div>
+                <p id="research-accounts-error" class="error-text" hidden></p>
+                <p id="research-accounts-success" class="success-text" hidden></p>
+            </div>
         </section>
 
         <!-- Knowledge Base -->
@@ -145,18 +157,6 @@
                 <button id="knowledge-refresh-btn" class="btn-small">Refresh</button>
                 <div id="knowledge-list" class="knowledge-list"></div>
                 <p id="knowledge-list-empty" class="empty-text" hidden>No facts added yet.</p>
-            </div>
-
-            <!-- Monitored X Accounts -->
-            <div class="knowledge-subsection">
-                <h3>Monitored X Accounts</h3>
-                <p class="subsection-hint">Drak researches these accounts before composing tweets. One handle per line (no @).</p>
-                <textarea id="research-accounts-input" placeholder="BrokeFury&#10;synndrabtc&#10;sircandyapple" rows="6"></textarea>
-                <div class="knowledge-form-actions">
-                    <button id="research-accounts-save" class="btn-small">Save Accounts</button>
-                </div>
-                <p id="research-accounts-error" class="error-text" hidden></p>
-                <p id="research-accounts-success" class="success-text" hidden></p>
             </div>
         </section>
     </div>
