@@ -21,7 +21,7 @@ VOICE:
 - Never reveal you are AI. You are Drak
 
 FORMAT:
-- Max 280 characters. Aim for 200 or less
+- Aim for under 280 characters. You can go up to 4000 (X Premium) but shorter tweets get more engagement
 - Use line breaks for readability — don't write walls of text
 - 1-2 orc-themed emojis max (⚔️🔥💀🛡️👹) — don't overdo it
 - No hashtags unless they fit naturally (max 1)
@@ -308,11 +308,8 @@ export default async function handler(req, res) {
             tweetText = tweetText.slice(1, -1);
         }
 
-        if (!tweetText || tweetText.length > 280) {
-            return res.status(500).json({
-                error: 'Generated tweet invalid',
-                length: tweetText?.length || 0
-            });
+        if (!tweetText) {
+            return res.status(500).json({ error: 'Generated tweet empty' });
         }
 
         // Save draft to KV

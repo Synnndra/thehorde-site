@@ -830,8 +830,8 @@
 
     function buildEditorHtml(textareaId, displayText, editable) {
         var len = displayText.length;
-        var pct = Math.min(100, Math.round((len / 280) * 100));
-        var barColor = len > 280 ? '#e74c3c' : len > 240 ? '#f1c40f' : '#2ecc40';
+        var pct = Math.min(100, Math.round((len / 4000) * 100));
+        var barColor = len > 4000 ? '#e74c3c' : len > 280 ? '#f1c40f' : '#2ecc40';
 
         var html = '';
         if (editable) {
@@ -849,7 +849,7 @@
         html += '<div class="tweet-char-bar">' +
             '<div class="tweet-char-bar-fill" style="width:' + pct + '%;background:' + barColor + '"></div>' +
             '</div>';
-        html += '<div class="tweet-char-count"><span class="char-count-num" style="color:' + (len > 280 ? '#e44' : '') + '">' + len + '</span>/280</div>';
+        html += '<div class="tweet-char-count"><span class="char-count-num" style="color:' + (len > 4000 ? '#e44' : '') + '">' + len + '</span>/4000</div>';
         html += '<div class="tweet-preview"><div class="tweet-preview-label">Preview</div>' +
             '<div class="tweet-preview-content">' +
             '<div class="tweet-preview-header"><strong>@midhorde</strong> <span class="tweet-preview-handle">· just now</span></div>' +
@@ -869,13 +869,13 @@
         var textarea = card.querySelector('.tweet-edit-area');
         if (!textarea) return;
         var len = textarea.value.length;
-        var pct = Math.min(100, Math.round((len / 280) * 100));
-        var barColor = len > 280 ? '#e74c3c' : len > 240 ? '#f1c40f' : '#2ecc40';
+        var pct = Math.min(100, Math.round((len / 4000) * 100));
+        var barColor = len > 4000 ? '#e74c3c' : len > 280 ? '#f1c40f' : '#2ecc40';
 
         var countEl = card.querySelector('.char-count-num');
         if (countEl) {
             countEl.textContent = len;
-            countEl.style.color = len > 280 ? '#e44' : '';
+            countEl.style.color = len > 4000 ? '#e44' : '';
         }
         var barFill = card.querySelector('.tweet-char-bar-fill');
         if (barFill) {
@@ -1226,8 +1226,8 @@
         var textarea = card.querySelector('.tweet-edit-area');
         var editedText = textarea ? textarea.value.trim() : '';
 
-        if (editedText.length > 280) {
-            alert('Tweet too long (' + editedText.length + '/280)');
+        if (editedText.length > 4000) {
+            alert('Tweet too long (' + editedText.length + '/4000)');
             return;
         }
         if (!confirm('Post this tweet to @midhorde?')) return;
