@@ -237,6 +237,33 @@ export default async function handler(req, res) {
             }
         }
 
+        // ---- METRICS: return tweet performance metrics ----
+        if (mode === 'metrics') {
+            const metrics = await kvHgetall('x:tweet_metrics', kvUrl, kvToken) || {};
+            const entries = Object.values(metrics)
+                .sort((a, b) => (b.engagement || 0) - (a.engagement || 0));
+            return res.status(200).json({ metrics: entries });
+        }
+
+        // ---- FETCH-METRICS: manually trigger metrics cron ----
+        if (mode === 'fetch-metrics') {
+            const cronSecret = process.env.CRON_SECRET;
+            if (!cronSecret) {
+                return res.status(500).json({ error: 'CRON_SECRET not configured' });
+            }
+            const proto = req.headers['x-forwarded-proto'] || 'http';
+            const metricsUrl = `${proto}://${req.headers.host}/api/x/tweet-metrics`;
+            const metricsRes = await fetch(metricsUrl, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${cronSecret}` }
+            });
+            const metricsData = await metricsRes.json();
+            if (!metricsRes.ok) {
+                return res.status(metricsRes.status).json(metricsData);
+            }
+            return res.status(200).json(metricsData);
+        }
+
         // ---- GET-THEMES: return day-of-week tweet themes ----
         if (mode === 'get-themes') {
             const themes = await kvHgetall('drak:tweet_themes', kvUrl, kvToken) || {};

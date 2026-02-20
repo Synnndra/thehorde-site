@@ -66,6 +66,35 @@
             </div>
         </section>
 
+        <!-- Tweet Performance -->
+        <section class="card" id="metrics-section">
+            <h2>Tweet Performance</h2>
+            <div class="tweet-subsection">
+                <div class="metrics-actions">
+                    <button id="metrics-refresh-btn" class="btn-small">Refresh</button>
+                    <button id="metrics-fetch-btn" class="btn-small">Fetch Latest Metrics</button>
+                    <span id="metrics-fetch-status" class="success-text" style="font-size:0.8rem;" hidden></span>
+                </div>
+                <div class="table-wrap">
+                    <table id="metrics-table">
+                        <thead>
+                            <tr>
+                                <th>Tweet</th>
+                                <th>Likes</th>
+                                <th>RTs</th>
+                                <th>Replies</th>
+                                <th>Impressions</th>
+                                <th>Engagement</th>
+                                <th>Posted</th>
+                            </tr>
+                        </thead>
+                        <tbody id="metrics-body"></tbody>
+                    </table>
+                </div>
+                <p id="metrics-empty" class="empty-text" hidden>No metrics yet. Click "Fetch Latest Metrics" to pull data from X.</p>
+            </div>
+        </section>
+
         <!-- Knowledge Base -->
         <section class="card" id="knowledge-section">
             <h2>Drak Knowledge Base</h2>

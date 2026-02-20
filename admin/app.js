@@ -1317,9 +1317,73 @@
     // Refresh history (same as refresh drafts — history is auto-rendered)
     tweetHistoryBtn.addEventListener('click', loadTweetDrafts);
 
+    // ---- Tweet Performance Metrics ----
+
+    var metricsRefreshBtn = document.getElementById('metrics-refresh-btn');
+    var metricsFetchBtn = document.getElementById('metrics-fetch-btn');
+
+    async function loadMetrics() {
+        try {
+            var data = await fetchTweetAdmin({ mode: 'metrics' });
+            if (!data) return;
+
+            var bodyEl = document.getElementById('metrics-body');
+            var emptyEl = document.getElementById('metrics-empty');
+            bodyEl.innerHTML = '';
+
+            var metrics = data.metrics || [];
+            if (metrics.length === 0) {
+                emptyEl.hidden = false;
+                return;
+            }
+            emptyEl.hidden = true;
+
+            metrics.forEach(function (m) {
+                var tr = document.createElement('tr');
+                var tweetText = (m.text || '').length > 80 ? m.text.slice(0, 80) + '...' : (m.text || '');
+                var link = m.tweetId ? '<a href="https://x.com/midhorde/status/' + escapeHtml(m.tweetId) + '" target="_blank" rel="noopener">' + escapeHtml(tweetText) + '</a>' : escapeHtml(tweetText);
+                tr.innerHTML =
+                    '<td class="metrics-tweet-cell">' + link + '</td>' +
+                    '<td>' + (m.likes || 0) + '</td>' +
+                    '<td>' + (m.retweets || 0) + '</td>' +
+                    '<td>' + (m.replies || 0) + '</td>' +
+                    '<td>' + (m.impressions || 0) + '</td>' +
+                    '<td><strong>' + (m.engagement || 0) + '</strong></td>' +
+                    '<td>' + formatDate(m.postedAt) + '</td>';
+                bodyEl.appendChild(tr);
+            });
+        } catch (err) {
+            console.error('Load metrics failed:', err);
+        }
+    }
+
+    metricsRefreshBtn.addEventListener('click', loadMetrics);
+
+    metricsFetchBtn.addEventListener('click', async function () {
+        var statusEl = document.getElementById('metrics-fetch-status');
+        statusEl.hidden = true;
+        metricsFetchBtn.disabled = true;
+        metricsFetchBtn.textContent = 'Fetching...';
+
+        try {
+            var data = await fetchTweetAdmin({ mode: 'fetch-metrics' });
+            if (!data) return;
+            statusEl.textContent = 'Fetched metrics for ' + (data.fetched || 0) + ' tweets.';
+            statusEl.hidden = false;
+            loadMetrics();
+        } catch (err) {
+            statusEl.textContent = 'Error: ' + err.message;
+            statusEl.style.color = '#e44';
+            statusEl.hidden = false;
+        } finally {
+            metricsFetchBtn.disabled = false;
+            metricsFetchBtn.textContent = 'Fetch Latest Metrics';
+        }
+    });
+
     // ---- Collapsible Cards ----
 
-    var DEFAULT_COLLAPSED = ['health-section', 'stats-section', 'search-section', 'badges-section', 'offers-section'];
+    var DEFAULT_COLLAPSED = ['health-section', 'stats-section', 'search-section', 'badges-section', 'offers-section', 'metrics-section'];
 
     function initCollapsibleCards() {
         var cards = document.querySelectorAll('.card[id]');
@@ -1349,6 +1413,7 @@
         });
         loadBadges();
         loadKnowledgeFacts();
+        loadMetrics();
     } else {
         showLogin();
     }
