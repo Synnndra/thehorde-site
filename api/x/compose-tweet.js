@@ -90,15 +90,19 @@ export default async function handler(req, res) {
     const source = isCron ? 'cron' : 'admin';
     let topic = req.body?.topic || req.query?.topic || null;
 
-    // If no explicit topic, check for day-of-week theme from KV
+    // If no explicit topic, check for day-of-week theme from KV (morning posts only)
     if (!topic) {
         try {
-            const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
             const pstDate = new Date(Date.now() - 8 * 60 * 60 * 1000);
-            const dayName = days[pstDate.getUTCDay()];
-            const theme = await kvHget('drak:tweet_themes', dayName, kvUrl, kvToken);
-            if (theme && typeof theme === 'string' && theme.trim()) {
-                topic = theme.trim();
+            const pstHour = pstDate.getUTCHours();
+            // Only apply daily theme to morning post (before noon PST)
+            if (pstHour < 12) {
+                const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                const dayName = days[pstDate.getUTCDay()];
+                const theme = await kvHget('drak:tweet_themes', dayName, kvUrl, kvToken);
+                if (theme && typeof theme === 'string' && theme.trim()) {
+                    topic = theme.trim();
+                }
             }
         } catch {}
     }
