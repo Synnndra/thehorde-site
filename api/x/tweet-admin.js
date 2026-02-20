@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 
     // Rate limit: 5 per minute per IP
     const ip = getClientIp(req);
-    if (await isRateLimitedKV(ip, 'tweet-admin', 5, 60000, kvUrl, kvToken)) {
+    if (await isRateLimitedKV(ip, 'tweet-admin', 20, 60000, kvUrl, kvToken)) {
         return res.status(429).json({ error: 'Too many requests' });
     }
 
