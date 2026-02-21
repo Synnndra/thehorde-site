@@ -199,43 +199,20 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Invalid wallet address' });
         }
 
-        // Check if unlimited wallet
-        if (UNLIMITED_WALLETS.includes(wallet)) {
+        // Unlimited casts for everyone (post-tournament)
+        // GET - Check if wallet can play
+        if (req.method === 'GET') {
             return res.status(200).json({
                 canPlay: true,
                 unlimited: true,
-                message: 'Unlimited access granted'
-            });
-        }
-
-        const todayKey = getTodayKey();
-        const cooldownKey = `${COOLDOWN_PREFIX}${wallet}:${todayKey}`;
-
-        // GET - Check if wallet can play
-        if (req.method === 'GET') {
-            const raw = await redisGet(cooldownKey);
-            let castsUsed = parseCastsUsed(raw);
-            // Reset old-format timestamp keys
-            if (raw && parseInt(raw) > 100) {
-                await redisDel(cooldownKey);
-                castsUsed = 0;
-            }
-
-            const bonusCasts = await getOrcCount(wallet);
-            const maxCasts = MAX_CASTS_PER_DAY + bonusCasts;
-
-            const ttl = castsUsed > 0 ? await redisTtl(cooldownKey) : 0;
-            const castsRemaining = Math.max(0, maxCasts - castsUsed);
-
-            return res.status(200).json({
-                canPlay: castsRemaining > 0,
-                castsUsed,
-                castsRemaining,
-                maxCasts,
-                baseCasts: MAX_CASTS_PER_DAY,
-                bonusCasts,
-                playedToday: castsUsed > 0,
-                resetInSeconds: ttl > 0 ? ttl : 0
+                castsUsed: 0,
+                castsRemaining: 999,
+                maxCasts: 999,
+                baseCasts: 999,
+                bonusCasts: 0,
+                playedToday: false,
+                resetInSeconds: 0,
+                message: 'Unlimited casts — play as much as you want!'
             });
         }
 
@@ -272,53 +249,15 @@ export default async function handler(req, res) {
                 startedAt: session.startedAt
             });
 
-            // Unlimited wallets: skip limit check, still issue cast token
-            if (UNLIMITED_WALLETS.includes(wallet)) {
-                await redisSetEx(`cast_ready:${castTokenId}`, 300, castData);
-                return res.status(200).json({
-                    success: true,
-                    unlimited: true,
-                    castToken: castTokenId,
-                    message: 'Unlimited access granted'
-                });
-            }
-
-            // Clean up old-format timestamp keys (legacy migration)
-            const raw = await redisGet(cooldownKey);
-            if (raw && parseInt(raw) > 100) {
-                await redisDel(cooldownKey);
-            }
-
-            // Atomic: increment FIRST, then check — eliminates race condition
-            const newCount = await redisIncr(cooldownKey);
-            if (newCount === 1) {
-                await redisExpire(cooldownKey, getSecondsUntilReset());
-            }
-
-            const bonusCasts = await getOrcCount(wallet);
-            const maxCasts = MAX_CASTS_PER_DAY + bonusCasts;
-
-            if (newCount > maxCasts) {
-                // Over limit — roll back the increment
-                await redisDecr(cooldownKey);
-                const ttl = await redisTtl(cooldownKey);
-                return res.status(200).json({
-                    success: false,
-                    message: 'No casts remaining today',
-                    castsRemaining: 0,
-                    resetInSeconds: ttl > 0 ? ttl : 0
-                });
-            }
-
-            // Cast is valid — store cast token for leaderboard submission
+            // Unlimited casts — skip all limit checks, just issue cast token
             await redisSetEx(`cast_ready:${castTokenId}`, 300, castData);
 
             return res.status(200).json({
                 success: true,
+                unlimited: true,
                 castToken: castTokenId,
-                castsUsed: newCount,
-                castsRemaining: Math.max(0, maxCasts - newCount),
-                message: `Cast ${newCount}/${maxCasts}`
+                castsRemaining: 999,
+                message: 'Unlimited casts'
             });
         }
 
