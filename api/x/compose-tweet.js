@@ -130,8 +130,9 @@ async function generateTweetImage(tweetText, imageIdea, kvUrl, kvToken) {
         );
 
         if (!geminiRes.ok) {
-            console.error('Gemini API error:', geminiRes.status, await geminiRes.text().catch(() => ''));
-            return null;
+            const errText = await geminiRes.text().catch(() => '');
+            console.error('Gemini API error:', geminiRes.status, errText);
+            throw new Error(`Gemini ${geminiRes.status}: ${errText.slice(0, 200)}`);
         }
 
         const geminiData = await geminiRes.json();
@@ -139,7 +140,8 @@ async function generateTweetImage(tweetText, imageIdea, kvUrl, kvToken) {
         if (imagePart?.inlineData?.data) {
             return imagePart.inlineData.data;
         }
-        return null;
+        const partTypes = (geminiData.candidates?.[0]?.content?.parts || []).map(p => Object.keys(p).join(','));
+        throw new Error(`No image in response. Parts: [${partTypes.join('; ')}]. FinishReason: ${geminiData.candidates?.[0]?.finishReason}`);
     } catch (err) {
         console.error('Image generation failed (non-fatal):', err.message);
         return null;
@@ -474,8 +476,16 @@ export default async function handler(req, res) {
 
         // Generate image with Gemini (non-fatal)
         let generatedImageBase64 = null;
+        let _imageDebug = null;
         if (imageIdea) {
-            generatedImageBase64 = await generateTweetImage(tweetText, imageIdea, kvUrl, kvToken);
+            try {
+                generatedImageBase64 = await generateTweetImage(tweetText, imageIdea, kvUrl, kvToken);
+                _imageDebug = generatedImageBase64 ? `ok:${generatedImageBase64.length}chars` : 'returned null';
+            } catch (imgErr) {
+                _imageDebug = `error:${imgErr.message}`;
+            }
+        } else {
+            _imageDebug = 'no imageIdea';
         }
 
         // Save draft to KV
@@ -540,7 +550,7 @@ export default async function handler(req, res) {
             }
         }
 
-        return res.status(200).json({ success: true, draft });
+        return res.status(200).json({ success: true, draft, _imageDebug });
 
     } catch (err) {
         console.error('Compose tweet error:', err);
