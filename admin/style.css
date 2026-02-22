@@ -940,6 +940,30 @@ tr.txlog-row td {
     border-radius: 4px;
     object-fit: cover;
     border: 1px solid var(--border);
+    cursor: pointer;
+}
+
+.tweet-generated-image-thumb:hover {
+    border-color: var(--color-primary);
+}
+
+/* Image lightbox */
+.image-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    cursor: pointer;
+}
+
+.image-lightbox img {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 8px;
+    object-fit: contain;
 }
 
 .tweet-generated-image-remove {

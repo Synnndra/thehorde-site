@@ -289,7 +289,7 @@
         if (d.generatedImageBase64 && editable) {
             html += '<div class="tweet-generated-image">';
             html += '<span class="generated-image-tag">AI Generated</span>';
-            html += '<img class="tweet-generated-image-thumb" src="data:image/png;base64,' + d.generatedImageBase64 + '">';
+            html += '<img class="tweet-generated-image-thumb" src="data:image/png;base64,' + d.generatedImageBase64 + '" title="Click to enlarge">';
             html += '<button type="button" class="tweet-generated-image-remove toolbar-btn">✕ Remove</button>';
             html += '</div>';
         }
@@ -456,6 +456,17 @@
             }
         };
         reader.readAsDataURL(file);
+    });
+
+    // Enlarge AI-generated image
+    document.addEventListener('click', function (e) {
+        var thumb = e.target.closest('.tweet-generated-image-thumb');
+        if (!thumb) return;
+        var overlay = document.createElement('div');
+        overlay.className = 'image-lightbox';
+        overlay.innerHTML = '<img src="' + thumb.src + '">';
+        overlay.addEventListener('click', function () { overlay.remove(); });
+        document.body.appendChild(overlay);
     });
 
     // Remove AI-generated image
