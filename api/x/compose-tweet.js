@@ -101,7 +101,7 @@ async function generateTweetImage(tweetText, imageIdea, kvUrl, kvToken) {
                 referenceOrcUrls = orcImages.map(img => img.url);
                 const refCount = orcImages.length;
                 parts = [
-                    { text: `Study ${refCount === 1 ? 'this reference image' : 'these ' + refCount + ' reference images'} carefully. This is the MidEvils NFT art style — hand-drawn line art PFP characters with visible ink outlines, flat colors, minimal shading, muted gray-green backgrounds, and a modern streetwear aesthetic (sunglasses, caps, chains, hoodies). The vibe is whimsical and irreverent, NOT dark fantasy or World of Warcraft style. Generate a new 16:9 image featuring ${orcCount} orc character${orcCount > 1 ? 's' : ''} in this EXACT same art style — same line weight, same flat coloring, same muted palette. Subject: ${imageIdea}. No text, watermarks, or logos.` }
+                    { text: `Recreate ${refCount === 1 ? 'this exact orc character' : 'these exact ' + refCount + ' orc characters'} — same face, same outfit, same accessories, same colors — but place ${refCount === 1 ? 'them' : 'all of them'} in a new 16:9 scene: ${imageIdea}. Keep the same hand-drawn line art style with visible ink outlines, flat colors, minimal shading, and muted palette. Do not change the character design. No text, watermarks, or logos.` }
                 ];
                 for (const img of orcImages) {
                     parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });
