@@ -244,25 +244,7 @@ export default async function handler(req, res) {
             }
 
             // Generate fish server-side from session seed (anti-cheat)
-            let fish;
-            // Guaranteed Ol' Dirty Betta for testing — REMOVE when done
-            const ODB_WALLET = 'HFX5pP5wBwXe2qRYDcjNExL5ibtPJajPyNBBn6c4LC41';
-            if (wallet === ODB_WALLET) {
-                fish = {
-                    species: "Ol' Dirty Betta",
-                    image: 'fish-ol-dirty-betta.png',
-                    fallback: '🐡',
-                    rarity: 'legendary',
-                    size: 'Massive',
-                    color: 'Golden',
-                    special: 'Blessed',
-                    weight: '72.0 lbs',
-                    score: '1800.0',
-                    timestamp: new Date().toISOString()
-                };
-            } else {
-                fish = generateFish(seed || 0);
-            }
+            const fish = generateFish(seed || 0);
 
             // Update total catches
             await redisZincrby(CATCHES_KEY, 1, wallet);
