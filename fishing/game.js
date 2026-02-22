@@ -29,7 +29,8 @@ const FISH_SPECIES = [
     { name: 'Ancient Angler', image: 'fish-ancient-angler.png', fallback: '🦑', baseRarity: 'epic' },
     { name: 'Demon Trout', image: 'fish-demon-trout.png', fallback: '😈', baseRarity: 'epic' },
     { name: 'Primordial Leviathan', image: 'fish-primordial-leviathan.png', fallback: '🐲', baseRarity: 'legendary' },
-    { name: 'Golden Kraken', image: 'fish-golden-kraken.png', fallback: '🦈', baseRarity: 'legendary' }
+    { name: 'Golden Kraken', image: 'fish-golden-kraken.png', fallback: '🦈', baseRarity: 'legendary' },
+    { name: "Ol' Dirty Betta", image: 'fish-ol-dirty-betta.png', fallback: '🐡', baseRarity: 'legendary' }
 ];
 
 const FISH_SIZES = ['Tiny', 'Small', 'Medium', 'Large', 'Massive'];
