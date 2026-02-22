@@ -101,7 +101,7 @@ async function generateTweetImage(tweetText, imageIdea, kvUrl, kvToken) {
                 referenceOrcUrls = orcImages.map(img => img.url);
                 const refCount = orcImages.length;
                 parts = [
-                    { text: `Generate a new 16:9 image with ${orcCount} orc character${orcCount > 1 ? 's' : ''} in the exact art style of ${refCount === 1 ? 'this reference NFT artwork' : 'these ' + refCount + ' reference NFT artworks'}. Style elements to match: dark fantasy colors, dramatic lighting, bold outlines, painterly digital art. Subject: ${imageIdea}. Do not include any text, watermarks, or logos in the image.` }
+                    { text: `Study the art style of ${refCount === 1 ? 'this reference image' : 'these ' + refCount + ' reference images'} carefully — match the exact color palette, line work, shading technique, and overall aesthetic. Generate a new 16:9 image with ${orcCount} orc character${orcCount > 1 ? 's' : ''} in that same art style. Subject: ${imageIdea}. Do not include any text, watermarks, or logos.` }
                 ];
                 for (const img of orcImages) {
                     parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });
