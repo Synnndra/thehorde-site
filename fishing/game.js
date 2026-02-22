@@ -14,7 +14,8 @@ const FISHERMEN = [
     { id: 'grimfang', name: 'Grimfang', image: 'fisherman1.png', pos: { left: '18.6%', bottom: '22.6%', width: '14.5%' }, castFrom: { left: '29.3%', top: '57.3%' }, lure: { left: '62.0%', top: '61.6%' } },
     { id: 'captain-goldtusk', name: 'Captain Goldtusk', image: 'fisherman2.png', pos: { left: '12.6%', bottom: '34.5%', width: '15.3%' }, castFrom: { left: '24.1%', top: '40.5%' }, lure: { left: '66.5%', top: '64.4%' } },
     { id: 'gristlebeard', name: 'Gristlebeard', image: 'fisherman3.png', pos: { left: '20.2%', bottom: '45.1%', width: '14.5%' }, castFrom: { left: '31.1%', top: '34.9%' }, lure: { left: '60.0%', top: '59.5%' } },
-    { id: 'gill', name: 'Gill', image: 'fisherman4.png', pos: { left: '12.0%', bottom: '34.4%', width: '16.1%' }, castFrom: { left: '24.1%', top: '44.7%' }, lure: { left: '64.7%', top: '62.1%' } }
+    { id: 'gill', name: 'Gill', image: 'fisherman4.png', pos: { left: '12.0%', bottom: '34.4%', width: '16.1%' }, castFrom: { left: '24.1%', top: '44.7%' }, lure: { left: '64.7%', top: '62.1%' } },
+    { id: 'santiago', name: 'Santiago', image: 'fisherman6.png', pos: { left: '79.3%', bottom: '37.9%', width: '18.0%' }, castFrom: { left: '81.9%', top: '32.9%' }, lure: { left: '37.7%', top: '65.4%' } }
 ];
 
 // Fish Species (MidEvil themed)
