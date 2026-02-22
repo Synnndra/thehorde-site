@@ -74,6 +74,7 @@ async function getRandomOrcImages(count, kvUrl, kvToken) {
             const contentType = imgRes.headers.get('content-type') || 'image/png';
             const buffer = await imgRes.arrayBuffer();
             images.push({
+                url,
                 mimeType: contentType,
                 data: Buffer.from(buffer).toString('base64')
             });
@@ -84,18 +85,20 @@ async function getRandomOrcImages(count, kvUrl, kvToken) {
 
 async function generateTweetImage(tweetText, imageIdea, kvUrl, kvToken) {
     const googleApiKey = process.env.GOOGLE_API_KEY;
-    if (!googleApiKey || !imageIdea) return null;
+    if (!googleApiKey || !imageIdea) return { image: null, referenceOrcUrls: [] };
 
     try {
         const combinedText = `${tweetText} ${imageIdea}`;
         const isOrcRelated = ORC_KEYWORDS.test(combinedText);
 
         let parts;
+        let referenceOrcUrls = [];
         if (isOrcRelated) {
             const orcCount = detectOrcCount(combinedText);
             const orcImages = await getRandomOrcImages(orcCount, kvUrl, kvToken);
 
             if (orcImages.length > 0) {
+                referenceOrcUrls = orcImages.map(img => img.url);
                 const refCount = orcImages.length;
                 parts = [
                     { text: `Generate a new 16:9 image with ${orcCount} orc character${orcCount > 1 ? 's' : ''} in the exact art style of ${refCount === 1 ? 'this reference NFT artwork' : 'these ' + refCount + ' reference NFT artworks'}. Style elements to match: dark fantasy colors, dramatic lighting, bold outlines, painterly digital art. Subject: ${imageIdea}. Do not include any text, watermarks, or logos in the image.` }
@@ -137,12 +140,12 @@ async function generateTweetImage(tweetText, imageIdea, kvUrl, kvToken) {
         const geminiData = await geminiRes.json();
         const imagePart = geminiData.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
         if (imagePart?.inlineData?.data) {
-            return imagePart.inlineData.data;
+            return { image: imagePart.inlineData.data, referenceOrcUrls };
         }
-        return null;
+        return { image: null, referenceOrcUrls };
     } catch (err) {
         console.error('Image generation failed (non-fatal):', err.message);
-        return null;
+        return { image: null, referenceOrcUrls: [] };
     }
 }
 
@@ -474,8 +477,11 @@ export default async function handler(req, res) {
 
         // Generate image with Gemini (non-fatal)
         let generatedImageBase64 = null;
+        let referenceOrcUrls = [];
         if (imageIdea) {
-            generatedImageBase64 = await generateTweetImage(tweetText, imageIdea, kvUrl, kvToken);
+            const imgResult = await generateTweetImage(tweetText, imageIdea, kvUrl, kvToken);
+            generatedImageBase64 = imgResult.image;
+            referenceOrcUrls = imgResult.referenceOrcUrls;
         }
 
         // Save draft to KV
@@ -486,6 +492,7 @@ export default async function handler(req, res) {
             suggestedTags,
             imageIdea,
             generatedImageBase64,
+            referenceOrcUrls: referenceOrcUrls.length > 0 ? referenceOrcUrls : undefined,
             source,
             topic: topic || null,
             status: 'pending',
