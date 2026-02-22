@@ -144,7 +144,8 @@ async function generateTweetImage(tweetText, imageIdea, kvUrl, kvToken) {
         throw new Error(`No image in response. Parts: [${partTypes.join('; ')}]. FinishReason: ${geminiData.candidates?.[0]?.finishReason}`);
     } catch (err) {
         console.error('Image generation failed (non-fatal):', err.message);
-        return null;
+        // Temporarily re-throw so debug info is captured
+        throw err;
     }
 }
 
