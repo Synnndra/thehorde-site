@@ -5,6 +5,147 @@ import Anthropic from '@anthropic-ai/sdk';
 import { kvGet, kvSet, kvHget, kvHset, kvHgetall } from '../../lib/swap-utils.js';
 import { generateDraftId, searchRecentTweets } from '../../lib/x-utils.js';
 
+export const config = { maxDuration: 30 };
+
+const ORC_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
+const ORC_KEYWORDS = /\b(orc|orcs|horde|warrior|warriors|battle|drak|midevils|midevil|medieval|axe|sword|shield|warchief|fortress|stronghold|tusks|war paint)\b/i;
+
+function detectOrcCount(text) {
+    const lower = text.toLowerCase();
+    if (/\b(three orcs|group of|horde of|army|trio)\b/.test(lower)) return 3;
+    if (/\b(two orcs|pair of|duo|both orcs)\b/.test(lower)) return 2;
+    return 1;
+}
+
+async function getRandomOrcImages(count, kvUrl, kvToken) {
+    let orcUrls;
+    try {
+        orcUrls = await kvGet('orc_image_urls', kvUrl, kvToken);
+    } catch {}
+
+    if (!Array.isArray(orcUrls) || orcUrls.length === 0) {
+        const heliusApiKey = process.env.HELIUS_API_KEY;
+        if (!heliusApiKey) return [];
+
+        // Fetch orcs from Helius — single page, random offset
+        const randomPage = Math.floor(Math.random() * 5) + 1;
+        const heliusRes = await fetch(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                id: 'orc-images',
+                method: 'getAssetsByGroup',
+                params: {
+                    groupKey: 'collection',
+                    groupValue: ORC_COLLECTION,
+                    page: randomPage,
+                    limit: 200
+                }
+            })
+        });
+        const heliusData = await heliusRes.json();
+        const items = heliusData.result?.items || [];
+
+        // Filter to orcs only and extract image URLs
+        orcUrls = items
+            .filter(a => /orc/i.test(a.content?.metadata?.name || ''))
+            .map(a => a.content?.links?.image)
+            .filter(Boolean);
+
+        if (orcUrls.length > 0) {
+            // Cache for 24h
+            await kvSet('orc_image_urls', orcUrls, kvUrl, kvToken).catch(() => {});
+        }
+    }
+
+    if (orcUrls.length === 0) return [];
+
+    // Pick `count` random unique URLs
+    const shuffled = orcUrls.sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+
+    // Fetch each image and convert to base64
+    const images = [];
+    for (const url of selected) {
+        try {
+            const imgRes = await fetch(url);
+            if (!imgRes.ok) continue;
+            const contentType = imgRes.headers.get('content-type') || 'image/png';
+            const buffer = await imgRes.arrayBuffer();
+            images.push({
+                mimeType: contentType,
+                data: Buffer.from(buffer).toString('base64')
+            });
+        } catch {}
+    }
+    return images;
+}
+
+async function generateTweetImage(tweetText, imageIdea, kvUrl, kvToken) {
+    const googleApiKey = process.env.GOOGLE_API_KEY;
+    if (!googleApiKey || !imageIdea) return null;
+
+    try {
+        const combinedText = `${tweetText} ${imageIdea}`;
+        const isOrcRelated = ORC_KEYWORDS.test(combinedText);
+
+        let parts;
+        if (isOrcRelated) {
+            const orcCount = detectOrcCount(combinedText);
+            const orcImages = await getRandomOrcImages(orcCount, kvUrl, kvToken);
+
+            if (orcImages.length > 0) {
+                const refCount = orcImages.length;
+                parts = [
+                    { text: `Generate a new 16:9 image with ${orcCount} orc character${orcCount > 1 ? 's' : ''} in the exact art style of ${refCount === 1 ? 'this reference NFT artwork' : 'these ' + refCount + ' reference NFT artworks'}. Style elements to match: dark fantasy colors, dramatic lighting, bold outlines, painterly digital art. Subject: ${imageIdea}. Do not include any text, watermarks, or logos in the image.` }
+                ];
+                for (const img of orcImages) {
+                    parts.push({ inline_data: { mime_type: img.mimeType, data: img.data } });
+                }
+            } else {
+                parts = [
+                    { text: `Generate a 16:9 image of orcs in dark fantasy style: ${imageIdea}. Rich colors, dramatic lighting, painterly digital art, bold outlines. No text or watermarks.` }
+                ];
+            }
+        } else {
+            parts = [
+                { text: `Generate a 16:9 image: ${imageIdea}. Dark fantasy style, rich colors, dramatic lighting. No text or watermarks.` }
+            ];
+        }
+
+        const geminiRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-image-generation:generateContent`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': googleApiKey
+                },
+                body: JSON.stringify({
+                    contents: [{ parts }],
+                    generationConfig: { responseModalities: ['IMAGE'] }
+                })
+            }
+        );
+
+        if (!geminiRes.ok) {
+            console.error('Gemini API error:', geminiRes.status, await geminiRes.text().catch(() => ''));
+            return null;
+        }
+
+        const geminiData = await geminiRes.json();
+        const imagePart = geminiData.candidates?.[0]?.content?.parts?.find(p => p.inline_data);
+        if (imagePart?.inline_data?.data) {
+            return imagePart.inline_data.data;
+        }
+        return null;
+    } catch (err) {
+        console.error('Image generation failed (non-fatal):', err.message);
+        return null;
+    }
+}
+
 const DEFAULT_RESEARCH_ACCOUNTS = [
     'BrokeFury', 'synndrabtc', 'sircandyapple', 'commieGod', 'jonnydegods',
     'risencovenant', 'santiago_n_hawk', 'catguy_sol', 'frankdegods', 'volersolana', 'lokithebird'
@@ -331,6 +472,12 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'Generated tweet empty' });
         }
 
+        // Generate image with Gemini (non-fatal)
+        let generatedImageBase64 = null;
+        if (imageIdea) {
+            generatedImageBase64 = await generateTweetImage(tweetText, imageIdea, kvUrl, kvToken);
+        }
+
         // Save draft to KV
         const draftId = generateDraftId();
         const draft = {
@@ -338,6 +485,7 @@ export default async function handler(req, res) {
             text: tweetText,
             suggestedTags,
             imageIdea,
+            generatedImageBase64,
             source,
             topic: topic || null,
             status: 'pending',
@@ -369,6 +517,7 @@ export default async function handler(req, res) {
                     ];
                     if (topic) fields.splice(1, 0, { name: 'Topic', value: String(topic).slice(0, 100), inline: true });
                     if (imageIdea) fields.splice(-1, 0, { name: 'Image idea', value: imageIdea.slice(0, 200), inline: false });
+                    if (generatedImageBase64) fields.splice(-1, 0, { name: 'AI Image', value: 'Generated automatically', inline: true });
                     if (suggestedTags.length > 0) fields.splice(-1, 0, { name: 'Suggested tags', value: suggestedTags.join(', '), inline: false });
 
                     await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {

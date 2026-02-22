@@ -286,6 +286,14 @@
             html += '</div>';
         }
 
+        if (d.generatedImageBase64 && editable) {
+            html += '<div class="tweet-generated-image">';
+            html += '<span class="generated-image-tag">AI Generated</span>';
+            html += '<img class="tweet-generated-image-thumb" src="data:image/png;base64,' + d.generatedImageBase64 + '">';
+            html += '<button type="button" class="tweet-generated-image-remove toolbar-btn">✕ Remove</button>';
+            html += '</div>';
+        }
+
         if (editable) {
             html += '<div class="tweet-draft-actions">';
             html += '<button class="tweet-approve-btn" data-draft-id="' + escapeHtml(d.id) + '">Approve & Post</button>';
@@ -299,6 +307,14 @@
         }
 
         card.innerHTML = html;
+
+        // Pre-set AI-generated image for approve flow
+        if (d.generatedImageBase64 && editable) {
+            card.dataset.imageBase64 = d.generatedImageBase64;
+            card.dataset.imageMime = 'image/png';
+            card.dataset.aiImageBase64 = d.generatedImageBase64;
+        }
+
         return card;
     }
 
@@ -423,6 +439,9 @@
                 card.dataset.imageBase64 = reader.result.split(',')[1];
                 card.dataset.imageMime = file.type;
             }
+            // Hide AI-generated image when manual upload replaces it
+            var aiImageWrap = card.querySelector('.tweet-generated-image');
+            if (aiImageWrap) aiImageWrap.hidden = true;
             var previewImg = card.querySelector('.tweet-preview-image');
             if (!previewImg) {
                 var previewContent = card.querySelector('.tweet-preview-content');
@@ -439,7 +458,22 @@
         reader.readAsDataURL(file);
     });
 
-    // Remove image
+    // Remove AI-generated image
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.tweet-generated-image-remove');
+        if (!btn) return;
+        var card = btn.closest('.tweet-draft-card');
+        if (!card) return;
+        var aiImageWrap = card.querySelector('.tweet-generated-image');
+        if (aiImageWrap) aiImageWrap.hidden = true;
+        delete card.dataset.imageBase64;
+        delete card.dataset.imageMime;
+        delete card.dataset.aiImageBase64;
+        var previewImg = card.querySelector('.tweet-preview-image');
+        if (previewImg) previewImg.remove();
+    });
+
+    // Remove manual image
     document.addEventListener('click', function (e) {
         var btn = e.target.closest('.tweet-image-remove');
         if (!btn) return;
@@ -449,8 +483,17 @@
         if (previewWrap) previewWrap.hidden = true;
         var input = card.querySelector('.tweet-image-input');
         if (input) input.value = '';
-        delete card.dataset.imageBase64;
-        delete card.dataset.imageMime;
+
+        // Restore AI image if available
+        if (card.dataset.aiImageBase64) {
+            card.dataset.imageBase64 = card.dataset.aiImageBase64;
+            card.dataset.imageMime = 'image/png';
+            var aiImageWrap = card.querySelector('.tweet-generated-image');
+            if (aiImageWrap) aiImageWrap.hidden = false;
+        } else {
+            delete card.dataset.imageBase64;
+            delete card.dataset.imageMime;
+        }
         var previewImg = card.querySelector('.tweet-preview-image');
         if (previewImg) previewImg.remove();
     });
