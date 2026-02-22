@@ -20,42 +20,54 @@ function detectOrcCount(text) {
 async function getRandomOrcImages(count, kvUrl, kvToken) {
     let orcUrls;
     try {
-        orcUrls = await kvGet('orc_image_urls', kvUrl, kvToken);
+        const cached = await kvGet('orc_image_urls', kvUrl, kvToken);
+        if (cached && Array.isArray(cached.urls) && cached.urls.length > 0) {
+            const age = Date.now() - (cached.cachedAt || 0);
+            if (age < 7 * 24 * 60 * 60 * 1000) { // 7 day TTL
+                orcUrls = cached.urls;
+            }
+        }
     } catch {}
 
     if (!Array.isArray(orcUrls) || orcUrls.length === 0) {
         const heliusApiKey = process.env.HELIUS_API_KEY;
         if (!heliusApiKey) return [];
 
-        // Fetch orcs from Helius — single page, random offset
-        const randomPage = Math.floor(Math.random() * 5) + 1;
-        const heliusRes = await fetch(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                jsonrpc: '2.0',
-                id: 'orc-images',
-                method: 'getAssetsByGroup',
-                params: {
-                    groupKey: 'collection',
-                    groupValue: ORC_COLLECTION,
-                    page: randomPage,
-                    limit: 200
-                }
-            })
-        });
-        const heliusData = await heliusRes.json();
-        const items = heliusData.result?.items || [];
+        // Fetch ALL orcs from Helius (paginated)
+        let allItems = [];
+        let page = 1;
+        let hasMore = true;
+        while (hasMore && page <= 10) {
+            const heliusRes = await fetch(`https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 'orc-images',
+                    method: 'getAssetsByGroup',
+                    params: {
+                        groupKey: 'collection',
+                        groupValue: ORC_COLLECTION,
+                        page,
+                        limit: 1000
+                    }
+                })
+            });
+            const heliusData = await heliusRes.json();
+            const pageItems = heliusData.result?.items || [];
+            allItems = allItems.concat(pageItems);
+            hasMore = pageItems.length === 1000;
+            page++;
+        }
 
         // Filter to orcs only and extract image URLs
-        orcUrls = items
+        orcUrls = allItems
             .filter(a => /orc/i.test(a.content?.metadata?.name || ''))
             .map(a => a.content?.links?.image)
             .filter(Boolean);
 
         if (orcUrls.length > 0) {
-            // Cache for 24h
-            await kvSet('orc_image_urls', orcUrls, kvUrl, kvToken).catch(() => {});
+            await kvSet('orc_image_urls', { urls: orcUrls, cachedAt: Date.now() }, kvUrl, kvToken).catch(() => {});
         }
     }
 
