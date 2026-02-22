@@ -101,7 +101,7 @@ async function generateTweetImage(tweetText, imageIdea, kvUrl, kvToken) {
                     { text: `Generate a new 16:9 image with ${orcCount} orc character${orcCount > 1 ? 's' : ''} in the exact art style of ${refCount === 1 ? 'this reference NFT artwork' : 'these ' + refCount + ' reference NFT artworks'}. Style elements to match: dark fantasy colors, dramatic lighting, bold outlines, painterly digital art. Subject: ${imageIdea}. Do not include any text, watermarks, or logos in the image.` }
                 ];
                 for (const img of orcImages) {
-                    parts.push({ inline_data: { mime_type: img.mimeType, data: img.data } });
+                    parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });
                 }
             } else {
                 parts = [
@@ -115,7 +115,7 @@ async function generateTweetImage(tweetText, imageIdea, kvUrl, kvToken) {
         }
 
         const geminiRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-image-generation:generateContent`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent`,
             {
                 method: 'POST',
                 headers: {
@@ -124,7 +124,7 @@ async function generateTweetImage(tweetText, imageIdea, kvUrl, kvToken) {
                 },
                 body: JSON.stringify({
                     contents: [{ parts }],
-                    generationConfig: { responseModalities: ['IMAGE'] }
+                    generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
                 })
             }
         );
@@ -135,9 +135,9 @@ async function generateTweetImage(tweetText, imageIdea, kvUrl, kvToken) {
         }
 
         const geminiData = await geminiRes.json();
-        const imagePart = geminiData.candidates?.[0]?.content?.parts?.find(p => p.inline_data);
-        if (imagePart?.inline_data?.data) {
-            return imagePart.inline_data.data;
+        const imagePart = geminiData.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+        if (imagePart?.inlineData?.data) {
+            return imagePart.inlineData.data;
         }
         return null;
     } catch (err) {
