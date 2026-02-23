@@ -637,7 +637,7 @@
             }
             emptyEl.hidden = true;
 
-            metrics.forEach(function (m) {
+            metrics.slice(0, 10).forEach(function (m) {
                 var tr = document.createElement('tr');
                 var tweetText = (m.text || '').length > 80 ? m.text.slice(0, 80) + '...' : (m.text || '');
                 var link = m.tweetId ? '<a href="https://x.com/midhorde/status/' + escapeHtml(m.tweetId) + '" target="_blank" rel="noopener">' + escapeHtml(tweetText) + '</a>' : escapeHtml(tweetText);

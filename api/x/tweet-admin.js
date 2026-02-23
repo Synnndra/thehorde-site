@@ -293,36 +293,9 @@ export default async function handler(req, res) {
 
         // ---- SUGGEST-RETWEETS: search for community posts to engage with ----
         if (mode === 'suggest-retweets') {
-            // Check cache first (6-hour TTL)
-            const cached = await kvHgetall(ENGAGEMENT_KEY, kvUrl, kvToken);
-            const cachedEntries = cached ? Object.values(cached) : [];
-            const pendingCached = cachedEntries.filter(s => s.status !== 'dismissed');
-
-            // If we have cached pending suggestions less than 6h old, return them
-            if (pendingCached.length > 0) {
-                const newest = Math.max(...cachedEntries.map(s => s.foundAt || 0));
-                if (Date.now() - newest < 6 * 60 * 60 * 1000) {
-                    cachedEntries.sort((a, b) => (b.priority || 0) - (a.priority || 0));
-                    return res.status(200).json({ suggestions: cachedEntries, cached: true });
-                }
-            }
-
-            // Build search query from monitored accounts
+            // Load monitored accounts for scoring
             const monitoredAccounts = await kvGet('drak:research_accounts', kvUrl, kvToken).catch(() => null);
             const monitoredList = Array.isArray(monitoredAccounts) ? monitoredAccounts.map(h => h.toLowerCase()) : [];
-            const fromClauses = monitoredList.length > 0
-                ? monitoredList.map(h => `from:${h}`).join(' OR ')
-                : '';
-            const baseClauses = '@midhorde OR @MidEvilsNFT OR #MidEvils OR #TheHorde OR "midevils" OR "mid horde"';
-            const allClauses = fromClauses ? `${fromClauses} OR ${baseClauses}` : baseClauses;
-            const query = `(${allClauses}) -from:midhorde -is:retweet`;
-            const results = await searchRecentTweets(query, 20);
-
-            // Build suggestions, preserving status of already-actioned ones
-            const existingMap = {};
-            for (const e of cachedEntries) {
-                if (e.tweetId) existingMap[e.tweetId] = e;
-            }
 
             // Priority scoring function
             function scoreSuggestion(s) {
@@ -341,6 +314,37 @@ export default async function handler(req, res) {
                     score += 25;
                 }
                 return Math.min(100, score);
+            }
+
+            // Check cache first (6-hour TTL)
+            const cached = await kvHgetall(ENGAGEMENT_KEY, kvUrl, kvToken);
+            const cachedEntries = cached ? Object.values(cached) : [];
+            const pendingCached = cachedEntries.filter(s => s.status !== 'dismissed');
+
+            // If we have cached pending suggestions less than 6h old, return them
+            if (pendingCached.length > 0) {
+                const newest = Math.max(...cachedEntries.map(s => s.foundAt || 0));
+                if (Date.now() - newest < 6 * 60 * 60 * 1000) {
+                    // Score any entries missing priority
+                    cachedEntries.forEach(s => { if (s.priority == null) s.priority = scoreSuggestion(s); });
+                    cachedEntries.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+                    return res.status(200).json({ suggestions: cachedEntries, cached: true });
+                }
+            }
+
+            // Build search query from monitored accounts
+            const fromClauses = monitoredList.length > 0
+                ? monitoredList.map(h => `from:${h}`).join(' OR ')
+                : '';
+            const baseClauses = '@midhorde OR @MidEvilsNFT OR #MidEvils OR #TheHorde OR "midevils" OR "mid horde"';
+            const allClauses = fromClauses ? `${fromClauses} OR ${baseClauses}` : baseClauses;
+            const query = `(${allClauses}) -from:midhorde -is:retweet`;
+            const results = await searchRecentTweets(query, 20);
+
+            // Build suggestions, preserving status of already-actioned ones
+            const existingMap = {};
+            for (const e of cachedEntries) {
+                if (e.tweetId) existingMap[e.tweetId] = e;
             }
 
             const suggestions = [];
