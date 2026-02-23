@@ -8,7 +8,7 @@ const MAX_CASTS_PER_DAY = 5;
 const MAX_ORC_BONUS = 5;
 const MIDEVILS_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
 const GRAVEYARD_COLLECTION = 'DpYLtgV5XcWPt3TM9FhXEh8uNg6QFYrj3zCGZxpcA3vF';
-const ORC_COUNT_TTL = 3600; // 1 hour cache
+const ORC_COUNT_TTL = 86400; // 24 hour cache
 
 // Admin wallets that bypass cooldown (comma-separated in env var)
 const UNLIMITED_WALLETS = process.env.ADMIN_WALLETS

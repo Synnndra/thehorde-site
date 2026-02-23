@@ -23,7 +23,7 @@ async function getRandomOrcImages(count, kvUrl, kvToken) {
         const cached = await kvGet('orc_image_urls', kvUrl, kvToken);
         if (cached && Array.isArray(cached.urls) && cached.urls.length > 0) {
             const age = Date.now() - (cached.cachedAt || 0);
-            if (age < 7 * 24 * 60 * 60 * 1000) { // 7 day TTL
+            if (age < 30 * 24 * 60 * 60 * 1000) { // 30 day TTL
                 orcUrls = cached.urls;
             }
         }

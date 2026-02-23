@@ -245,10 +245,10 @@ export default async function handler(req, res) {
     // signs once and reuses the signature for multiple messages within the 5-minute window.
     // The rate limiter prevents abuse instead.
 
-    // Verify orc holdings server-side (cached 5 min to avoid redundant Helius calls)
+    // Verify orc holdings server-side (cached 30 min to avoid redundant Helius calls)
     const holdingsCacheKey = `holdings:cache:${wallet}`;
     let holdingsData = await kvGet(holdingsCacheKey, kvUrl, kvToken).catch(() => null);
-    if (!holdingsData || Date.now() - (holdingsData.cachedAt || 0) > 5 * 60 * 1000) {
+    if (!holdingsData || Date.now() - (holdingsData.cachedAt || 0) > 30 * 60 * 1000) {
         holdingsData = await getOrcHoldings(wallet, heliusApiKey);
         holdingsData.cachedAt = Date.now();
         await kvSet(holdingsCacheKey, holdingsData, kvUrl, kvToken).catch(() => {});

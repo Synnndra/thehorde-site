@@ -21,16 +21,8 @@
       "schedule": "0 6 */3 * *"
     },
     {
-      "path": "/api/fishing/reset-leaderboard",
-      "schedule": "59 0 18 2 *"
-    },
-    {
       "path": "/api/x/campaign-notify",
       "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/fishing/tournament-results",
-      "schedule": "59 20 21 2 *"
     },
     {
       "path": "/api/drak-review",
