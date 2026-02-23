@@ -43,14 +43,14 @@ export default function handler(req, res) {
 <meta name="twitter:description" content="${description}">
 <meta name="twitter:image" content="${imageUrl}">
 <meta name="twitter:site" content="@MidHorde">
-<meta http-equiv="refresh" content="0;url=/my-horde">
 </head>
 <body>
 <p>Redirecting to <a href="/my-horde">My Horde</a>...</p>
+<script>window.location.href='/my-horde';</script>
 </body>
 </html>`;
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=3600');
     return res.status(200).send(html);
 }
