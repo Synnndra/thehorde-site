@@ -22,7 +22,7 @@ export default function handler(req, res) {
     }
 
     const origin = 'https://midhorde.com';
-    const imageUrl = origin + '/api/badge-og-image?id=' + id + '&v=3';
+    const imageUrl = origin + '/api/badge-og-image?id=' + id + '&v=4';
     const pageUrl = origin + '/badge/' + id;
     const title = badge.name + ' Badge — The Horde';
     const description = badge.description;
