@@ -177,6 +177,11 @@ const DRAK_TOOLS = [
         name: 'search_community',
         description: 'Get latest Discord community recap and knowledge base. Use when asked about community happenings, discussions, or what people are saying.',
         input_schema: { type: 'object', properties: {}, required: [] }
+    },
+    {
+        name: 'search_town_halls',
+        description: 'Retrieve analyses of past X Spaces / Town Hall recordings. These are PRIMARY SOURCES — direct transcripts with speaker attribution and timestamps. If information here conflicts with Discord chat summaries, trust these analyses. Use when users ask about town halls, what was discussed in spaces, community discussions, announcements, or quotes from past spaces.',
+        input_schema: { type: 'object', properties: {}, required: [] }
     }
 ];
 
@@ -473,6 +478,19 @@ export default async function handler(req, res) {
                             };
                         }
                         return { error: 'Unknown game. Options: fishing, tower_defense, orc_run' };
+                    }
+                    case 'search_town_halls': {
+                        const analyses = await kvHgetall('spaces:analyses', kvUrl, kvToken).catch(() => null);
+                        if (!analyses || !Object.keys(analyses).length) {
+                            return { message: 'No town hall analyses available yet.' };
+                        }
+                        const halls = Object.entries(analyses)
+                            .map(([id, data]) => {
+                                const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+                                return { id, ...parsed };
+                            })
+                            .sort((a, b) => (b.space_date || '').localeCompare(a.space_date || ''));
+                        return { townHalls: halls };
                     }
                     case 'search_community': {
                         const [summary, kb] = await Promise.all([
