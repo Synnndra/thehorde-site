@@ -332,25 +332,46 @@ export default async function handler(req, res) {
                 }
             }
 
-            // Build search query from monitored accounts (must stay under 512 chars for X API)
+            // Build search queries from monitored accounts (each must stay under 512 chars for X API)
+            // Split across multiple queries if needed, then merge & dedupe results
             const baseClauses = '@midhorde OR @MidEvilsNFT OR #MidEvils OR #TheHorde OR "midevils" OR "mid horde"';
             const suffix = ' -from:midhorde -is:retweet';
             const maxLen = 512;
-            let fromClauses = '';
+
+            // Partition accounts into batches that fit the query limit
+            const batches = [];
             if (monitoredList.length > 0) {
-                // Add accounts until we'd exceed the query limit
-                const parts = [];
+                let current = [];
                 for (const h of monitoredList) {
-                    const candidate = parts.length > 0 ? parts.join(' OR ') + ' OR from:' + h : 'from:' + h;
+                    const candidate = current.length > 0 ? current.join(' OR ') + ' OR from:' + h : 'from:' + h;
                     const fullLen = 1 + candidate.length + 4 + baseClauses.length + 1 + suffix.length;
-                    if (fullLen > maxLen) break;
-                    parts.push('from:' + h);
+                    if (fullLen > maxLen && current.length > 0) {
+                        batches.push(current);
+                        current = [];
+                    }
+                    current.push('from:' + h);
                 }
-                fromClauses = parts.join(' OR ');
+                if (current.length > 0) batches.push(current);
             }
-            const allClauses = fromClauses ? `${fromClauses} OR ${baseClauses}` : baseClauses;
-            const query = `(${allClauses})${suffix}`;
-            const results = await searchRecentTweets(query, 20);
+
+            // Always run at least the base clauses query; add from-clauses per batch
+            const queries = batches.length > 0
+                ? batches.map(parts => `(${parts.join(' OR ')} OR ${baseClauses})${suffix}`)
+                : [`(${baseClauses})${suffix}`];
+
+            // Run all queries (sequentially to stay within rate limits)
+            const seenIds = new Set();
+            const mergedTweets = [];
+            for (const query of queries) {
+                const results = await searchRecentTweets(query, 20);
+                for (const t of results.tweets) {
+                    if (!seenIds.has(t.id)) {
+                        seenIds.add(t.id);
+                        mergedTweets.push(t);
+                    }
+                }
+            }
+            const results = { tweets: mergedTweets };
 
             // Build suggestions, preserving status of already-actioned ones
             const existingMap = {};
