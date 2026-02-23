@@ -48,7 +48,7 @@ export default async function handler(req, res) {
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', month: 'long', day: 'numeric', year: 'numeric' });
-    const weeklyOnly = req.query.weeklyPreview === 'true';
+    const weeklyOnly = req.query.weeklyPreview === 'true' || req.query.weeklyPost === 'true';
 
     // Discord snowflake for 24 hours ago
     const twentyFourHoursAgo = Date.now() - 86400000;
@@ -253,7 +253,7 @@ export default async function handler(req, res) {
                     }]
                 };
 
-                if (dryRun || weeklyOnly) {
+                if (dryRun || req.query.weeklyPreview === 'true') {
                     return res.status(200).json({
                         preview: true,
                         weekly: true,
