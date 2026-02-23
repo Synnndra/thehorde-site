@@ -1,4 +1,5 @@
-// Dynamic OG card image for badge sharing — generates 1200x630 PNG
+// Dynamic OG card image for badge sharing — generates 600x600 square PNG
+// Square format matches twitter:card "summary" (small square thumbnail)
 import sharp from 'sharp';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -36,12 +37,13 @@ export default async function handler(req, res) {
             .png()
             .toBuffer();
 
-        // Create 1200x630 dark background with masked badge centered
+        // Create 600x600 square dark background with masked badge centered
+        // Square matches summary card format; smaller = faster fetch by Twitter crawler
         const card = await sharp({
-            create: { width: 1200, height: 630, channels: 4, background: { r: 24, g: 24, b: 27, alpha: 1 } }
+            create: { width: 600, height: 600, channels: 4, background: { r: 24, g: 24, b: 27, alpha: 1 } }
         })
             .composite([{ input: maskedBadge, gravity: 'centre' }])
-            .png({ compressionLevel: 9 })
+            .png({ compressionLevel: 6 })
             .toBuffer();
 
         res.setHeader('Content-Type', 'image/png');
