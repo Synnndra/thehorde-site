@@ -332,13 +332,24 @@ export default async function handler(req, res) {
                 }
             }
 
-            // Build search query from monitored accounts
-            const fromClauses = monitoredList.length > 0
-                ? monitoredList.map(h => `from:${h}`).join(' OR ')
-                : '';
+            // Build search query from monitored accounts (must stay under 512 chars for X API)
             const baseClauses = '@midhorde OR @MidEvilsNFT OR #MidEvils OR #TheHorde OR "midevils" OR "mid horde"';
+            const suffix = ' -from:midhorde -is:retweet';
+            const maxLen = 512;
+            let fromClauses = '';
+            if (monitoredList.length > 0) {
+                // Add accounts until we'd exceed the query limit
+                const parts = [];
+                for (const h of monitoredList) {
+                    const candidate = parts.length > 0 ? parts.join(' OR ') + ' OR from:' + h : 'from:' + h;
+                    const fullLen = 1 + candidate.length + 4 + baseClauses.length + 1 + suffix.length;
+                    if (fullLen > maxLen) break;
+                    parts.push('from:' + h);
+                }
+                fromClauses = parts.join(' OR ');
+            }
             const allClauses = fromClauses ? `${fromClauses} OR ${baseClauses}` : baseClauses;
-            const query = `(${allClauses}) -from:midhorde -is:retweet`;
+            const query = `(${allClauses})${suffix}`;
             const results = await searchRecentTweets(query, 20);
 
             // Build suggestions, preserving status of already-actioned ones
