@@ -22,7 +22,7 @@ export default function handler(req, res) {
     }
 
     const origin = 'https://midhorde.com';
-    const imageUrl = origin + badge.image + '?v=2';
+    const imageUrl = origin + '/api/badge-og-image?id=' + id;
     const pageUrl = origin + '/badge/' + id;
     const title = badge.name + ' Badge — The Horde';
     const description = badge.description;
@@ -38,7 +38,9 @@ export default function handler(req, res) {
 <meta property="og:image" content="${imageUrl}">
 <meta property="og:url" content="${pageUrl}">
 <meta property="og:type" content="website">
-<meta name="twitter:card" content="summary">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${title}">
 <meta name="twitter:description" content="${description}">
 <meta name="twitter:image" content="${imageUrl}">

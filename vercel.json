@@ -46,6 +46,7 @@
     { "source": "/api/swap/retry-release", "destination": "/api/swap/retry-release.js" },
     { "source": "/api/swap/cleanup-expired", "destination": "/api/swap/cleanup-expired.js" },
     { "source": "/api/rpc", "destination": "/api/rpc.js" },
+    { "source": "/api/badge-og-image", "destination": "/api/badge-og-image.js" },
     { "source": "/api/discord/auth", "destination": "/api/discord/auth.js" },
     { "source": "/api/discord/callback", "destination": "/api/discord/callback.js" },
     { "source": "/api/x/auth", "destination": "/api/x/auth.js" },
