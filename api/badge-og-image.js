@@ -20,17 +20,27 @@ export default async function handler(req, res) {
         const badgePath = join(process.cwd(), 'badges', file);
         const badgeBuf = readFileSync(badgePath);
 
-        // Resize badge to fit nicely in the card
+        // Resize badge and apply circular mask to remove background/watermark
+        const size = 400;
         const badge = await sharp(badgeBuf)
-            .resize(400, 400, { fit: 'inside' })
+            .resize(size, size, { fit: 'cover' })
+            .ensureAlpha()
+            .toBuffer();
+
+        const circleMask = Buffer.from(
+            `<svg width="${size}" height="${size}"><circle cx="${size/2}" cy="${size/2}" r="${size/2}" fill="white"/></svg>`
+        );
+
+        const maskedBadge = await sharp(badge)
+            .composite([{ input: circleMask, blend: 'dest-in' }])
             .png()
             .toBuffer();
 
-        // Create 1200x630 dark background with badge centered
+        // Create 1200x630 dark background with masked badge centered
         const card = await sharp({
             create: { width: 1200, height: 630, channels: 4, background: { r: 24, g: 24, b: 27, alpha: 1 } }
         })
-            .composite([{ input: badge, gravity: 'centre' }])
+            .composite([{ input: maskedBadge, gravity: 'centre' }])
             .png({ compressionLevel: 9 })
             .toBuffer();
 
