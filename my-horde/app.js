@@ -962,7 +962,7 @@ function showBadgeModal(badgeId, name, description, earned, imageUrl, icon, date
     if (earned) {
         shareBtn.style.display = '';
         shareBtn.onclick = function() {
-            var badgeUrl = 'https://midhorde.com/badge/' + encodeURIComponent(badgeId);
+            var badgeUrl = 'https://midhorde.com/badge/' + encodeURIComponent(badgeId) + '?v=' + Date.now();
             var text = '\uD83C\uDFC5 I earned the "' + name + '" badge on The Horde!\n';
             if (description) text += '\n' + description + '\n';
             text += '\n@MidHorde @MidEvilsNFT';
