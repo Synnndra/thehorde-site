@@ -166,7 +166,7 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
         { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },
-        { "key": "X-CSP-Disabled", "value": "temporarily-testing-twitter-cards" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://mainnet.helius-rpc.com https://api.mainnet-beta.solana.com https://rpc.ankr.com wss://api.mainnet-beta.solana.com wss://rpc.ankr.com https://unpkg.com; media-src 'self' blob:" }
       ]
     }
   ]
