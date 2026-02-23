@@ -1241,6 +1241,26 @@ tr.txlog-row td {
     min-height: 30px;
 }
 
+.engagement-card-actions button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.engagement-priority {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: bold;
+    min-width: 28px;
+    text-align: center;
+}
+
+.engagement-followers {
+    font-size: 0.7rem;
+    color: var(--color-text-dim);
+    opacity: 0.7;
+}
+
 .engagement-status-badge {
     display: inline-block;
     font-size: 0.75rem;

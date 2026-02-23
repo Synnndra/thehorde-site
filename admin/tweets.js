@@ -35,6 +35,12 @@
         return div.innerHTML;
     }
 
+    function formatFollowers(n) {
+        if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+        if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+        return String(n);
+    }
+
     // ---- Auth ----
 
     function showLogin() {
@@ -693,8 +699,8 @@
 
             listEl.innerHTML = '';
             var suggestions = data.suggestions || [];
-            var pending = suggestions.filter(function (s) { return s.status === 'pending'; });
-            var actioned = suggestions.filter(function (s) { return s.status !== 'pending'; });
+            var pending = suggestions.filter(function (s) { return s.status !== 'dismissed'; });
+            var actioned = suggestions.filter(function (s) { return s.status === 'dismissed'; });
 
             if (pending.length === 0 && actioned.length === 0) {
                 emptyEl.hidden = false;
@@ -725,13 +731,24 @@
         card.dataset.tweetId = s.tweetId;
         card.dataset.suggestionId = s.id;
 
-        if (s.status !== 'pending') card.classList.add('actioned');
+        // Migrate legacy single-status to boolean flags
+        if (s.status === 'retweeted') { s.retweeted = true; s.status = 'pending'; }
+        if (s.status === 'liked') { s.liked = true; s.status = 'pending'; }
+        if (s.status === 'quoted') { s.quoted = true; s.status = 'pending'; }
+
+        if (s.status === 'dismissed') card.classList.add('actioned');
+
+        var priority = s.priority || 0;
+        var priorityColor = priority >= 70 ? '#2ecc40' : priority >= 40 ? '#f1c40f' : '#999';
 
         var html = '<div class="engagement-author">' +
+            '<span class="engagement-priority" style="color:' + priorityColor + '" title="Priority score">' + priority + '</span>' +
             '<a href="https://x.com/' + escapeHtml(s.username) + '/status/' + escapeHtml(s.tweetId) + '" target="_blank" rel="noopener">@' + escapeHtml(s.username) + '</a>';
-        if (s.status !== 'pending') {
-            html += ' <span class="engagement-status-badge ' + escapeHtml(s.status) + '">' + escapeHtml(s.status) + '</span>';
-        }
+        if (s.followers) html += ' <span class="engagement-followers">' + formatFollowers(s.followers) + '</span>';
+        if (s.retweeted) html += ' <span class="engagement-status-badge retweeted">retweeted</span>';
+        if (s.liked) html += ' <span class="engagement-status-badge liked">liked</span>';
+        if (s.quoted) html += ' <span class="engagement-status-badge quoted">quoted</span>';
+        if (s.status === 'dismissed') html += ' <span class="engagement-status-badge dismissed">dismissed</span>';
         html += '</div>';
 
         html += '<div class="engagement-text">' + escapeHtml(s.text) + '</div>';
@@ -745,11 +762,11 @@
             html += '</div>';
         }
 
-        if (s.status === 'pending') {
+        if (s.status !== 'dismissed') {
             html += '<div class="engagement-card-actions">' +
-                '<button class="eng-retweet-btn">Retweet</button>' +
-                '<button class="eng-like-btn">Like</button>' +
-                '<button class="eng-quote-btn">Quote Tweet</button>' +
+                '<button class="eng-retweet-btn"' + (s.retweeted ? ' disabled' : '') + '>' + (s.retweeted ? 'Retweeted' : 'Retweet') + '</button>' +
+                '<button class="eng-like-btn"' + (s.liked ? ' disabled' : '') + '>' + (s.liked ? 'Liked' : 'Like') + '</button>' +
+                '<button class="eng-quote-btn"' + (s.quoted ? ' disabled' : '') + '>' + (s.quoted ? 'Quoted' : 'Quote Tweet') + '</button>' +
                 '<button class="eng-dismiss-btn btn-small" style="background:var(--color-bg);border:1px solid var(--border);color:var(--color-text-dim);">Dismiss</button>' +
                 '</div>';
         }
@@ -772,8 +789,9 @@
             btn.textContent = 'Retweeting...';
             try {
                 await fetchTweetAdmin({ mode: 'retweet', tweetId: tid });
-                card.classList.add('actioned');
-                card.querySelector('.engagement-card-actions').innerHTML = '<span class="engagement-status-badge retweeted">retweeted</span>';
+                btn.textContent = 'Retweeted';
+                var author = card.querySelector('.engagement-author');
+                if (author) author.insertAdjacentHTML('beforeend', ' <span class="engagement-status-badge retweeted">retweeted</span>');
             } catch (err) {
                 alert('Error: ' + err.message);
                 btn.disabled = false;
@@ -788,8 +806,9 @@
             btn2.textContent = 'Liking...';
             try {
                 await fetchTweetAdmin({ mode: 'like', tweetId: tid });
-                card.classList.add('actioned');
-                card.querySelector('.engagement-card-actions').innerHTML = '<span class="engagement-status-badge liked">liked</span>';
+                btn2.textContent = 'Liked';
+                var author2 = card.querySelector('.engagement-author');
+                if (author2) author2.insertAdjacentHTML('beforeend', ' <span class="engagement-status-badge liked">liked</span>');
             } catch (err) {
                 alert('Error: ' + err.message);
                 btn2.disabled = false;
@@ -804,8 +823,9 @@
             btn3.textContent = 'Creating draft...';
             try {
                 await fetchTweetAdmin({ mode: 'quote-tweet', tweetId: tid });
-                card.classList.add('actioned');
-                card.querySelector('.engagement-card-actions').innerHTML = '<span class="engagement-status-badge quoted">quoted</span>';
+                btn3.textContent = 'Quoted';
+                var author3 = card.querySelector('.engagement-author');
+                if (author3) author3.insertAdjacentHTML('beforeend', ' <span class="engagement-status-badge quoted">quoted</span>');
                 loadTweetDrafts();
             } catch (err) {
                 alert('Error: ' + err.message);

@@ -296,20 +296,22 @@ export default async function handler(req, res) {
             // Check cache first (6-hour TTL)
             const cached = await kvHgetall(ENGAGEMENT_KEY, kvUrl, kvToken);
             const cachedEntries = cached ? Object.values(cached) : [];
-            const pendingCached = cachedEntries.filter(s => s.status === 'pending');
+            const pendingCached = cachedEntries.filter(s => s.status !== 'dismissed');
 
             // If we have cached pending suggestions less than 6h old, return them
             if (pendingCached.length > 0) {
                 const newest = Math.max(...cachedEntries.map(s => s.foundAt || 0));
                 if (Date.now() - newest < 6 * 60 * 60 * 1000) {
+                    cachedEntries.sort((a, b) => (b.priority || 0) - (a.priority || 0));
                     return res.status(200).json({ suggestions: cachedEntries, cached: true });
                 }
             }
 
             // Build search query from monitored accounts
             const monitoredAccounts = await kvGet('drak:research_accounts', kvUrl, kvToken).catch(() => null);
-            const fromClauses = Array.isArray(monitoredAccounts) && monitoredAccounts.length > 0
-                ? monitoredAccounts.map(h => `from:${h}`).join(' OR ')
+            const monitoredList = Array.isArray(monitoredAccounts) ? monitoredAccounts.map(h => h.toLowerCase()) : [];
+            const fromClauses = monitoredList.length > 0
+                ? monitoredList.map(h => `from:${h}`).join(' OR ')
                 : '';
             const baseClauses = '@midhorde OR @MidEvilsNFT OR #MidEvils OR #TheHorde OR "midevils" OR "mid horde"';
             const allClauses = fromClauses ? `${fromClauses} OR ${baseClauses}` : baseClauses;
@@ -322,12 +324,40 @@ export default async function handler(req, res) {
                 if (e.tweetId) existingMap[e.tweetId] = e;
             }
 
+            // Priority scoring function
+            function scoreSuggestion(s) {
+                let score = 0;
+                // Follower reach (0-30) — log scale
+                const followers = s.followers || 0;
+                score += Math.min(30, Math.round(Math.log10(followers + 1) * 10));
+                // Recency (0-25) — full points for last hour, decays over 7 days
+                const ageHours = (Date.now() - new Date(s.createdAt || s.foundAt).getTime()) / 3600000;
+                score += Math.max(0, Math.round(25 * (1 - ageHours / 168)));
+                // Visibility potential (0-20) — higher engagement = trending, worth joining
+                const totalEng = (s.metrics?.like_count || 0) + (s.metrics?.retweet_count || 0) + (s.metrics?.reply_count || 0);
+                score += Math.min(20, Math.round(Math.log10(totalEng + 1) * 8));
+                // Community member bonus (25)
+                if (monitoredList.includes((s.username || '').toLowerCase())) {
+                    score += 25;
+                }
+                return Math.min(100, score);
+            }
+
             const suggestions = [];
             for (const t of results.tweets) {
                 const existing = existingMap[t.id];
-                if (existing && existing.status !== 'pending') {
-                    // Keep the actioned status
+                if (existing) {
+                    // Preserve existing entry with action flags, refresh metrics
+                    existing.metrics = t.metrics;
+                    existing.followers = t.followers || existing.followers || 0;
+                    existing.createdAt = existing.createdAt || t.createdAt;
+                    // Migrate legacy single-status to boolean flags
+                    if (existing.status === 'retweeted') { existing.retweeted = true; existing.status = 'pending'; }
+                    if (existing.status === 'liked') { existing.liked = true; existing.status = 'pending'; }
+                    if (existing.status === 'quoted') { existing.quoted = true; existing.status = 'pending'; }
+                    existing.priority = scoreSuggestion(existing);
                     suggestions.push(existing);
+                    await kvHset(ENGAGEMENT_KEY, existing.id, existing, kvUrl, kvToken);
                     continue;
                 }
                 const sid = 'eng_' + t.id;
@@ -336,13 +366,19 @@ export default async function handler(req, res) {
                     tweetId: t.id,
                     text: t.text,
                     username: t.username,
+                    followers: t.followers || 0,
                     metrics: t.metrics,
+                    createdAt: t.createdAt,
                     status: 'pending',
                     foundAt: Date.now()
                 };
+                suggestion.priority = scoreSuggestion(suggestion);
                 suggestions.push(suggestion);
                 await kvHset(ENGAGEMENT_KEY, sid, suggestion, kvUrl, kvToken);
             }
+
+            // Sort by priority score (highest first)
+            suggestions.sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
             // Set TTL on the hash (6 hours) via raw Redis EXPIRE
             await fetch(kvUrl, {
@@ -358,11 +394,11 @@ export default async function handler(req, res) {
         if (mode === 'retweet') {
             if (!tweetId) return res.status(400).json({ error: 'tweetId required' });
             await retweetPost(tweetId);
-            // Update suggestion status
+            // Update suggestion action flag
             const sid = 'eng_' + tweetId;
             const suggestion = await kvHget(ENGAGEMENT_KEY, sid, kvUrl, kvToken);
             if (suggestion) {
-                suggestion.status = 'retweeted';
+                suggestion.retweeted = true;
                 await kvHset(ENGAGEMENT_KEY, sid, suggestion, kvUrl, kvToken);
             }
             return res.status(200).json({ success: true });
@@ -375,7 +411,7 @@ export default async function handler(req, res) {
             const sid = 'eng_' + tweetId;
             const suggestion = await kvHget(ENGAGEMENT_KEY, sid, kvUrl, kvToken);
             if (suggestion) {
-                suggestion.status = 'liked';
+                suggestion.liked = true;
                 await kvHset(ENGAGEMENT_KEY, sid, suggestion, kvUrl, kvToken);
             }
             return res.status(200).json({ success: true });
@@ -452,9 +488,9 @@ export default async function handler(req, res) {
 
             await kvHset(DRAFTS_KEY, newDraftId, draft, kvUrl, kvToken);
 
-            // Update suggestion status
+            // Update suggestion action flag
             if (suggestion) {
-                suggestion.status = 'quoted';
+                suggestion.quoted = true;
                 await kvHset(ENGAGEMENT_KEY, sid, suggestion, kvUrl, kvToken);
             }
 
