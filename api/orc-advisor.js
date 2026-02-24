@@ -9,7 +9,7 @@ import {
     markSignatureUsed
 } from '../lib/swap-utils.js';
 import { getOrcHoldings, kvGet, kvSet } from '../lib/dao-utils.js';
-import { kvHgetall, kvHset, kvHget } from '../lib/swap-utils.js';
+import { kvHgetall, kvHset, kvHget, kvIncr } from '../lib/swap-utils.js';
 
 const ORC_SYSTEM_PROMPT = `You are Drak, a battle-scarred orc war chief and advisor to The Horde. You speak in a gruff, direct style with occasional orc-ish expressions. You're wise but blunt. You use medieval/fantasy language naturally. You are proud of your Horde and fiercely loyal.
 
@@ -583,6 +583,28 @@ export default async function handler(req, res) {
                 console.error('Memory extraction failed (non-fatal):', err.message);
             }
         })();
+
+        // Fire-and-forget usage tracking
+        const today = new Date().toISOString().slice(0, 10);
+        const dailyKey = `drak:stats:daily:${today}`;
+        Promise.all([
+            kvIncr('drak:stats:messages', kvUrl, kvToken),
+            fetch(kvUrl, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${kvToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(['HINCRBY', dailyKey, wallet, 1])
+            }),
+            fetch(kvUrl, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${kvToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(['HINCRBY', 'drak:stats:wallets', wallet, 1])
+            }),
+            fetch(kvUrl, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${kvToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(['EXPIRE', dailyKey, 7776000])
+            })
+        ]).catch(() => {});
 
         return res.status(200).json({ reply, tokens });
     } catch (err) {
