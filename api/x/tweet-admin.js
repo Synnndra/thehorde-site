@@ -43,14 +43,23 @@ export default async function handler(req, res) {
 
         // ---- LIST: return all drafts sorted by date ----
         if (mode === 'list') {
-            const allDrafts = await kvHgetall(DRAFTS_KEY, kvUrl, kvToken);
-            const drafts = Object.values(allDrafts)
-                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-                .map(d => {
-                    // Strip heavy base64 image data from list response — send flag instead
-                    const { generatedImageBase64, ...rest } = d;
-                    return { ...rest, hasImage: !!generatedImageBase64 };
-                });
+            // Fetch keys first, then each draft individually to avoid hgetall size limit
+            const keysRes = await fetch(kvUrl, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${kvToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(['HKEYS', DRAFTS_KEY])
+            });
+            const keysData = await keysRes.json();
+            const keys = keysData.result || [];
+
+            const drafts = [];
+            for (const key of keys) {
+                const d = await kvHget(DRAFTS_KEY, key, kvUrl, kvToken);
+                if (!d) continue;
+                const { generatedImageBase64, ...rest } = d;
+                drafts.push({ ...rest, hasImage: !!generatedImageBase64 });
+            }
+            drafts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
             return res.status(200).json({ drafts });
         }
 
