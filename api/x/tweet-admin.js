@@ -330,13 +330,14 @@ export default async function handler(req, res) {
                 return Math.min(100, score);
             }
 
-            // Check cache first (6-hour TTL)
+            // Check cache first (6-hour TTL) — skip if forceRefresh
+            const forceRefresh = body.forceRefresh === true;
             const cached = await kvHgetall(ENGAGEMENT_KEY, kvUrl, kvToken);
             const cachedEntries = cached ? Object.values(cached) : [];
             const pendingCached = cachedEntries.filter(s => s.status !== 'dismissed');
 
             // If we have cached pending suggestions less than 6h old, return them
-            if (pendingCached.length > 0) {
+            if (!forceRefresh && pendingCached.length > 0) {
                 const newest = Math.max(...cachedEntries.map(s => s.foundAt || 0));
                 if (Date.now() - newest < 6 * 60 * 60 * 1000) {
                     // Score any entries missing priority

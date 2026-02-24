@@ -708,18 +708,22 @@
     // ---- Suggested Engagement ----
 
     var engagementFindBtn = document.getElementById('engagement-find-btn');
+    var engagementRefreshBtn = document.getElementById('engagement-refresh-btn');
 
-    async function loadEngagementSuggestions() {
+    async function loadEngagementSuggestions(forceRefresh) {
         var listEl = document.getElementById('engagement-list');
         var emptyEl = document.getElementById('engagement-empty');
         var statusEl = document.getElementById('engagement-status');
         statusEl.hidden = true;
 
         engagementFindBtn.disabled = true;
+        engagementRefreshBtn.disabled = true;
         engagementFindBtn.textContent = 'Searching...';
 
         try {
-            var data = await fetchTweetAdmin({ mode: 'suggest-retweets' });
+            var params = { mode: 'suggest-retweets' };
+            if (forceRefresh) params.forceRefresh = true;
+            var data = await fetchTweetAdmin(params);
             if (!data) return;
 
             listEl.innerHTML = '';
@@ -746,6 +750,7 @@
             statusEl.hidden = false;
         } finally {
             engagementFindBtn.disabled = false;
+            engagementRefreshBtn.disabled = false;
             engagementFindBtn.textContent = 'Find Posts';
         }
     }
@@ -875,7 +880,8 @@
         }
     });
 
-    engagementFindBtn.addEventListener('click', loadEngagementSuggestions);
+    engagementFindBtn.addEventListener('click', function () { loadEngagementSuggestions(false); });
+    engagementRefreshBtn.addEventListener('click', function () { loadEngagementSuggestions(true); });
 
     // ---- Drak Knowledge Base ----
 
