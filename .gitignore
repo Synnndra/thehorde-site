@@ -17,3 +17,7 @@ scripts/
 # Backfill scripts (contain secrets)
 backfill-*.sh
 backfill-log.txt
+
+# Tournament scripts (contain secrets)
+tournament-*.js
+badges/warlord_src.png
