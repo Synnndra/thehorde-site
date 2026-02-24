@@ -145,22 +145,14 @@ export default async function handler(req, res) {
             }
         }
 
-        // ---- REJECT: mark draft as rejected ----
+        // ---- REJECT: delete draft from KV ----
         if (mode === 'reject') {
             if (!draftId) {
                 return res.status(400).json({ error: 'draftId required' });
             }
 
-            const draft = await kvHget(DRAFTS_KEY, draftId, kvUrl, kvToken);
-            if (!draft) {
-                return res.status(404).json({ error: 'Draft not found' });
-            }
-
-            draft.status = 'rejected';
-            draft.reviewedBy = 'admin';
-            await kvHset(DRAFTS_KEY, draftId, draft, kvUrl, kvToken);
-
-            return res.status(200).json({ success: true, draft });
+            await kvHdel(DRAFTS_KEY, draftId, kvUrl, kvToken);
+            return res.status(200).json({ success: true });
         }
 
         // ---- DELETE: remove draft from hash ----
