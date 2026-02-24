@@ -298,6 +298,12 @@
             html += '<img class="tweet-generated-image-thumb" src="data:image/png;base64,' + d.generatedImageBase64 + '" title="Click to enlarge">';
             html += '<button type="button" class="tweet-generated-image-remove toolbar-btn">✕ Remove</button>';
             html += '</div>';
+        } else if (d.hasImage && editable) {
+            html += '<div class="tweet-generated-image" data-lazy-image="' + escapeHtml(d.id) + '">';
+            html += '<span class="generated-image-tag">AI Generated</span>';
+            html += '<img class="tweet-generated-image-thumb" src="" title="Loading..." style="min-height:60px;background:#1a1a1a;">';
+            html += '<button type="button" class="tweet-generated-image-remove toolbar-btn">✕ Remove</button>';
+            html += '</div>';
         }
 
         if (editable) {
@@ -321,7 +327,26 @@
             card.dataset.aiImageBase64 = d.generatedImageBase64;
         }
 
+        // Lazy-load image for drafts that have one
+        if (d.hasImage && !d.generatedImageBase64 && editable) {
+            lazyLoadDraftImage(card, d.id);
+        }
+
         return card;
+    }
+
+    async function lazyLoadDraftImage(card, draftId) {
+        try {
+            var data = await fetchTweetAdmin({ mode: 'get', draftId: draftId });
+            if (!data || !data.draft || !data.draft.generatedImageBase64) return;
+            var imgEl = card.querySelector('.tweet-generated-image-thumb');
+            if (imgEl) imgEl.src = 'data:image/png;base64,' + data.draft.generatedImageBase64;
+            card.dataset.imageBase64 = data.draft.generatedImageBase64;
+            card.dataset.imageMime = 'image/png';
+            card.dataset.aiImageBase64 = data.draft.generatedImageBase64;
+        } catch (err) {
+            console.error('Failed to load draft image:', err);
+        }
     }
 
     // ---- Tweet Event Handlers ----
@@ -751,7 +776,7 @@
         if (s.status === 'dismissed') html += ' <span class="engagement-status-badge dismissed">dismissed</span>';
         html += '</div>';
 
-        html += '<div class="engagement-text">' + escapeHtml(s.text) + '</div>';
+        html += '<a class="engagement-text" href="https://x.com/' + escapeHtml(s.username) + '/status/' + escapeHtml(s.tweetId) + '" target="_blank" rel="noopener">' + escapeHtml(s.text) + '</a>';
 
         if (s.metrics) {
             html += '<div class="engagement-metrics">';

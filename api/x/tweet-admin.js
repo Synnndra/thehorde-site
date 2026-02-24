@@ -45,8 +45,21 @@ export default async function handler(req, res) {
         if (mode === 'list') {
             const allDrafts = await kvHgetall(DRAFTS_KEY, kvUrl, kvToken);
             const drafts = Object.values(allDrafts)
-                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+                .map(d => {
+                    // Strip heavy base64 image data from list response — send flag instead
+                    const { generatedImageBase64, ...rest } = d;
+                    return { ...rest, hasImage: !!generatedImageBase64 };
+                });
             return res.status(200).json({ drafts });
+        }
+
+        // ---- GET: return single draft with full image data ----
+        if (mode === 'get') {
+            if (!draftId) return res.status(400).json({ error: 'draftId required' });
+            const draft = await kvHget(DRAFTS_KEY, draftId, kvUrl, kvToken);
+            if (!draft) return res.status(404).json({ error: 'Draft not found' });
+            return res.status(200).json({ draft });
         }
 
         // ---- APPROVE: approve draft, optionally edit, post to X ----
