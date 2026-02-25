@@ -94,7 +94,8 @@
     { "source": "/api/drak-knowledge", "destination": "/api/drak-knowledge.js" },
     { "source": "/api/orc-tts", "destination": "/api/orc-tts.js" },
     { "source": "/api/discord-kb-update", "destination": "/api/discord-kb-update.js" },
-    { "source": "/api/drak-review", "destination": "/api/drak-review.js" }
+    { "source": "/api/drak-review", "destination": "/api/drak-review.js" },
+    { "source": "/api/discord-drak", "destination": "/api/discord-drak.js" }
   ],
   "headers": [
     {
