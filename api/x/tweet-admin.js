@@ -331,7 +331,7 @@ export default async function handler(req, res) {
             }
 
             // Check cache first (6-hour TTL) — skip if forceRefresh
-            const forceRefresh = body.forceRefresh === true;
+            const forceRefresh = req.body.forceRefresh === true;
             const cached = await kvHgetall(ENGAGEMENT_KEY, kvUrl, kvToken);
             const cachedEntries = cached ? Object.values(cached) : [];
             const pendingCached = cachedEntries.filter(s => s.status !== 'dismissed');
