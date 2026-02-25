@@ -113,7 +113,24 @@ async function generateTweetImage(tweetText, imageIdea, kvUrl, kvToken) {
                 referenceOrcUrls = orcImages.map(img => img.url);
                 const refCount = orcImages.length;
                 parts = [
-                    { text: `Use the attached ${refCount === 1 ? 'image as a style and character reference' : refCount + ' images as style and character references'}. Generate a NEW 16:9 scene inspired by ${refCount === 1 ? 'this character and art style' : 'these characters and art style'}: ${imageIdea}. Match the hand-drawn line art aesthetic with visible ink outlines, flat colors, minimal shading, and muted palette. No text, watermarks, or logos.` }
+                    { text: `Study the attached ${refCount === 1 ? 'image' : refCount + ' images'} carefully. ${refCount === 1 ? 'This is a specific orc character' : 'These are specific orc characters'} from the MidEvils NFT collection. Generate a NEW 16:9 scene featuring ${refCount === 1 ? 'THIS SAME CHARACTER' : 'THESE SAME CHARACTERS'} in a new pose/scenario: ${imageIdea}.
+
+CHARACTER RULES (match the reference ${refCount === 1 ? 'character' : 'characters'} exactly):
+- The generated ${refCount === 1 ? 'orc must be recognizably the same character' : 'orcs must be recognizably the same characters'} from the ${refCount === 1 ? 'reference image' : 'reference images'}
+- Match the EXACT skin color/tone (could be green, purple, blue, etc. — use whatever the reference shows)
+- Match the EXACT clothing, accessories, eyewear, headwear, and all visible traits
+- Match the body proportions and overall character design
+
+ART STYLE RULES (match the reference precisely):
+- Rough, sketchy ink outlines — hand-drawn with visible wobble and imperfection, NOT clean vector lines
+- Visible ink texture and grain — gritty, like real ink on paper
+- Flat color fills with subtle texture — muted, desaturated palette
+- Simple cartoon/comic proportions — NOT realistic, NOT anime, NOT 3D rendered
+- DO NOT use a plain solid-color background — place the character in a detailed SCENE that fits the image idea
+- Background should be a full illustrated environment (medieval tavern, battlefield, treasure vault, forest, castle walls, etc.) drawn in the same hand-drawn ink style
+- Underground comic / zine illustration feel — raw, not polished
+
+DO NOT: add realistic rendering, gradients, glow effects, dramatic lighting, cel-shading, 3D depth, or photorealistic elements. The result must look hand-drawn by the same artist as the reference. No text, watermarks, or logos.` }
                 ];
                 for (const img of orcImages) {
                     parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });

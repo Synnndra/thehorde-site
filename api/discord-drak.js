@@ -503,10 +503,58 @@ export default async function handler(req, res) {
 
         waitUntil((async () => {
             try {
-                // Fetch admin knowledge base for live context
+                // Fetch live context: admin knowledge + Discord summary + community KB
                 let liveContext = '';
                 if (kvUrl && kvToken) {
-                    const adminFacts = await kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null);
+                    const [adminFacts, discordSummary, knowledgeBase, holdersData, spacesAnalyses] = await Promise.all([
+                        kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null),
+                        kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null),
+                        kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null),
+                        kvGet('holders:leaderboard', kvUrl, kvToken).catch(() => null),
+                        kvHgetall('spaces:analyses', kvUrl, kvToken).catch(() => null)
+                    ]);
+
+                    // Market data
+                    if (holdersData) {
+                        const parts = [];
+                        if (holdersData.floorPrice != null) parts.push(`Floor: ${holdersData.floorPrice} SOL`);
+                        if (holdersData.totalHolders) parts.push(`Holders: ${holdersData.totalHolders}`);
+                        if (holdersData.listedForSale) parts.push(`Listed: ${holdersData.listedForSale.length}`);
+                        if (holdersData.enlistedCount) parts.push(`Enlisted: ${holdersData.enlistedCount}`);
+                        if (holdersData.avgHold) parts.push(`Avg hold: ${holdersData.avgHold}`);
+                        if (parts.length > 0) {
+                            liveContext += `\n\n=== ORC MARKET DATA ===\n${parts.join(', ')}`;
+                        }
+                    }
+
+                    // Recent town hall / Spaces analyses (last 2)
+                    if (spacesAnalyses && Object.keys(spacesAnalyses).length > 0) {
+                        const halls = Object.entries(spacesAnalyses)
+                            .map(([id, data]) => {
+                                const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+                                return { id, ...parsed };
+                            })
+                            .sort((a, b) => (b.space_date || '').localeCompare(a.space_date || ''))
+                            .slice(0, 2);
+                        for (const h of halls) {
+                            liveContext += `\n\n=== TOWN HALL: ${h.title} (${h.space_date}) ===\n${h.analysis}`;
+                        }
+                    }
+
+                    // Discord daily summary
+                    if (discordSummary?.summary) {
+                        const age = Date.now() - (discordSummary.updatedAt || 0);
+                        if (age < 48 * 60 * 60 * 1000) {
+                            liveContext += `\n\n=== DISCORD RECAP (${discordSummary.date}) ===\n${discordSummary.summary}`;
+                        }
+                    }
+
+                    // Community knowledge base
+                    if (knowledgeBase?.content) {
+                        liveContext += `\n\n=== COMMUNITY KNOWLEDGE ===\n${knowledgeBase.content.slice(0, 2000)}`;
+                    }
+
+                    // Admin-curated facts
                     if (adminFacts && Object.keys(adminFacts).length > 0) {
                         const facts = Object.values(adminFacts);
                         const grouped = {};
