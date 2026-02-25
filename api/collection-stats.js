@@ -4,7 +4,7 @@ import { isRateLimitedKV, getClientIp, kvGet } from '../lib/swap-utils.js';
 
 const COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
 const CACHE_KEY = 'about:collection-stats';
-const CACHE_TTL = 86400; // 24 hours
+const CACHE_TTL = 3600; // 1 hour
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
         const cached = await kvGet(CACHE_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
         if (cached) {
             const data = typeof cached === 'string' ? JSON.parse(cached) : cached;
-            res.setHeader('Cache-Control', 'public, max-age=3600');
+            res.setHeader('Cache-Control', 'public, s-maxage=300, max-age=60');
             return res.status(200).json(data);
         }
 
@@ -99,7 +99,7 @@ export default async function handler(req, res) {
             body: JSON.stringify(stats)
         });
 
-        res.setHeader('Cache-Control', 'public, max-age=3600');
+        res.setHeader('Cache-Control', 'public, s-maxage=300, max-age=60');
         return res.status(200).json(stats);
     } catch (error) {
         console.error('Collection stats error:', error);
