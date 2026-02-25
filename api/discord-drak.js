@@ -449,7 +449,7 @@ export default async function handler(req, res) {
     }
 
     const body = JSON.parse(rawBody);
-    const { type, data, channel_id, member, token: interactionToken } = body;
+    const { type, data, channel_id, member, token: interactionToken, application_id } = body;
 
     // --- PING (type 1) — Discord verification handshake ---
     if (type === 1) {
@@ -458,7 +458,7 @@ export default async function handler(req, res) {
 
     // --- Slash command (type 2) ---
     if (type === 2) {
-        const appId = process.env.DRAK_APP_ID;
+        const appId = application_id; // From interaction payload (string, no precision loss)
         const kvUrl = process.env.KV_REST_API_URL;
         const kvToken = process.env.KV_REST_API_TOKEN;
         const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
