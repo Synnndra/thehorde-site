@@ -113,7 +113,7 @@ async function generateTweetImage(tweetText, imageIdea, kvUrl, kvToken) {
                 referenceOrcUrls = orcImages.map(img => img.url);
                 const refCount = orcImages.length;
                 parts = [
-                    { text: `Recreate ${refCount === 1 ? 'this exact orc character' : 'these exact ' + refCount + ' orc characters'} — same face, same outfit, same accessories, same colors — but place ${refCount === 1 ? 'them' : 'all of them'} in a new 16:9 scene: ${imageIdea}. Keep the same hand-drawn line art style with visible ink outlines, flat colors, minimal shading, and muted palette. Do not change the character design. No text, watermarks, or logos.` }
+                    { text: `Use the attached ${refCount === 1 ? 'image as a style and character reference' : refCount + ' images as style and character references'}. Generate a NEW 16:9 scene inspired by ${refCount === 1 ? 'this character and art style' : 'these characters and art style'}: ${imageIdea}. Match the hand-drawn line art aesthetic with visible ink outlines, flat colors, minimal shading, and muted palette. No text, watermarks, or logos.` }
                 ];
                 for (const img of orcImages) {
                     parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });
