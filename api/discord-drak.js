@@ -1,6 +1,7 @@
 // Vercel Serverless Function - Drak Discord Slash Command (/ask-drak)
 import Anthropic from '@anthropic-ai/sdk';
 import nacl from 'tweetnacl';
+import { waitUntil } from '@vercel/functions';
 import { isRateLimitedKV, kvHgetall, kvHget, kvHset, kvIncr } from '../lib/swap-utils.js';
 import { kvGet, kvSet } from '../lib/dao-utils.js';
 
@@ -497,99 +498,99 @@ export default async function handler(req, res) {
         }
 
         // Send deferred response (type 5) — shows "Drak is thinking..."
-        res.status(200).json({ type: 5 });
+        // Use waitUntil() to keep function alive for background Claude call
+        const discordUser = member?.user?.username || 'unknown';
 
-        // --- Background: call Claude, execute tools, send followup ---
-        try {
-            // Fetch admin knowledge base for live context
-            let liveContext = '';
-            if (kvUrl && kvToken) {
-                const adminFacts = await kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null);
-                if (adminFacts && Object.keys(adminFacts).length > 0) {
-                    const facts = Object.values(adminFacts);
-                    const grouped = {};
-                    for (const f of facts) {
-                        const cat = f.category || 'general';
-                        if (!grouped[cat]) grouped[cat] = [];
-                        grouped[cat].push(f.text);
+        waitUntil((async () => {
+            try {
+                // Fetch admin knowledge base for live context
+                let liveContext = '';
+                if (kvUrl && kvToken) {
+                    const adminFacts = await kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null);
+                    if (adminFacts && Object.keys(adminFacts).length > 0) {
+                        const facts = Object.values(adminFacts);
+                        const grouped = {};
+                        for (const f of facts) {
+                            const cat = f.category || 'general';
+                            if (!grouped[cat]) grouped[cat] = [];
+                            grouped[cat].push(f.text);
+                        }
+                        let section = '\n\n=== ADMIN KNOWLEDGE BASE ===';
+                        for (const [cat, texts] of Object.entries(grouped)) {
+                            section += '\n[' + cat.toUpperCase() + ']\n' + texts.map(t => '- ' + t).join('\n');
+                        }
+                        liveContext += section;
                     }
-                    let section = '\n\n=== ADMIN KNOWLEDGE BASE ===';
-                    for (const [cat, texts] of Object.entries(grouped)) {
-                        section += '\n[' + cat.toUpperCase() + ']\n' + texts.map(t => '- ' + t).join('\n');
-                    }
-                    liveContext += section;
                 }
-            }
 
-            // Add Discord user context
-            const discordUser = member?.user?.username || 'unknown';
-            liveContext += `\n\nThis question comes from Discord user "${discordUser}" via the /ask-drak slash command.`;
+                liveContext += `\n\nThis question comes from Discord user "${discordUser}" via the /ask-drak slash command.`;
 
-            const client = new Anthropic({ apiKey: anthropicApiKey });
-            const systemBlocks = [
-                { type: 'text', text: ORC_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }
-            ];
-            if (liveContext) {
-                systemBlocks.push({ type: 'text', text: liveContext, cache_control: { type: 'ephemeral' } });
-            }
+                const client = new Anthropic({ apiKey: anthropicApiKey });
+                const systemBlocks = [
+                    { type: 'text', text: ORC_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }
+                ];
+                if (liveContext) {
+                    systemBlocks.push({ type: 'text', text: liveContext, cache_control: { type: 'ephemeral' } });
+                }
 
-            const messages = [{ role: 'user', content: question }];
-            const leaderboardCache = { data: null };
+                const messages = [{ role: 'user', content: question }];
+                const leaderboardCache = { data: null };
 
-            // Tool use loop — same pattern as orc-advisor.js
-            let response = await client.messages.create({
-                model: 'claude-sonnet-4-5-20250929',
-                max_tokens: 500,
-                system: systemBlocks,
-                messages,
-                tools: DRAK_TOOLS
-            });
-
-            let iterations = 0;
-            while (response.stop_reason === 'tool_use' && iterations < 3) {
-                iterations++;
-                const toolUseBlocks = response.content.filter(b => b.type === 'tool_use');
-                const toolResults = await Promise.all(
-                    toolUseBlocks.map(async (block) => {
-                        const result = await executeTool(block.name, block.input, kvUrl, kvToken, leaderboardCache);
-                        return { type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(result) };
-                    })
-                );
-                messages.push({ role: 'assistant', content: response.content });
-                messages.push({ role: 'user', content: toolResults });
-                response = await client.messages.create({
+                // Tool use loop — same pattern as orc-advisor.js
+                let response = await client.messages.create({
                     model: 'claude-sonnet-4-5-20250929',
                     max_tokens: 500,
                     system: systemBlocks,
                     messages,
                     tools: DRAK_TOOLS
                 });
+
+                let iterations = 0;
+                while (response.stop_reason === 'tool_use' && iterations < 3) {
+                    iterations++;
+                    const toolUseBlocks = response.content.filter(b => b.type === 'tool_use');
+                    const toolResults = await Promise.all(
+                        toolUseBlocks.map(async (block) => {
+                            const result = await executeTool(block.name, block.input, kvUrl, kvToken, leaderboardCache);
+                            return { type: 'tool_result', tool_use_id: block.id, content: JSON.stringify(result) };
+                        })
+                    );
+                    messages.push({ role: 'assistant', content: response.content });
+                    messages.push({ role: 'user', content: toolResults });
+                    response = await client.messages.create({
+                        model: 'claude-sonnet-4-5-20250929',
+                        max_tokens: 500,
+                        system: systemBlocks,
+                        messages,
+                        tools: DRAK_TOOLS
+                    });
+                }
+
+                const textBlock = response.content.find(b => b.type === 'text');
+                const reply = textBlock?.text || 'Hrrm... the words escape Drak.';
+                const truncated = truncateForDiscord(reply);
+
+                await sendFollowup(appId, interactionToken, truncated);
+
+                // Fire-and-forget: queue for correction review + usage stats
+                if (kvUrl && kvToken) {
+                    await Promise.all([
+                        kvHset('drak:review_queue', String(Date.now()), { userMsg: question, drakReply: reply, source: 'discord', discordUser, timestamp: Date.now() }, kvUrl, kvToken),
+                        kvIncr('drak:stats:messages', kvUrl, kvToken),
+                        fetch(kvUrl, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${kvToken}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify(['HINCRBY', `drak:stats:daily:${new Date().toISOString().slice(0, 10)}`, `discord:${userId || 'unknown'}`, 1])
+                        })
+                    ]).catch(() => {});
+                }
+            } catch (err) {
+                console.error('Discord Drak error:', err);
+                await sendFollowup(appId, interactionToken, "The spirit realm is disturbed... Drak couldn't find an answer. Try again, warrior.").catch(() => {});
             }
+        })());
 
-            const textBlock = response.content.find(b => b.type === 'text');
-            const reply = textBlock?.text || 'Hrrm... the words escape Drak.';
-            const truncated = truncateForDiscord(reply);
-
-            await sendFollowup(appId, interactionToken, truncated);
-
-            // Fire-and-forget: queue for correction review + usage stats
-            if (kvUrl && kvToken) {
-                Promise.all([
-                    kvHset('drak:review_queue', String(Date.now()), { userMsg: question, drakReply: reply, source: 'discord', discordUser, timestamp: Date.now() }, kvUrl, kvToken),
-                    kvIncr('drak:stats:messages', kvUrl, kvToken),
-                    fetch(kvUrl, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${kvToken}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify(['HINCRBY', `drak:stats:daily:${new Date().toISOString().slice(0, 10)}`, `discord:${userId || 'unknown'}`, 1])
-                    })
-                ]).catch(() => {});
-            }
-        } catch (err) {
-            console.error('Discord Drak error:', err);
-            await sendFollowup(appId, interactionToken, "The spirit realm is disturbed... Drak couldn't find an answer. Try again, warrior.").catch(() => {});
-        }
-
-        return; // Response already sent via res.json({ type: 5 })
+        return res.status(200).json({ type: 5 });
     }
 
     // Unknown interaction type
