@@ -409,6 +409,7 @@ function truncateForDiscord(text, limit = 2000) {
 
 // --- PATCH followup message to Discord ---
 async function sendFollowup(appId, interactionToken, content) {
+    console.log(`sendFollowup: appId=${appId}, tokenLength=${interactionToken?.length}, contentLength=${content?.length}`);
     const url = `https://discord.com/api/v10/webhooks/${appId}/${interactionToken}/messages/@original`;
     const resp = await fetch(url, {
         method: 'PATCH',
@@ -417,7 +418,7 @@ async function sendFollowup(appId, interactionToken, content) {
     });
     if (!resp.ok) {
         const text = await resp.text().catch(() => '');
-        console.error(`Discord followup PATCH failed (${resp.status}):`, text);
+        console.error(`Discord followup PATCH failed (${resp.status}): url=${url}`, text);
     }
 }
 
