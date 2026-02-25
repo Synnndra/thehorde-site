@@ -73,6 +73,7 @@
                     loadTweetDrafts();
                 });
                 loadKnowledgeFacts();
+                loadCorrections();
                 loadMetrics();
             } else {
                 loginError.textContent = res.status === 403 ? 'Invalid secret.' : 'Login failed.';
@@ -1070,7 +1071,7 @@
         var catSelect = document.createElement('select');
         catSelect.className = 'knowledge-edit-category';
         catSelect.style.cssText = 'background:var(--color-bg);border:1px solid var(--border);border-radius:3px;color:var(--color-text);font-size:0.8rem;padding:0.2rem 0.4rem;margin-bottom:0.4rem;';
-        ['project', 'community', 'market', 'lore', 'general'].forEach(function (c) {
+        ['project', 'community', 'market', 'lore', 'general', 'correction'].forEach(function (c) {
             var opt = document.createElement('option');
             opt.value = c;
             opt.textContent = c;
@@ -1114,6 +1115,125 @@
 
     document.getElementById('knowledge-refresh-btn').addEventListener('click', loadKnowledgeFacts);
 
+    // ---- Drak Corrections ----
+
+    async function loadCorrections() {
+        try {
+            var data = await fetchDrakKnowledge({ mode: 'list-corrections' });
+            if (!data) return;
+
+            var listEl = document.getElementById('corrections-list');
+            var emptyEl = document.getElementById('corrections-empty');
+            listEl.innerHTML = '';
+
+            var corrections = data.corrections || [];
+            if (corrections.length === 0) {
+                emptyEl.hidden = false;
+                return;
+            }
+            emptyEl.hidden = true;
+
+            corrections.forEach(function (c) {
+                var card = document.createElement('div');
+                card.className = 'correction-card';
+                card.dataset.correctionId = c.id;
+
+                card.innerHTML =
+                    '<div class="correction-exchange">' +
+                        '<div class="correction-msg correction-user"><span class="correction-label">User</span>' +
+                            (c.wallet ? ' <span class="correction-wallet">(' + escapeHtml(c.wallet.slice(0, 8)) + '...)</span>' : '') +
+                            '<p>' + escapeHtml(c.userMsg) + '</p>' +
+                        '</div>' +
+                        '<div class="correction-msg correction-drak"><span class="correction-label">Drak</span>' +
+                            '<p>' + escapeHtml(c.drakReply) + '</p>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="correction-reason"><strong>Flag:</strong> ' + escapeHtml(c.reason) + '</div>' +
+                    '<div class="correction-fact-form">' +
+                        '<textarea class="correction-fact-textarea" rows="2" maxlength="500" placeholder="Edit this into a clean fact...">' + escapeHtml(c.reason) + '</textarea>' +
+                        '<select class="correction-category-select">' +
+                            '<option value="correction">Correction</option>' +
+                            '<option value="project">Project</option>' +
+                            '<option value="community">Community</option>' +
+                            '<option value="market">Market</option>' +
+                            '<option value="lore">Lore</option>' +
+                            '<option value="general">General</option>' +
+                        '</select>' +
+                        '<div class="correction-actions">' +
+                            '<button class="correction-add-btn btn-small">Add as Fact</button>' +
+                            '<button class="correction-dismiss-btn btn-small btn-danger">Dismiss</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="correction-date">' + formatDate(c.flaggedAt) + '</div>';
+
+                listEl.appendChild(card);
+            });
+        } catch (err) {
+            console.error('Load corrections failed:', err);
+        }
+    }
+
+    // Add correction as fact
+    document.addEventListener('click', async function (e) {
+        var btn = e.target.closest('.correction-add-btn');
+        if (!btn) return;
+        var card = btn.closest('.correction-card');
+        if (!card) return;
+        var correctionId = card.dataset.correctionId;
+        var textarea = card.querySelector('.correction-fact-textarea');
+        var catSelect = card.querySelector('.correction-category-select');
+        var text = textarea.value.trim();
+        if (!text) { alert('Fact text cannot be empty.'); return; }
+
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+        try {
+            await fetchDrakKnowledge({
+                mode: 'add-correction-as-fact',
+                correctionId: correctionId,
+                text: text,
+                category: catSelect.value
+            });
+            card.remove();
+            var listEl = document.getElementById('corrections-list');
+            if (listEl.children.length === 0) {
+                document.getElementById('corrections-empty').hidden = false;
+            }
+            loadKnowledgeFacts();
+        } catch (err) {
+            alert('Error: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = 'Add as Fact';
+        }
+    });
+
+    // Dismiss correction
+    document.addEventListener('click', async function (e) {
+        var btn = e.target.closest('.correction-dismiss-btn');
+        if (!btn) return;
+        var card = btn.closest('.correction-card');
+        if (!card) return;
+        if (!confirm('Dismiss this correction?')) return;
+        var correctionId = card.dataset.correctionId;
+
+        btn.disabled = true;
+        btn.textContent = 'Removing...';
+        try {
+            await fetchDrakKnowledge({ mode: 'dismiss-correction', correctionId: correctionId });
+            card.remove();
+            var listEl = document.getElementById('corrections-list');
+            if (listEl.children.length === 0) {
+                document.getElementById('corrections-empty').hidden = false;
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = 'Dismiss';
+        }
+    });
+
+    document.getElementById('corrections-refresh-btn').addEventListener('click', loadCorrections);
+
     // ---- Monitored X Accounts ----
 
     var researchAccountsInput = document.getElementById('research-accounts-input');
@@ -1155,7 +1275,7 @@
 
     // ---- Collapsible Cards ----
 
-    var DEFAULT_COLLAPSED = ['metrics-section', 'engagement-section', 'knowledge-section'];
+    var DEFAULT_COLLAPSED = ['metrics-section', 'engagement-section', 'corrections-section', 'knowledge-section'];
 
     function initCollapsibleCards() {
         var cards = document.querySelectorAll('.card[id]');
@@ -1180,6 +1300,7 @@
     refreshBtn.addEventListener('click', function () {
         loadTweetDrafts();
         loadMetrics();
+        loadCorrections();
         loadKnowledgeFacts();
     });
 
@@ -1191,6 +1312,7 @@
             loadTweetDrafts();
         });
         loadKnowledgeFacts();
+        loadCorrections();
         loadMetrics();
     } else {
         showLogin();

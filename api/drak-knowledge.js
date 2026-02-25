@@ -4,7 +4,8 @@ import { getClientIp, isRateLimitedKV, kvGet, kvSet, kvHset, kvHget, kvHdel, kvH
 import { randomBytes } from 'crypto';
 
 const KNOWLEDGE_KEY = 'drak:knowledge';
-const CATEGORIES = ['project', 'community', 'market', 'lore', 'general'];
+const CATEGORIES = ['project', 'community', 'market', 'lore', 'general', 'correction'];
+const CORRECTIONS_KEY = 'drak:corrections';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -145,6 +146,50 @@ export default async function handler(req, res) {
             }
             await kvSet('drak:research_accounts', cleaned, KV_REST_API_URL, KV_REST_API_TOKEN);
             return res.status(200).json({ success: true, accounts: cleaned });
+        }
+
+        // Mode: list pending corrections
+        if (mode === 'list-corrections') {
+            const all = await kvHgetall(CORRECTIONS_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
+            const corrections = Object.values(all || {});
+            corrections.sort((a, b) => (b.flaggedAt || 0) - (a.flaggedAt || 0));
+            return res.status(200).json({ corrections });
+        }
+
+        // Mode: dismiss a correction (false positive)
+        if (mode === 'dismiss-correction') {
+            const { correctionId } = req.body;
+            if (!correctionId) {
+                return res.status(400).json({ error: 'correctionId required' });
+            }
+            await kvHdel(CORRECTIONS_KEY, correctionId, KV_REST_API_URL, KV_REST_API_TOKEN);
+            return res.status(200).json({ success: true });
+        }
+
+        // Mode: add correction as a knowledge fact, then remove the correction
+        if (mode === 'add-correction-as-fact') {
+            const { correctionId } = req.body;
+            if (!correctionId) {
+                return res.status(400).json({ error: 'correctionId required' });
+            }
+            if (!text || typeof text !== 'string' || !text.trim()) {
+                return res.status(400).json({ error: 'Fact text is required' });
+            }
+            if (text.length > 500) {
+                return res.status(400).json({ error: 'Fact text must be 500 characters or less' });
+            }
+            const cat = CATEGORIES.includes(category) ? category : 'correction';
+            const id = 'fact_' + randomBytes(16).toString('hex');
+            const fact = {
+                id,
+                text: text.trim(),
+                category: cat,
+                createdAt: Date.now(),
+                fromCorrection: correctionId
+            };
+            await kvHset(KNOWLEDGE_KEY, id, fact, KV_REST_API_URL, KV_REST_API_TOKEN);
+            await kvHdel(CORRECTIONS_KEY, correctionId, KV_REST_API_URL, KV_REST_API_TOKEN);
+            return res.status(200).json({ success: true, fact });
         }
 
         return res.status(400).json({ error: 'Invalid mode' });

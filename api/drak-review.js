@@ -1,12 +1,10 @@
 // Vercel Serverless Function — Drak Correction Detection (Cron: every 12h)
-// Scans queued Drak exchanges for user corrections/disagreements, DMs owner on Discord.
-import { timingSafeEqual } from 'crypto';
+// Scans queued Drak exchanges for user corrections/disagreements, saves to drak:corrections for admin review.
+import { timingSafeEqual, randomBytes } from 'crypto';
 import Anthropic from '@anthropic-ai/sdk';
-import { kvHgetall, kvDelete } from '../lib/swap-utils.js';
+import { kvHgetall, kvDelete, kvHset } from '../lib/swap-utils.js';
 
-const DISCORD_API = 'https://discord.com/api/v10';
-const OWNER_DISCORD_ID = '445769305649446912';
-const EMBED_COLOR = 0xc9a227;
+const CORRECTIONS_KEY = 'drak:corrections';
 const MIN_EXCHANGES = 1; // minimum queued exchanges to bother scanning
 
 export const config = { maxDuration: 30 };
@@ -30,9 +28,8 @@ export default async function handler(req, res) {
     const kvUrl = process.env.KV_REST_API_URL;
     const kvToken = process.env.KV_REST_API_TOKEN;
     const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-    const discordBotToken = process.env.DISCORD_BOT_TOKEN;
 
-    if (!kvUrl || !kvToken || !anthropicApiKey || !discordBotToken) {
+    if (!kvUrl || !kvToken || !anthropicApiKey) {
         return res.status(503).json({ error: 'Missing env vars' });
     }
 
@@ -102,59 +99,23 @@ Return ONLY the JSON array, no other text.`
         return res.status(200).json({ status: 'clean', scanned: entries.length, flagged: 0 });
     }
 
-    // 5. DM owner on Discord with flagged exchanges
-    const fields = flagged.slice(0, 10).map(f => {
+    // 5. Save flagged corrections to KV for admin review
+    let saved = 0;
+    for (const f of flagged.slice(0, 10)) {
         const entry = entries[f.index - 1];
-        if (!entry) return null;
-        return {
-            name: `User (${entry.wallet?.slice(0, 8) || '?'}...)`,
-            value: `**User:** ${entry.userMsg.slice(0, 200)}\n**Drak:** ${entry.drakReply.slice(0, 200)}\n**Flag:** ${f.reason}`,
-            inline: false
-        };
-    }).filter(Boolean);
+        if (!entry) continue;
 
-    if (fields.length === 0) {
-        return res.status(200).json({ status: 'no_valid_flags', scanned: entries.length });
+        const id = 'corr_' + randomBytes(8).toString('hex');
+        await kvHset(CORRECTIONS_KEY, id, {
+            id,
+            userMsg: entry.userMsg,
+            drakReply: entry.drakReply,
+            wallet: entry.wallet || null,
+            reason: f.reason,
+            flaggedAt: Date.now()
+        }, kvUrl, kvToken);
+        saved++;
     }
 
-    try {
-        // Create DM channel
-        const dmRes = await fetch(`${DISCORD_API}/users/@me/channels`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bot ${discordBotToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ recipient_id: OWNER_DISCORD_ID })
-        });
-        const dmChannel = await dmRes.json();
-
-        if (!dmChannel.id) {
-            console.error('Failed to create DM channel:', dmChannel);
-            return res.status(500).json({ error: 'Failed to create DM channel' });
-        }
-
-        // Send embed
-        await fetch(`${DISCORD_API}/channels/${dmChannel.id}/messages`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bot ${discordBotToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                embeds: [{
-                    title: `Drak Corrections Detected (${flagged.length})`,
-                    description: `Scanned ${entries.length} exchanges, ${flagged.length} flagged.`,
-                    color: EMBED_COLOR,
-                    fields,
-                    timestamp: new Date().toISOString()
-                }]
-            })
-        });
-
-        return res.status(200).json({ status: 'notified', scanned: entries.length, flagged: flagged.length });
-    } catch (err) {
-        console.error('Discord DM error:', err);
-        return res.status(500).json({ error: 'Failed to send Discord DM' });
-    }
+    return res.status(200).json({ status: 'saved', scanned: entries.length, flagged: flagged.length, saved });
 }
