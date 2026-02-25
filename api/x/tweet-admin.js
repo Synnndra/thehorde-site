@@ -118,6 +118,7 @@ export default async function handler(req, res) {
                 draft.postedAt = Date.now();
                 draft.tweetId = result.tweetId;
                 draft.error = null;
+                draft.generatedImageBase64 = null; // Strip image after posting to keep KV hash under 10MB
 
                 await kvHset(DRAFTS_KEY, draftId, draft, kvUrl, kvToken);
 
