@@ -9,7 +9,7 @@
             document.getElementById('stat-holders').textContent = data.holders.toLocaleString();
         }
         if (data.floorPrice != null) {
-            document.getElementById('stat-floor').textContent = data.floorPrice + ' SOL';
+            document.getElementById('stat-floor').textContent = data.floorPrice.toFixed(2) + ' SOL';
         }
     } catch (e) {
         document.getElementById('stat-nfts').textContent = '~4,500';
