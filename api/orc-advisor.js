@@ -260,13 +260,14 @@ export default async function handler(req, res) {
     let liveContext = '';
 
     // Fetch live context: admin facts + Discord summary + community KB + wallet memory
-    const [adminFacts, walletMemory, discordSummary, knowledgeBase, holdersData, spacesAnalyses] = await Promise.all([
+    const [adminFacts, walletMemory, discordSummary, knowledgeBase, holdersData, spacesAnalyses, recentDrafts] = await Promise.all([
         kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null),
         kvGet(`drak:memory:${wallet}`, kvUrl, kvToken).catch(() => null),
         kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null),
         kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null),
         kvGet('holders:leaderboard', kvUrl, kvToken).catch(() => null),
-        kvHgetall('spaces:analyses', kvUrl, kvToken).catch(() => null)
+        kvHgetall('spaces:analyses', kvUrl, kvToken).catch(() => null),
+        kvHgetall('x:drafts', kvUrl, kvToken).catch(() => null)
     ]);
 
     // Market data
@@ -323,6 +324,18 @@ export default async function handler(req, res) {
             section += '\n[' + cat.toUpperCase() + ']\n' + texts.map(t => '- ' + t).join('\n');
         }
         liveContext += section;
+    }
+
+    // Recent posted tweets from @midhorde
+    if (recentDrafts && Object.keys(recentDrafts).length > 0) {
+        const posted = Object.values(recentDrafts)
+            .filter(d => d.status === 'posted')
+            .sort((a, b) => (b.postedAt || b.createdAt || 0) - (a.postedAt || a.createdAt || 0))
+            .slice(0, 5);
+        if (posted.length > 0) {
+            const tweetTexts = posted.map(d => `- ${d.text}`).join('\n');
+            liveContext += `\n\n=== RECENT @MIDHORDE TWEETS ===\n${tweetTexts}`;
+        }
     }
 
     // Wallet memory — things Drak remembers about this holder

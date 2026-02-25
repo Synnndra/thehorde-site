@@ -506,12 +506,14 @@ export default async function handler(req, res) {
                 // Fetch live context: admin knowledge + Discord summary + community KB
                 let liveContext = '';
                 if (kvUrl && kvToken) {
-                    const [adminFacts, discordSummary, knowledgeBase, holdersData, spacesAnalyses] = await Promise.all([
+                    const [adminFacts, discordSummary, knowledgeBase, holdersData, spacesAnalyses, userMemory, recentDrafts] = await Promise.all([
                         kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null),
                         kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null),
                         kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null),
                         kvGet('holders:leaderboard', kvUrl, kvToken).catch(() => null),
-                        kvHgetall('spaces:analyses', kvUrl, kvToken).catch(() => null)
+                        kvHgetall('spaces:analyses', kvUrl, kvToken).catch(() => null),
+                        userId ? kvGet(`drak:memory:discord:${userId}`, kvUrl, kvToken).catch(() => null) : null,
+                        kvHgetall('x:drafts', kvUrl, kvToken).catch(() => null)
                     ]);
 
                     // Market data
@@ -568,6 +570,22 @@ export default async function handler(req, res) {
                             section += '\n[' + cat.toUpperCase() + ']\n' + texts.map(t => '- ' + t).join('\n');
                         }
                         liveContext += section;
+                    }
+                    // Recent posted tweets from @midhorde
+                    if (recentDrafts && Object.keys(recentDrafts).length > 0) {
+                        const posted = Object.values(recentDrafts)
+                            .filter(d => d.status === 'posted')
+                            .sort((a, b) => (b.postedAt || b.createdAt || 0) - (a.postedAt || a.createdAt || 0))
+                            .slice(0, 5);
+                        if (posted.length > 0) {
+                            const tweetTexts = posted.map(d => `- ${d.text}`).join('\n');
+                            liveContext += `\n\n=== RECENT @MIDHORDE TWEETS ===\n${tweetTexts}`;
+                        }
+                    }
+
+                    // Discord user memory
+                    if (userMemory && userMemory.summary) {
+                        liveContext += `\n\n=== YOU REMEMBER THIS WARRIOR ===\nYou've spoken to Discord user "${discordUser}" before. Here's what you remember: ${userMemory.summary}\nUse this naturally — don't announce "I remember you" unless it fits. Just let your knowledge of them color your responses.`;
                     }
                 }
 
@@ -632,6 +650,35 @@ export default async function handler(req, res) {
                             body: JSON.stringify(['HINCRBY', `drak:stats:daily:${new Date().toISOString().slice(0, 10)}`, `discord:${userId || 'unknown'}`, 1])
                         })
                     ]).catch(() => {});
+
+                    // Fire-and-forget: extract memory from this exchange via Haiku
+                    if (userId) {
+                        (async () => {
+                            try {
+                                const existingSummary = userMemory?.summary || '';
+                                const memoryClient = new Anthropic({ apiKey: anthropicApiKey });
+                                const extraction = await memoryClient.messages.create({
+                                    model: 'claude-haiku-4-5-20251001',
+                                    max_tokens: 150,
+                                    system: 'You extract key facts about a Discord user from their conversation with an orc advisor chatbot. Output a brief summary (max 300 chars) of what is worth remembering about this person — interests, opinions, preferences, notable interactions, their Discord username. If existing memory is provided, merge new info into it. Drop stale or trivial details. Output ONLY the summary text, nothing else.',
+                                    messages: [{
+                                        role: 'user',
+                                        content: `Existing memory: ${existingSummary || '(none)'}\n\nDiscord user "${discordUser}" asked: ${question}\nDrak replied: ${reply}\n\nUpdated summary:`
+                                    }]
+                                });
+                                const newSummary = extraction.content[0]?.text?.trim();
+                                if (newSummary && newSummary.length > 5) {
+                                    const memoryKey = `drak:memory:discord:${userId}`;
+                                    await kvSet(memoryKey, { summary: newSummary.slice(0, 300), discordUser, updatedAt: Date.now() }, kvUrl, kvToken);
+                                    await fetch(`${kvUrl}/expire/${memoryKey}/2592000`, {
+                                        headers: { 'Authorization': `Bearer ${kvToken}` }
+                                    });
+                                }
+                            } catch (err) {
+                                console.error('Discord memory extraction failed (non-fatal):', err.message);
+                            }
+                        })();
+                    }
                 }
             } catch (err) {
                 console.error('Discord Drak error:', err);
