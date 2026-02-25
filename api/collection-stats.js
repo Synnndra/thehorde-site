@@ -68,9 +68,24 @@ export default async function handler(req, res) {
             page++;
         }
 
+        // Fetch floor price from Magic Eden (cheapest listing)
+        let floorPrice = null;
+        try {
+            const meRes = await fetch('https://api-mainnet.magiceden.dev/v2/collections/midevils/listings?offset=0&limit=1');
+            if (meRes.ok) {
+                const listings = await meRes.json();
+                if (Array.isArray(listings) && listings.length > 0) {
+                    floorPrice = listings[0].price;
+                }
+            }
+        } catch (e) {
+            console.error('Floor price fetch failed:', e);
+        }
+
         const stats = {
             totalSupply,
             holders: owners.size,
+            floorPrice,
             updatedAt: new Date().toISOString()
         };
 
