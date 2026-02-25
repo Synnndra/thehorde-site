@@ -568,7 +568,8 @@ export default async function handler(req, res) {
 
                 const textBlock = response.content.find(b => b.type === 'text');
                 const reply = textBlock?.text || 'Hrrm... the words escape Drak.';
-                const truncated = truncateForDiscord(reply);
+                const fullReply = `> ${question}\n\n${reply}`;
+                const truncated = truncateForDiscord(fullReply);
 
                 await sendFollowup(appId, interactionToken, truncated);
 
