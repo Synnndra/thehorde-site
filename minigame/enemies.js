@@ -432,10 +432,11 @@ class Enemy {
     }
 
     attackTower(tower) {
-        // Enemy archers can damage towers (optional mechanic)
-        // For now, just visual effect
+        // Enemy archers apply attack speed debuff (30% slower for 2 seconds)
+        tower.attackDebuff = 2.0;
+
         this.floatingTexts.push({
-            text: '→',
+            text: '🏹→',
             x: this.x,
             y: this.y,
             life: 0.5,

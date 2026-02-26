@@ -938,10 +938,13 @@ class Game {
                 const speedBonus = enemy.calculateSpeedBonus(this.gameTime);
                 if (speedBonus > 0) {
                     this.stats.speedBonusPoints += speedBonus;
+                    this.gold += speedBonus;
+                    this.stats.totalGoldEarned += speedBonus;
+                    this.ui.updateGold(this.gold);
                     // Show speed bonus as floating text
                     this.particles.push(new Particle(enemy.x, enemy.y - 25, 'text', {
-                        text: `QUICK! +${speedBonus}`,
-                        color: '#00ffff',
+                        text: `⚡+${speedBonus}`,
+                        color: '#ffd700',
                         size: 14
                     }));
                 }

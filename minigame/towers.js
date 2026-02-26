@@ -147,6 +147,13 @@ class Tower {
         this.affectedByAura = false;
         this.auraBonus = 0;
 
+        // Mage disable state
+        this.isDisabled = false;
+        this.disabledDuration = 0;
+
+        // Archer attack debuff state
+        this.attackDebuff = 0;
+
         // Default rotation toward path
         this.defaultRotation = 0;
     }
@@ -247,7 +254,7 @@ class Tower {
     }
 
     canAttack() {
-        return this.attackCooldown <= 0;
+        return this.attackCooldown <= 0 && !this.isDisabled;
     }
 
     findTarget(enemies) {
@@ -310,7 +317,7 @@ class Tower {
         return true;
     }
 
-    dealDamage(target, projectiles) {
+    dealDamage(target, projectiles, enemies) {
         const stats = this.getStats();
         const damage = this.getEffectiveDamage(target);
 
@@ -318,9 +325,18 @@ class Tower {
         target.takeDamage(damage);
 
         // Apply splash damage
-        if (stats.hasSplash && stats.splashRadius) {
+        if (stats.hasSplash && stats.splashRadius && enemies) {
             const splashRadiusPixels = stats.splashRadius * this.cellSize;
-            // Splash damage handled by game loop
+            const splashDamage = Math.round(damage * 0.5);
+            enemies.forEach(enemy => {
+                if (enemy === target || enemy.isDead) return;
+                const dx = enemy.x - target.x;
+                const dy = enemy.y - target.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist <= splashRadiusPixels) {
+                    enemy.takeDamage(splashDamage);
+                }
+            });
         }
 
         // Apply slow effect
@@ -332,9 +348,24 @@ class Tower {
     }
 
     update(deltaTime, enemies, projectiles, towers, particles) {
-        // Update cooldown
+        // Update disabled state (mage disable)
+        if (this.isDisabled) {
+            this.disabledDuration -= deltaTime;
+            if (this.disabledDuration <= 0) {
+                this.isDisabled = false;
+                this.disabledDuration = 0;
+            }
+        }
+
+        // Update attack debuff (archer debuff)
+        if (this.attackDebuff > 0) {
+            this.attackDebuff -= deltaTime;
+        }
+
+        // Update cooldown (slowed by archer debuff)
         if (this.attackCooldown > 0) {
-            this.attackCooldown -= deltaTime;
+            const cooldownRate = this.attackDebuff > 0 ? 0.7 : 1.0;
+            this.attackCooldown -= deltaTime * cooldownRate;
         }
 
         // Update attack flash
@@ -372,12 +403,12 @@ class Tower {
             const target = this.findTarget(enemies);
             if (target) {
                 this.target = target;
-                this.attack(target, projectiles, particles);
+                this.attack(target, projectiles, particles, enemies);
             }
         }
     }
 
-    attack(target, projectiles, particles) {
+    attack(target, projectiles, particles, enemies) {
         const stats = this.getStats();
 
         // Update rotation to face target
@@ -407,7 +438,7 @@ class Tower {
         }
 
         if (stats.projectileType === 'melee') {
-            this.dealDamage(target, projectiles);
+            this.dealDamage(target, projectiles, enemies);
             // Melee slash effect (reduced for performance)
             if (particles) {
                 for (let i = 0; i < 2; i++) {
@@ -497,6 +528,27 @@ class Tower {
         this.drawTowerSprite(ctx, stats, gameTime);
 
         ctx.restore();
+
+        // Draw disabled overlay (mage disable - purple pulsing circle)
+        if (this.isDisabled) {
+            const disablePulse = Math.sin(gameTime * 6) * 0.2 + 0.5;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.cellSize * 0.55, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(128, 0, 255, ${disablePulse * 0.3})`;
+            ctx.fill();
+            ctx.strokeStyle = `rgba(128, 0, 255, ${disablePulse})`;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        // Draw archer debuff tint (subtle green)
+        if (this.attackDebuff > 0) {
+            const debuffAlpha = Math.min(this.attackDebuff / 2.0, 1) * 0.25;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.cellSize * 0.45, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(34, 139, 34, ${debuffAlpha})`;
+            ctx.fill();
+        }
 
         // Draw level indicator
         if (this.level > 0) {
