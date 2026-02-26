@@ -83,7 +83,9 @@ Return ONLY the JSON array, no other text.`
 
     let flagged = [];
     try {
-        const text = classification.content[0]?.text?.trim() || '[]';
+        let text = classification.content[0]?.text?.trim() || '[]';
+        // Strip markdown code fences if Haiku wraps the JSON
+        text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
         flagged = JSON.parse(text);
     } catch {
         console.error('Failed to parse Haiku response:', classification.content[0]?.text);
