@@ -129,7 +129,7 @@ Drak: "The Horde site's built by the SubDAO community. The MidEvils collection i
 const DRAK_TOOLS = [
     {
         name: 'get_market_data',
-        description: 'Get current Orc NFT market stats including floor price, total supply, holders, enlisted count, listed count, and average hold.',
+        description: 'Get current Orc NFT market stats including floor price (SOL and USD), current SOL/USD price, total supply, holders, enlisted count, listed count, and average hold.',
         input_schema: { type: 'object', properties: {}, required: [] }
     },
     {
