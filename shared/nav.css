@@ -139,6 +139,12 @@
     vertical-align: middle;
 }
 
+.nav-dropdown a[target="_blank"]::after {
+    content: ' \2197';
+    font-size: 0.7em;
+    opacity: 0.6;
+}
+
 @media (max-width: 768px) {
     .site-nav {
         gap: 1rem;

@@ -1595,3 +1595,11 @@ function clearAllFilters() {
     // Update the select all button
     updateSelectAllButton();
 }
+
+// Auto-populate first wallet input if Phantom is already connected
+try {
+    const provider = window.phantom?.solana || window.solana;
+    if (provider?.isConnected && provider.publicKey) {
+        walletInputs[0].value = provider.publicKey.toString();
+    }
+} catch {}
