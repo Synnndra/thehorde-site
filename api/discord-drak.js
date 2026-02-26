@@ -1,7 +1,7 @@
 // Vercel Serverless Function - Drak Discord Slash Command (/ask-drak)
 import nacl from 'tweetnacl';
 import { waitUntil } from '@vercel/functions';
-import { isRateLimitedKV } from '../lib/swap-utils.js';
+import { isRateLimitedKV, kvHget } from '../lib/swap-utils.js';
 import { kvGet, kvSet } from '../lib/dao-utils.js';
 import {
     ORC_SYSTEM_PROMPT, DISCORD_ADDENDUM, DRAK_TOOLS, executeTool,
@@ -127,11 +127,26 @@ export default async function handler(req, res) {
 
         waitUntil((async () => {
             try {
-                // Fetch context + Discord history in parallel
-                const [ctx, discordHistory] = await Promise.all([
+                // Fetch context + Discord history + reverse wallet link in parallel
+                const [ctx, discordHistory, linkedWallet] = await Promise.all([
                     fetchDrakContext({ kvUrl, kvToken, userMemoryKey: userId ? `drak:memory:discord:${userId}` : null }),
-                    userId ? kvGet(`drak:discord_history:${userId}`, kvUrl, kvToken).catch(() => null) : null
+                    userId ? kvGet(`drak:discord_history:${userId}`, kvUrl, kvToken).catch(() => null) : null,
+                    userId ? kvHget('drak:memory:links', userId, kvUrl, kvToken).catch(() => null) : null
                 ]);
+
+                // Cross-platform memory: merge website memory if Discord user has a linked wallet
+                if (linkedWallet) {
+                    try {
+                        const walletMemory = await kvGet(`drak:memory:${linkedWallet}`, kvUrl, kvToken).catch(() => null);
+                        if (walletMemory?.summary) {
+                            if (ctx.userMemory?.summary) {
+                                ctx.userMemory.summary = ctx.userMemory.summary + ' | From website: ' + walletMemory.summary;
+                            } else {
+                                ctx.userMemory = walletMemory;
+                            }
+                        }
+                    } catch {}
+                }
 
                 const liveContext = buildLiveContext({
                     ...ctx,
@@ -195,6 +210,18 @@ export default async function handler(req, res) {
                         question, reply,
                         extraFields: { discordUser }
                     });
+                    // Also save to wallet memory key if linked
+                    if (linkedWallet) {
+                        extractAndSaveMemory({
+                            anthropicApiKey, kvUrl, kvToken,
+                            memoryKey: `drak:memory:${linkedWallet}`,
+                            existingSummary: ctx.userMemory?.summary || '',
+                            source: 'discord',
+                            userLabel: `Discord user "${discordUser}"`,
+                            question, reply,
+                            extraFields: { discordUser, wallet: linkedWallet }
+                        });
+                    }
                     trackUsage({ kvUrl, kvToken, userKey: `discord:${userId || 'unknown'}` });
                 }
             } catch (err) {

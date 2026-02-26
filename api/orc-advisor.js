@@ -3,7 +3,9 @@ import {
     isRateLimitedKV,
     getClientIp,
     validateSolanaAddress,
-    verifySignature
+    verifySignature,
+    kvHget,
+    kvHset
 } from '../lib/swap-utils.js';
 import { getOrcHoldings, kvGet, kvSet } from '../lib/dao-utils.js';
 import {
@@ -84,6 +86,26 @@ export default async function handler(req, res) {
 
     // Fetch slim context (market data, admin KB, prompt rules, user memory)
     const ctx = await fetchDrakContext({ kvUrl, kvToken, userMemoryKey: `drak:memory:${wallet}` });
+
+    // Cross-platform memory: merge Discord memory if wallet is linked
+    let linkedDiscordId = null;
+    try {
+        const discordInfo = await kvHget('holders:discord_map:h', wallet, kvUrl, kvToken);
+        if (discordInfo?.id) {
+            linkedDiscordId = discordInfo.id;
+            // Store reverse link so Discord endpoint can find the wallet
+            kvHset('drak:memory:links', discordInfo.id, wallet, kvUrl, kvToken).catch(() => {});
+            const discordMemory = await kvGet(`drak:memory:discord:${discordInfo.id}`, kvUrl, kvToken).catch(() => null);
+            if (discordMemory?.summary) {
+                if (ctx.userMemory?.summary) {
+                    ctx.userMemory.summary = ctx.userMemory.summary + ' | From Discord: ' + discordMemory.summary;
+                } else {
+                    ctx.userMemory = discordMemory;
+                }
+            }
+        }
+    } catch {}
+
     const liveContext = buildLiveContext({
         ...ctx,
         userLabel: 'this warrior',
@@ -137,6 +159,18 @@ export default async function handler(req, res) {
             userLabel: 'User',
             question: message, reply
         });
+        // Also save to Discord memory key if linked
+        if (linkedDiscordId) {
+            extractAndSaveMemory({
+                anthropicApiKey, kvUrl, kvToken,
+                memoryKey: `drak:memory:discord:${linkedDiscordId}`,
+                existingSummary: ctx.userMemory?.summary || '',
+                source: 'website',
+                userLabel: 'User',
+                question: message, reply,
+                extraFields: { discordId: linkedDiscordId }
+            });
+        }
         trackUsage({ kvUrl, kvToken, userKey: wallet });
 
         return res.status(200).json({ reply, tokens: usage?.output_tokens || 0 });
