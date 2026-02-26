@@ -100,7 +100,7 @@ const BOSS_TYPES = {
         damage: 5,
         size: 1.0,
         isBoss: true,
-        abilities: ['rally'] // Speeds up nearby enemies
+        abilities: []
     },
 
     archmage: {
@@ -115,13 +115,13 @@ const BOSS_TYPES = {
         damage: 4,
         size: 0.9,
         isBoss: true,
-        abilities: ['regenerate', 'massDisable'],
+        abilities: ['regenerate'],
         regenRate: 22 // HP per second
     },
 
     war_elephant: {
         name: "War Elephant",
-        description: "Massive beast! Crushes everything.",
+        description: "Massive beast! Heaviest armor in the realm.",
         icon: "🐘",
         color: "#808080",
         hp: 5000,
@@ -131,12 +131,12 @@ const BOSS_TYPES = {
         damage: 10,
         size: 1.3,
         isBoss: true,
-        abilities: ['trample'] // Damages nearby towers
+        abilities: []
     },
 
     dragon_rider: {
         name: "Dragon Rider",
-        description: "The final boss! Flying death!",
+        description: "The final boss! Regenerates health!",
         icon: "🐉",
         color: "#FF4500",
         hp: 6000,
@@ -146,9 +146,8 @@ const BOSS_TYPES = {
         damage: 25,
         size: 1.2,
         isBoss: true,
-        abilities: ['fly', 'fireBreath', 'regenerate'],
-        regenRate: 10, // Slight regen to punish slow DPS
-        ignoresPath: false // Could be true for flying
+        abilities: ['regenerate'],
+        regenRate: 10 // Slight regen to punish slow DPS
     }
 };
 
