@@ -89,8 +89,7 @@ Return ONLY the JSON array, no other text.`
         flagged = JSON.parse(text);
     } catch {
         console.error('Failed to parse Haiku response:', classification.content[0]?.text);
-        // Clear queue anyway to avoid re-processing bad data
-        await kvDelete('drak:review_queue', kvUrl, kvToken).catch(() => {});
+        // Don't clear queue — let next cron run retry instead of losing data
         return res.status(200).json({ status: 'parse_error', raw: classification.content[0]?.text });
     }
 
