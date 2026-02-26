@@ -47,6 +47,10 @@ export default async function handler(req, res) {
     }
 
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    const todayStr = new Date().toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+        timeZone: 'America/Los_Angeles'
+    });
     const results = [];
 
     // --- Process each channel ---
@@ -133,7 +137,9 @@ export default async function handler(req, res) {
                 const aiRes = await anthropic.messages.create({
                     model: 'claude-haiku-4-5-20251001',
                     max_tokens: 4096,
-                    system: `Extract ALL knowledge from this Discord chat log for the MidEvils NFT community. Include:
+                    system: `Today's date is ${todayStr}. Messages reference dates — note which events are past vs upcoming.
+
+Extract ALL knowledge from this Discord chat log for the MidEvils NFT community. Include:
 
 PROJECT & TECHNICAL:
 - Announcements, updates, decisions, roadmap changes
@@ -181,11 +187,14 @@ Skip only generic greetings (gm, gn) and one-word reactions.`,
                 const mergeRes = await anthropic.messages.create({
                     model: 'claude-sonnet-4-5-20250929',
                     max_tokens: 4096,
-                    system: `Update this knowledge base with new information from recent Discord messages. Rules:
+                    system: `Today's date is ${todayStr}.
+
+Update this knowledge base with new information from recent Discord messages. Rules:
 - Add new facts, events, announcements, and details
 - Update any outdated information with newer data
 - Remove duplicates
 - Keep the same organizational structure
+- IMPORTANT: Remove or mark as completed any events, tournaments, competitions, or time-limited activities whose end dates have passed
 - Maximum 3000 words`,
                     messages: [{ role: 'user', content: `Existing knowledge base:\n\n${existingKb.content}\n\n---\n\nNew information to merge in:\n\n${newSummary}` }]
                 });
@@ -237,7 +246,9 @@ Skip only generic greetings (gm, gn) and one-word reactions.`,
             const mergeRes = await anthropic.messages.create({
                 model: 'claude-sonnet-4-5-20250929',
                 max_tokens: 8192,
-                system: `Merge these Discord channel knowledge bases into ONE knowledge base for an AI character named Drak (an orc war chief) who answers questions about the MidEvils NFT community and The Horde SubDAO.
+                system: `Today's date is ${todayStr}.
+
+Merge these Discord channel knowledge bases into ONE knowledge base for an AI character named Drak (an orc war chief) who answers questions about the MidEvils NFT community and The Horde SubDAO.
 
 PRIORITY 1 — PEOPLE (give this the most space):
 - Member profiles: who they are, what they hold, how active they are
@@ -256,7 +267,7 @@ PRIORITY 3 — PROJECT:
 - Tools, games, governance updates
 - Lore and story elements
 
-Deduplicate across channels. Keep specific names, dates, numbers, and quotes. Maximum 5000 words.`,
+Deduplicate across channels. Remove any events, tournaments, or time-limited activities that have already ended. Keep specific names, dates, numbers, and quotes. Maximum 5000 words.`,
                 messages: [{ role: 'user', content: `Merge these ${kbParts.length} channel knowledge bases:\n\n${channelList}` }]
             });
 

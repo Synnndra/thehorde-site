@@ -18,7 +18,7 @@
     },
     {
       "path": "/api/discord-kb-update",
-      "schedule": "0 6 */3 * *"
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/x/campaign-notify",
