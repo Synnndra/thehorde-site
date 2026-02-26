@@ -564,8 +564,9 @@ export default async function handler(req, res) {
             try {
                 // Fetch live context: admin knowledge + Discord summary + community KB
                 let liveContext = '';
+                let discordHistory = null;
                 if (kvUrl && kvToken) {
-                    const [adminFacts, discordSummary, knowledgeBase, holdersData, spacesAnalyses, userMemory, recentDrafts, discordHistory, promptRules] = await Promise.all([
+                    const [adminFacts, discordSummary, knowledgeBase, holdersData, spacesAnalyses, userMemory, recentDrafts, _discordHistory, promptRules] = await Promise.all([
                         kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null),
                         kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null),
                         kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null),
@@ -654,6 +655,8 @@ export default async function handler(req, res) {
                     if (userMemory && userMemory.summary) {
                         liveContext += `\n\n=== YOU REMEMBER THIS WARRIOR ===\nYou've spoken to Discord user "${discordUser}" before. Here's what you remember: ${userMemory.summary}\nUse this naturally — don't announce "I remember you" unless it fits. Just let your knowledge of them color your responses.`;
                     }
+
+                    discordHistory = _discordHistory;
                 }
 
                 liveContext += `\n\nThis question comes from Discord user "${discordUser}" via the /ask-drak slash command.`;
