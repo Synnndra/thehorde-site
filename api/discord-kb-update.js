@@ -6,7 +6,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { kvGet, kvSet } from '../lib/swap-utils.js';
 import { getEmbeddingBatch, vectorUpsert, chunkText } from '../lib/vector-utils.js';
 
-export const config = { maxDuration: 300 };
+export const config = { maxDuration: 120 };
 
 const DISCORD_API = 'https://discord.com/api/v10';
 const BATCH_SIZE = 100;
