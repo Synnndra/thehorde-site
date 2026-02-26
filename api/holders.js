@@ -1,5 +1,5 @@
 // Vercel Serverless Function for Holder Leaderboard
-import { isRateLimitedKV, getClientIp, kvGet, kvHgetall } from '../lib/swap-utils.js';
+import { isRateLimitedKV, getClientIp, kvGet, kvHgetall, kvHset, kvHget } from '../lib/swap-utils.js';
 
 const ORC_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
 const CACHE_KEY = 'holders:leaderboard';
@@ -286,6 +286,19 @@ export default async function handler(req, res) {
 
         // Cache base data (without social fields — those are merged fresh each request)
         await kvSetEx(CACHE_KEY, CACHE_TTL, baseResult);
+
+        // Save daily price snapshot (one per day for trend tracking)
+        const today = new Date().toISOString().slice(0, 10);
+        const existingSnapshot = await kvHget('holders:price_history', today, KV_REST_API_URL, KV_REST_API_TOKEN).catch(() => null);
+        if (!existingSnapshot) {
+            await kvHset('holders:price_history', today, {
+                floorPrice: floorPrice,
+                listedCount: listedOrcs.length,
+                holderCount: holders.length,
+                totalOrcs: orcItems.length,
+                timestamp: Date.now()
+            }, KV_REST_API_URL, KV_REST_API_TOKEN).catch(e => console.error('Price history save failed:', e));
+        }
 
         // Merge fresh social data for this response
         const { discordMap, xMap, walletLinkMap } = await readSocialMaps();
