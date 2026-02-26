@@ -1148,15 +1148,50 @@
         }
     }
 
-    // Add prompt rule
-    document.getElementById('prompt-rule-add-btn').addEventListener('click', async function () {
-        var input = document.getElementById('prompt-rule-input');
+    // Suggest prompt rule (Haiku refines rough text)
+    document.getElementById('prompt-rule-suggest-btn').addEventListener('click', async function () {
+        var roughInput = document.getElementById('prompt-rule-rough-input');
         var errEl = document.getElementById('prompt-rule-error');
         var successEl = document.getElementById('prompt-rule-success');
+        var previewEl = document.getElementById('prompt-rule-preview');
+        var ruleInput = document.getElementById('prompt-rule-input');
         errEl.hidden = true;
         successEl.hidden = true;
 
-        var rule = input.value.trim();
+        var roughText = roughInput.value.trim();
+        if (!roughText) {
+            errEl.textContent = 'Type a rough idea first.';
+            errEl.hidden = false;
+            return;
+        }
+
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Thinking...';
+        try {
+            var data = await fetchDrakKnowledge({ mode: 'suggest-rule-from-text', roughText: roughText });
+            ruleInput.value = data.suggestedRule || '';
+            previewEl.hidden = false;
+            ruleInput.focus();
+        } catch (err) {
+            errEl.textContent = err.message;
+            errEl.hidden = false;
+        }
+        btn.disabled = false;
+        btn.textContent = 'Suggest Rule';
+    });
+
+    // Add the suggested rule
+    document.getElementById('prompt-rule-add-btn').addEventListener('click', async function () {
+        var ruleInput = document.getElementById('prompt-rule-input');
+        var roughInput = document.getElementById('prompt-rule-rough-input');
+        var errEl = document.getElementById('prompt-rule-error');
+        var successEl = document.getElementById('prompt-rule-success');
+        var previewEl = document.getElementById('prompt-rule-preview');
+        errEl.hidden = true;
+        successEl.hidden = true;
+
+        var rule = ruleInput.value.trim();
         if (!rule) {
             errEl.textContent = 'Rule text is required.';
             errEl.hidden = false;
@@ -1165,7 +1200,9 @@
 
         try {
             await fetchDrakKnowledge({ mode: 'add-rule', rule: rule });
-            input.value = '';
+            ruleInput.value = '';
+            roughInput.value = '';
+            previewEl.hidden = true;
             successEl.textContent = 'Rule added.';
             successEl.hidden = false;
             loadPromptRules();

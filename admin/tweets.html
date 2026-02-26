@@ -141,9 +141,15 @@
                 <h3>Prompt Rules</h3>
                 <p class="subsection-hint">Behavioral rules that shape how Drak responds. These are injected into every conversation.</p>
                 <div class="prompt-rule-add-form">
-                    <textarea id="prompt-rule-input" placeholder="e.g. Never state floor price as fact without checking — it changes frequently." rows="2" maxlength="500"></textarea>
+                    <textarea id="prompt-rule-rough-input" placeholder="Rough idea, e.g. &quot;don't guess floor prices&quot; or &quot;always mention burn count when talking supply&quot;" rows="2" maxlength="500"></textarea>
                     <div class="knowledge-form-actions">
-                        <button id="prompt-rule-add-btn" class="btn-small">Add Rule</button>
+                        <button id="prompt-rule-suggest-btn" class="btn-small">Suggest Rule</button>
+                    </div>
+                    <div id="prompt-rule-preview" class="prompt-rule-preview" hidden>
+                        <textarea id="prompt-rule-input" rows="2" maxlength="500" placeholder="Suggested rule will appear here..."></textarea>
+                        <div class="knowledge-form-actions">
+                            <button id="prompt-rule-add-btn" class="btn-small">Add Rule</button>
+                        </div>
                     </div>
                 </div>
                 <p id="prompt-rule-error" class="error-text" hidden></p>

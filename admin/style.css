@@ -688,6 +688,35 @@ tr.txlog-row td {
     border-color: var(--color-primary);
 }
 
+.prompt-rule-preview {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid #2a4a2a;
+    border-radius: 4px;
+    background: #0d1a0d;
+}
+
+.prompt-rule-preview[hidden] {
+    display: none;
+}
+
+.prompt-rule-preview textarea {
+    width: 100%;
+    background: var(--color-bg);
+    border: 1px solid #2a4a2a;
+    border-radius: 4px;
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    padding: 0.5rem 0.6rem;
+    resize: vertical;
+    outline: none;
+}
+
+.prompt-rule-preview textarea:focus {
+    border-color: var(--color-primary);
+}
+
 .prompt-rules-list {
     display: flex;
     flex-direction: column;

@@ -222,6 +222,30 @@ export default async function handler(req, res) {
             return res.status(200).json({ suggestedRule });
         }
 
+        // Mode: suggest a prompt rule from rough text (Haiku)
+        if (mode === 'suggest-rule-from-text') {
+            const { roughText } = req.body;
+            if (!roughText || typeof roughText !== 'string' || !roughText.trim()) {
+                return res.status(400).json({ error: 'Rough text is required' });
+            }
+            const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+            if (!anthropicApiKey) {
+                return res.status(503).json({ error: 'AI service unavailable' });
+            }
+            const client = new Anthropic({ apiKey: anthropicApiKey });
+            const result = await client.messages.create({
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: 200,
+                system: 'You refine rough notes into concise behavioral rules for an AI chatbot named Drak (an orc war chief for an NFT community). Given rough input from an admin, write ONE clear, actionable behavioral rule (max 1-2 sentences). The rule should be a direct instruction that shapes how Drak responds. Output ONLY the rule text, nothing else.',
+                messages: [{
+                    role: 'user',
+                    content: `Rough input: ${roughText.trim()}\n\nRefined behavioral rule:`
+                }]
+            });
+            const suggestedRule = result.content[0]?.text?.trim() || '';
+            return res.status(200).json({ suggestedRule });
+        }
+
         // Mode: list prompt rules
         if (mode === 'list-rules') {
             const all = await kvHgetall(PROMPT_RULES_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
