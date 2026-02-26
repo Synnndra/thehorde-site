@@ -474,7 +474,12 @@ class Tower {
         ctx.fill();
 
         ctx.save();
-        ctx.translate(this.x, this.y);
+        // Idle breathing bob when not attacking
+        let idleBob = 0;
+        if (gameTime && this.attackCooldown <= 0) {
+            idleBob = Math.sin(gameTime * 2 + this.gridX * 0.5 + this.gridY * 0.7) * 1.5;
+        }
+        ctx.translate(this.x, this.y + idleBob);
 
         // Apply recoil
         const recoilOffset = (this.recoil || 0) * -3;
@@ -741,6 +746,7 @@ class Projectile {
     }
 
     update(deltaTime, particles) {
+        this.particles = particles;
         if (!this.isActive) return;
 
         // Check if target is still valid
@@ -792,6 +798,37 @@ class Projectile {
         // Apply slow effect
         if (this.stats.hasSlowEffect) {
             this.target.applySlow(this.stats.slowAmount, this.stats.slowDuration);
+        }
+
+        // Impact VFX
+        if (this.particles) {
+            switch (this.stats.projectileType) {
+                case 'arrow':
+                    for (let i = 0; i < 3; i++) {
+                        this.particles.push(new Particle(this.target.x, this.target.y, 'spark', { color: '#ffcc00' }));
+                    }
+                    break;
+                case 'magic':
+                    for (let i = 0; i < 5; i++) {
+                        this.particles.push(new Particle(this.target.x, this.target.y, 'spark', { color: '#9932CC' }));
+                    }
+                    this.particles.push(new Particle(this.target.x, this.target.y, 'impact_ring', {
+                        color: '#9932CC', size: 5, maxSize: 25
+                    }));
+                    break;
+                case 'boulder':
+                    for (let i = 0; i < 4; i++) {
+                        this.particles.push(new Particle(
+                            this.target.x + (Math.random() - 0.5) * 15,
+                            this.target.y + (Math.random() - 0.5) * 15,
+                            'smoke'
+                        ));
+                    }
+                    for (let i = 0; i < 2; i++) {
+                        this.particles.push(new Particle(this.target.x, this.target.y, 'spark', { color: '#8B7355' }));
+                    }
+                    break;
+            }
         }
     }
 

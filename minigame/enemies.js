@@ -224,6 +224,8 @@ class Enemy {
         // Visual effects
         this.damageFlash = 0;
         this.floatingTexts = [];
+        this.displayHp = this.maxHp;
+        this.dustTimer = 0;
     }
 
     calculateExpectedTraverseTime() {
@@ -287,7 +289,7 @@ class Enemy {
         }
     }
 
-    update(deltaTime, towers) {
+    update(deltaTime, towers, particles) {
         if (this.isDead || this.reachedEnd) return;
 
         // Update slow effect
@@ -304,6 +306,14 @@ class Enemy {
             this.hp = Math.min(this.maxHp, this.hp + this.regenRate * deltaTime);
         }
 
+        // Lerp display HP for trailing health bar effect
+        if (this.displayHp > this.hp) {
+            this.displayHp -= this.maxHp * 2 * deltaTime;
+            if (this.displayHp < this.hp) this.displayHp = this.hp;
+        } else {
+            this.displayHp = this.hp;
+        }
+
         // Move along path
         const moveDistance = this.speed * this.cellSize * deltaTime;
         this.distanceTraveled += moveDistance;
@@ -318,6 +328,20 @@ class Enemy {
         this.x = pos.x;
         this.y = pos.y;
         this.rotation = pos.angle;
+
+        // Path dust trails
+        if (particles) {
+            this.dustTimer -= deltaTime;
+            if (this.dustTimer <= 0) {
+                this.dustTimer = (this.type === 'cavalry') ? 0.15 : 0.3;
+                particles.push(new Particle(
+                    this.x + (Math.random() - 0.5) * 6,
+                    this.y + this.cellSize * this.size * 0.3,
+                    'trail',
+                    { color: this.type === 'mage' ? 'rgba(100, 60, 180, 0.5)' : 'rgba(140, 120, 90, 0.5)', size: 3 }
+                ));
+            }
+        }
 
         // Archer attacking
         if (this.canAttack) {
@@ -512,6 +536,15 @@ class Enemy {
             ctx.roundRect(this.x - barWidth / 2 - 1, barY - 1, barWidth + 2, barHeight + 2, 2);
             ctx.fill();
             ctx.stroke();
+
+            // Ghost health bar (yellow trailing bar)
+            const displayRatio = this.displayHp / this.maxHp;
+            if (displayRatio > 0) {
+                ctx.fillStyle = 'rgba(255, 200, 50, 0.7)';
+                ctx.beginPath();
+                ctx.roundRect(this.x - barWidth / 2, barY, barWidth * displayRatio, barHeight, 2);
+                ctx.fill();
+            }
 
             // Health gradient
             const healthRatio = this.hp / this.maxHp;

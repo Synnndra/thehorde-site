@@ -71,6 +71,16 @@ class Particle {
                 this.life = options.life || 1.2;
                 this.maxLife = this.life;
                 break;
+            case 'impact_ring':
+                this.vx = 0;
+                this.vy = 0;
+                this.size = options.size || 5;
+                this.maxSize = options.maxSize || 20;
+                this.color = options.color || '#9932CC';
+                this.gravity = 0;
+                this.life = 0.3;
+                this.maxLife = 0.3;
+                break;
         }
     }
 
@@ -142,6 +152,16 @@ class Particle {
                 ctx.strokeText(this.text, this.x, this.y);
                 ctx.fillText(this.text, this.x, this.y);
                 break;
+            case 'impact_ring': {
+                const ringProgress = 1 - (this.life / this.maxLife);
+                const ringSize = this.size + (this.maxSize - this.size) * ringProgress;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, ringSize, 0, Math.PI * 2);
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2 * alpha;
+                ctx.stroke();
+                break;
+            }
         }
 
         ctx.restore();
@@ -206,6 +226,28 @@ class Game {
 
         // Screen shake
         this.screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
+
+        // VFX toggle (V key to disable)
+        this.vfxEnabled = true;
+
+        // Screen flash overlay (boss death, wave complete)
+        this.screenFlash = { alpha: 0, color: '#ffffff', decay: 3 };
+
+        // Ambient particles (embers near torches, fireflies on grass)
+        this.ambientParticles = [];
+
+        // Water tile positions for shimmer effect
+        this.waterTiles = [];
+
+        // Wave transition fade overlay
+        this.waveFade = { alpha: 0, decay: 1.5 };
+
+        // Rain system
+        this.rainDrops = [];
+        this.rainActive = false;
+
+        // Cached vignette gradient
+        this.vignetteGradient = null;
 
         // Announcements
         this.announcement = null;
@@ -278,6 +320,7 @@ class Game {
             this.canvas.width = this.currentMap.gridWidth * this.cellSize;
             this.canvas.height = this.currentMap.gridHeight * this.cellSize;
             this.bgDirty = true; // Re-render background on resize
+            this.vignetteGradient = null; // Re-cache vignette on resize
         } else {
             this.canvas.width = availableWidth;
             this.canvas.height = availableHeight;
@@ -436,12 +479,23 @@ class Game {
     generateDecorations() {
         this.decorations = [];
         this.torches = [];
+        this.waterTiles = [];
 
         const map = this.currentMap;
 
         for (let y = 0; y < map.gridHeight; y++) {
             for (let x = 0; x < map.gridWidth; x++) {
                 const cellType = map.buildableAreas[y][x];
+
+                // Collect water tile positions for animated shimmer
+                if (cellType === 3) {
+                    this.waterTiles.push({
+                        x: x * this.cellSize + this.cellSize / 2,
+                        y: y * this.cellSize + this.cellSize / 2,
+                        px: x * this.cellSize,
+                        py: y * this.cellSize
+                    });
+                }
 
                 // Add decorations on buildable areas (not paths)
                 if (cellType === 1 && Math.random() < 0.15) {
@@ -546,6 +600,12 @@ class Game {
         this.projectiles = [];
         this.particles = [];
         this.waveEnemies = [];
+        this.ambientParticles = [];
+        this.rainDrops = [];
+        this.rainActive = false;
+        this.screenFlash = { alpha: 0, color: '#ffffff', decay: 3 };
+        this.waveFade = { alpha: 0, decay: 1.5 };
+        this.vignetteGradient = null;
 
         this.killStreak = 0;
         this.killStreakTimer = 0;
@@ -596,28 +656,44 @@ class Game {
         this.waveEnemies = generateWave(this.currentWave, this.currentMap.difficulty);
         this.spawnTimer = 0;
 
+        // Build enemy composition sub-text
+        const counts = {};
+        this.waveEnemies.forEach(t => { counts[t] = (counts[t] || 0) + 1; });
+        const compParts = [];
+        for (const [type, count] of Object.entries(counts)) {
+            const name = (ENEMY_TYPES[type] || BOSS_TYPES[type] || {}).name || type;
+            compParts.push(`${count}x ${name}`);
+        }
+        const compositionText = compParts.join(' · ');
+
         // Check for boss wave
         const hasBoss = this.waveEnemies.some(e => BOSS_TYPES[e]);
         if (hasBoss) {
-            this.showAnnouncement('⚠️ BOSS INCOMING! ⚠️', '#ff4444', 3);
+            this.showAnnouncement('⚠️ BOSS INCOMING! ⚠️', '#ff4444', 3, compositionText);
             this.triggerScreenShake(10, 0.5);
             if (typeof soundManager !== 'undefined') soundManager.bossWarning();
+            // Boss intro: slower, darker fade
+            if (this.vfxEnabled) this.waveFade = { alpha: 0.6, decay: 0.8 };
         } else {
-            this.showAnnouncement(`Wave ${this.currentWave}`, '#c9a227', 1.5);
+            this.showAnnouncement(`Wave ${this.currentWave}`, '#c9a227', 1.5, compositionText);
             if (typeof soundManager !== 'undefined') soundManager.waveStart();
+            // Wave start: brief dark overlay
+            if (this.vfxEnabled) this.waveFade = { alpha: 0.4, decay: 1.5 };
         }
 
         this.ui.updateWave(this.currentWave, this.totalWaves);
         this.ui.setWaveButtonState(true);
     }
 
-    showAnnouncement(text, color, duration) {
+    showAnnouncement(text, color, duration, subText) {
         this.announcement = {
             text,
             color,
             duration,
             maxDuration: duration,
-            y: this.canvas.height / 2
+            y: this.canvas.height / 2,
+            subText: subText || null,
+            sparksSpawned: false
         };
     }
 
@@ -674,6 +750,18 @@ class Game {
             }
         }
 
+        // Update screen flash
+        if (this.screenFlash.alpha > 0) {
+            this.screenFlash.alpha -= this.screenFlash.decay * this.deltaTime;
+            if (this.screenFlash.alpha < 0) this.screenFlash.alpha = 0;
+        }
+
+        // Update wave fade
+        if (this.waveFade.alpha > 0) {
+            this.waveFade.alpha -= this.waveFade.decay * this.deltaTime;
+            if (this.waveFade.alpha < 0) this.waveFade.alpha = 0;
+        }
+
         // Update kill streak timer
         if (this.killStreakTimer > 0) {
             this.killStreakTimer -= this.deltaTime;
@@ -699,7 +787,7 @@ class Game {
 
         // Update enemies
         this.enemies.forEach(enemy => {
-            enemy.update(this.deltaTime, this.towers);
+            enemy.update(this.deltaTime, this.towers, this.particles);
         });
 
         // Update projectiles
@@ -723,15 +811,98 @@ class Game {
             ));
         }
 
+        // Update ambient particles (embers & fireflies)
+        if (this.vfxEnabled) {
+            // Spawn embers near torches
+            if (this.ambientParticles.length < 30 && this.torches.length > 0 && Math.random() < 0.15) {
+                const torch = this.torches[Math.floor(Math.random() * this.torches.length)];
+                this.ambientParticles.push({
+                    x: torch.x + (Math.random() - 0.5) * 20,
+                    y: torch.y - 10,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: -12 - Math.random() * 8,
+                    size: Math.random() * 2 + 1,
+                    life: 3 + Math.random() * 2,
+                    maxLife: 5,
+                    type: 'ember'
+                });
+            }
+            // Spawn fireflies on grass areas
+            if (this.ambientParticles.length < 30 && Math.random() < 0.05) {
+                this.ambientParticles.push({
+                    x: Math.random() * this.canvas.width,
+                    y: Math.random() * this.canvas.height,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    size: Math.random() * 2 + 1,
+                    life: 4 + Math.random() * 4,
+                    maxLife: 8,
+                    type: 'firefly',
+                    phase: Math.random() * Math.PI * 2
+                });
+            }
+            // Update existing ambient particles
+            for (let i = this.ambientParticles.length - 1; i >= 0; i--) {
+                const p = this.ambientParticles[i];
+                p.x += p.vx * this.deltaTime;
+                p.y += p.vy * this.deltaTime;
+                p.life -= this.deltaTime;
+                if (p.life <= 0) {
+                    this.ambientParticles.splice(i, 1);
+                }
+            }
+        }
+
+        // Update rain
+        if (this.vfxEnabled) {
+            const mapName = (this.currentMap.name || '').toLowerCase();
+            const rainThreshold = mapName.includes('forest') ? 10 : 15;
+            this.rainActive = this.currentWave >= rainThreshold;
+            if (this.rainActive) {
+                while (this.rainDrops.length < 80) {
+                    this.rainDrops.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        speed: 300 + Math.random() * 200,
+                        length: 8 + Math.random() * 12
+                    });
+                }
+                for (let i = 0; i < this.rainDrops.length; i++) {
+                    const drop = this.rainDrops[i];
+                    drop.x -= drop.speed * 0.15 * this.deltaTime;
+                    drop.y += drop.speed * this.deltaTime;
+                    if (drop.y > this.canvas.height) {
+                        drop.y = -drop.length;
+                        drop.x = Math.random() * this.canvas.width;
+                    }
+                }
+            } else {
+                this.rainDrops.length = 0;
+            }
+        }
+
         // Check for dead enemies
         this.enemies = this.enemies.filter(enemy => {
             if (enemy.isDead) {
-                // Death explosion (reduced for performance)
+                // Death explosion
                 const colors = ['#ff6600', '#ff3300', '#ffcc00', '#ff0000'];
-                for (let i = 0; i < 6; i++) {
+                const explosionCount = (this.vfxEnabled && enemy.isBoss) ? 22 : (this.vfxEnabled ? 10 : 6);
+                for (let i = 0; i < explosionCount; i++) {
                     this.particles.push(new Particle(enemy.x, enemy.y, 'explosion', {
                         color: colors[Math.floor(Math.random() * colors.length)]
                     }));
+                }
+
+                // Smoke puffs on death
+                if (this.vfxEnabled) {
+                    const smokeCount = enemy.isBoss ? 6 : 3;
+                    for (let i = 0; i < smokeCount; i++) {
+                        this.particles.push(new Particle(
+                            enemy.x + (Math.random() - 0.5) * 20,
+                            enemy.y + (Math.random() - 0.5) * 20,
+                            'smoke'
+                        ));
+                    }
                 }
 
                 // Gold particle
@@ -739,11 +910,21 @@ class Game {
                     amount: enemy.goldReward
                 }));
 
-                // Boss death = big shake
+                // Gold pickup sparkle
+                if (this.vfxEnabled) {
+                    for (let i = 0; i < 4; i++) {
+                        this.particles.push(new Particle(enemy.x, enemy.y - 10, 'spark', {
+                            color: '#ffd700'
+                        }));
+                    }
+                }
+
+                // Boss death = big shake + screen flash
                 if (enemy.isBoss) {
                     this.triggerScreenShake(20, 0.8);
                     this.showAnnouncement('BOSS DEFEATED!', '#00ff00', 2);
                     if (typeof soundManager !== 'undefined') soundManager.bossDeath();
+                    if (this.vfxEnabled) this.screenFlash = { alpha: 0.6, color: '#ffd700', decay: 2 };
                 } else {
                     if (typeof soundManager !== 'undefined') soundManager.enemyDeath();
                 }
@@ -828,6 +1009,8 @@ class Game {
 
         this.showAnnouncement('Wave Complete!', '#00ff00', 1.5);
         if (typeof soundManager !== 'undefined') soundManager.waveComplete();
+        // Golden screen flash on wave complete
+        if (this.vfxEnabled) this.screenFlash = { alpha: 0.3, color: '#ffd700', decay: 2 };
 
         if (this.currentWave >= this.totalWaves) {
             this.gameOver(true);
@@ -862,8 +1045,18 @@ class Game {
         }
         ctx.drawImage(this.bgCanvas, 0, 0);
 
+        // Animated water shimmer
+        if (this.vfxEnabled && this.waterTiles.length > 0) {
+            this.drawAnimatedWater();
+        }
+
         // Draw animated torches (need to update each frame)
         this.drawTorches();
+
+        // Ambient particles (embers & fireflies) — behind towers
+        if (this.vfxEnabled) {
+            this.drawAmbientParticles();
+        }
 
         // Draw placement preview
         if (this.selectedTowerType && this.hoverCell) {
@@ -882,9 +1075,40 @@ class Game {
         // Draw particles
         this.particles.forEach(p => p.draw(ctx));
 
+        // Screen flash overlay
+        if (this.vfxEnabled && this.screenFlash.alpha > 0) {
+            ctx.fillStyle = this.screenFlash.color;
+            ctx.globalAlpha = this.screenFlash.alpha;
+            ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            ctx.globalAlpha = 1;
+        }
+
+        // Wave transition fade
+        if (this.vfxEnabled && this.waveFade.alpha > 0) {
+            ctx.fillStyle = '#000000';
+            ctx.globalAlpha = this.waveFade.alpha;
+            ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            ctx.globalAlpha = 1;
+        }
+
+        // Day/night lighting
+        if (this.vfxEnabled) {
+            this.drawDayNightOverlay();
+        }
+
+        // Rain
+        if (this.vfxEnabled && this.rainActive) {
+            this.drawRain();
+        }
+
         // Draw announcement
         if (this.announcement) {
             this.drawAnnouncement();
+        }
+
+        // Vignette (very last overlay)
+        if (this.vfxEnabled) {
+            this.drawVignette();
         }
 
         ctx.restore();
@@ -1280,13 +1504,16 @@ class Game {
         const ctx = this.ctx;
         const ann = this.announcement;
 
-        const alpha = Math.min(1, ann.duration / 0.3, (ann.maxDuration - ann.duration + 0.3) / 0.3);
-        const scale = 1 + (1 - alpha) * 0.2;
+        const fadeIn = Math.min(1, (ann.maxDuration - ann.duration) / 0.3);
+        const fadeOut = Math.min(1, ann.duration / 0.3);
+        const alpha = Math.min(fadeIn, fadeOut);
+
+        // Slide in from top
+        const slideOffset = (1 - fadeIn) * -60;
 
         ctx.save();
         ctx.globalAlpha = alpha;
-        ctx.translate(this.canvas.width / 2, this.canvas.height / 3);
-        ctx.scale(scale, scale);
+        ctx.translate(this.canvas.width / 2, this.canvas.height / 3 + slideOffset);
 
         ctx.font = 'bold 36px Cinzel, serif';
         ctx.textAlign = 'center';
@@ -1297,8 +1524,122 @@ class Game {
         ctx.shadowColor = ann.color;
         ctx.shadowBlur = 20;
         ctx.fillText(ann.text, 0, 0);
+        ctx.shadowBlur = 0;
+
+        // Sub-text showing wave enemy composition
+        if (ann.subText) {
+            ctx.font = '13px Cinzel, serif';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.strokeText(ann.subText, 0, 24);
+            ctx.fillText(ann.subText, 0, 24);
+        }
 
         ctx.restore();
+
+        // Spawn spark particles behind text on first frame
+        if (this.vfxEnabled && !ann.sparksSpawned) {
+            ann.sparksSpawned = true;
+            for (let i = 0; i < 10; i++) {
+                this.particles.push(new Particle(
+                    this.canvas.width / 2 + (Math.random() - 0.5) * 200,
+                    this.canvas.height / 3,
+                    'spark',
+                    { color: ann.color }
+                ));
+            }
+        }
+    }
+
+    drawAnimatedWater() {
+        const ctx = this.ctx;
+        this.waterTiles.forEach(tile => {
+            const shimmer = Math.sin(this.gameTime * 2 + tile.x * 0.1 + tile.y * 0.05) * 0.5 + 0.5;
+            ctx.fillStyle = `rgba(180, 220, 255, ${shimmer * 0.12})`;
+            ctx.fillRect(tile.px, tile.py, this.cellSize, this.cellSize);
+
+            // Ripple lines
+            const rippleY = tile.py + this.cellSize * 0.3 + Math.sin(this.gameTime * 1.5 + tile.x * 0.2) * 3;
+            const rippleY2 = tile.py + this.cellSize * 0.7 + Math.sin(this.gameTime * 1.8 + tile.x * 0.15) * 3;
+            ctx.strokeStyle = `rgba(255, 255, 255, ${shimmer * 0.15})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(tile.px + 4, rippleY);
+            ctx.lineTo(tile.px + this.cellSize - 4, rippleY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(tile.px + 8, rippleY2);
+            ctx.lineTo(tile.px + this.cellSize - 8, rippleY2);
+            ctx.stroke();
+        });
+    }
+
+    drawAmbientParticles() {
+        const ctx = this.ctx;
+        this.ambientParticles.forEach(p => {
+            const alpha = Math.min(1, p.life / p.maxLife * 2, p.life);
+            if (p.type === 'ember') {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 140, 40, ${alpha * 0.8})`;
+                ctx.fill();
+            } else if (p.type === 'firefly') {
+                const pulse = Math.sin(this.gameTime * 3 + p.phase) * 0.5 + 0.5;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(180, 255, 80, ${alpha * pulse * 0.7})`;
+                ctx.fill();
+            }
+        });
+    }
+
+    drawDayNightOverlay() {
+        const ctx = this.ctx;
+        const progress = this.currentWave / this.totalWaves;
+        let color = null;
+
+        const hasBoss = this.enemies.some(e => e.isBoss);
+        if (hasBoss) {
+            color = 'rgba(150, 0, 0, 0.08)';
+        } else if (progress >= 0.8) {
+            color = 'rgba(20, 20, 80, 0.12)';
+        } else if (progress >= 0.6) {
+            color = 'rgba(180, 100, 50, 0.08)';
+        } else if (progress <= 0.2 && this.currentWave > 0) {
+            color = 'rgba(255, 200, 100, 0.05)';
+        }
+
+        if (color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+    }
+
+    drawRain() {
+        const ctx = this.ctx;
+        ctx.strokeStyle = 'rgba(180, 200, 220, 0.3)';
+        ctx.lineWidth = 1;
+        this.rainDrops.forEach(drop => {
+            ctx.beginPath();
+            ctx.moveTo(drop.x, drop.y);
+            ctx.lineTo(drop.x - drop.length * 0.15, drop.y + drop.length);
+            ctx.stroke();
+        });
+    }
+
+    drawVignette() {
+        const ctx = this.ctx;
+        if (!this.vignetteGradient) {
+            const cx = this.canvas.width / 2;
+            const cy = this.canvas.height / 2;
+            const radius = Math.max(this.canvas.width, this.canvas.height) * 0.7;
+            this.vignetteGradient = ctx.createRadialGradient(cx, cy, radius * 0.5, cx, cy, radius);
+            this.vignetteGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            this.vignetteGradient.addColorStop(1, 'rgba(0, 0, 0, 0.4)');
+        }
+        ctx.fillStyle = this.vignetteGradient;
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     setNFTs(nfts) {
@@ -1317,4 +1658,11 @@ class Game {
 // Initialize game when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.game = new Game();
+
+    // VFX toggle (V key)
+    document.addEventListener('keydown', (e) => {
+        if ((e.key === 'v' || e.key === 'V') && window.game && window.game.isRunning) {
+            window.game.vfxEnabled = !window.game.vfxEnabled;
+        }
+    });
 });
