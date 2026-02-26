@@ -265,7 +265,7 @@ export default async function handler(req, res) {
     let liveContext = '';
 
     // Fetch live context: admin facts + Discord summary + community KB + wallet memory
-    const [adminFacts, walletMemory, discordSummary, knowledgeBase, holdersData, spacesAnalyses, recentDrafts, promptRules] = await Promise.all([
+    const [adminFacts, walletMemory, discordSummary, knowledgeBase, holdersData, spacesAnalyses, recentDrafts, promptRules, xResearchCache] = await Promise.all([
         kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null),
         kvGet(`drak:memory:${wallet}`, kvUrl, kvToken).catch(() => null),
         kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null),
@@ -273,7 +273,8 @@ export default async function handler(req, res) {
         kvGet('holders:leaderboard', kvUrl, kvToken).catch(() => null),
         kvHgetall('spaces:analyses', kvUrl, kvToken).catch(() => null),
         kvHgetall('x:drafts', kvUrl, kvToken).catch(() => null),
-        kvHgetall('drak:prompt_rules', kvUrl, kvToken).catch(() => null)
+        kvHgetall('drak:prompt_rules', kvUrl, kvToken).catch(() => null),
+        kvGet('drak:research_cache', kvUrl, kvToken).catch(() => null)
     ]);
 
     // Market data
@@ -348,6 +349,11 @@ export default async function handler(req, res) {
             const tweetTexts = posted.map(d => `- ${d.text}`).join('\n');
             liveContext += `\n\n=== RECENT @MIDHORDE TWEETS ===\n${tweetTexts}`;
         }
+    }
+
+    // X/Twitter research from monitored accounts
+    if (xResearchCache?.researchText && Date.now() - (xResearchCache.fetchedAt || 0) < 12 * 60 * 60 * 1000) {
+        liveContext += `\n\n=== X/TWITTER RESEARCH (recent posts from key accounts) ===\n${xResearchCache.researchText.slice(0, 2000)}`;
     }
 
     // Wallet memory — things Drak remembers about this holder

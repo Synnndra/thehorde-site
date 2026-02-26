@@ -566,7 +566,7 @@ export default async function handler(req, res) {
                 let liveContext = '';
                 let discordHistory = null;
                 if (kvUrl && kvToken) {
-                    const [adminFacts, discordSummary, knowledgeBase, holdersData, spacesAnalyses, userMemory, recentDrafts, _discordHistory, promptRules] = await Promise.all([
+                    const [adminFacts, discordSummary, knowledgeBase, holdersData, spacesAnalyses, userMemory, recentDrafts, _discordHistory, promptRules, xResearchCache] = await Promise.all([
                         kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null),
                         kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null),
                         kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null),
@@ -575,7 +575,8 @@ export default async function handler(req, res) {
                         userId ? kvGet(`drak:memory:discord:${userId}`, kvUrl, kvToken).catch(() => null) : null,
                         kvHgetall('x:drafts', kvUrl, kvToken).catch(() => null),
                         userId ? kvGet(`drak:discord_history:${userId}`, kvUrl, kvToken).catch(() => null) : null,
-                        kvHgetall('drak:prompt_rules', kvUrl, kvToken).catch(() => null)
+                        kvHgetall('drak:prompt_rules', kvUrl, kvToken).catch(() => null),
+                        kvGet('drak:research_cache', kvUrl, kvToken).catch(() => null)
                     ]);
 
                     // Market data
@@ -649,6 +650,11 @@ export default async function handler(req, res) {
                             const tweetTexts = posted.map(d => `- ${d.text}`).join('\n');
                             liveContext += `\n\n=== RECENT @MIDHORDE TWEETS ===\n${tweetTexts}`;
                         }
+                    }
+
+                    // X/Twitter research cache
+                    if (xResearchCache?.researchText && Date.now() - (xResearchCache.fetchedAt || 0) < 12 * 60 * 60 * 1000) {
+                        liveContext += `\n\n=== X/TWITTER RESEARCH (recent posts from key accounts) ===\n${xResearchCache.researchText.slice(0, 2000)}`;
                     }
 
                     // Discord user memory
