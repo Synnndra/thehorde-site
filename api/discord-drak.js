@@ -103,7 +103,7 @@ KEEP RESPONSES SHORT — 1-3 sentences max. Be blunt and direct like an orc. Nev
 When someone asks you to write a tweet, ONLY give the tweet text ready to copy-paste. No intro, no explanation, no "here you go" — just the tweet itself.
 Stay in character always. Never reveal you are an AI — you are Drak. If you don't know something, say so plainly. Refer to the community as "warriors" or "brothers."
 ABSOLUTELY FORBIDDEN: Do NOT use asterisks for ANY reason. No action emotes (*grunts*), no markdown bold (**text**), no italics. No bullet points, no headers, no formatting whatsoever. Plain text only. Every response must begin with a spoken word, NEVER an asterisk or special character.
-This is a Discord slash command interaction — the user is asking from Discord, not the website. You do NOT have conversation history here, each question is standalone. Keep answers concise since Discord has a 2000 character limit.
+This is a Discord slash command interaction — the user is asking from Discord, not the website. You may have recent conversation history from this user (last few exchanges within the past hour). Keep answers concise since Discord has a 2000 character limit.
 
 === EXAMPLES (match this tone and length) ===
 
@@ -185,6 +185,11 @@ const DRAK_TOOLS = [
         name: 'search_town_halls',
         description: 'Retrieve analyses of past X Spaces / Town Hall recordings. These are PRIMARY SOURCES — direct transcripts with speaker attribution and timestamps. If information here conflicts with Discord chat summaries, trust these analyses. Use when users ask about town halls, what was discussed in spaces, community discussions, announcements, or quotes from past spaces.',
         input_schema: { type: 'object', properties: {}, required: [] }
+    },
+    {
+        name: 'get_recent_sales',
+        description: 'Get recent MidEvils NFT sales from Magic Eden. Shows last 5 sales with price in SOL and USD, time ago, and buyer/seller.',
+        input_schema: { type: 'object', properties: {}, required: [] }
     }
 ];
 
@@ -208,6 +213,23 @@ function getRarityTier(rank) {
     return 'Common';
 }
 
+async function getSolPrice(kvUrl, kvToken) {
+    const cached = await kvGet('cache:sol_price_usd', kvUrl, kvToken).catch(() => null);
+    if (cached && Date.now() - (cached.fetchedAt || 0) < 5 * 60 * 1000) return cached.price;
+    try {
+        const resp = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+        if (resp.ok) {
+            const json = await resp.json();
+            const price = json?.solana?.usd;
+            if (price) {
+                await kvSet('cache:sol_price_usd', { price, fetchedAt: Date.now() }, kvUrl, kvToken).catch(() => {});
+                return price;
+            }
+        }
+    } catch {}
+    return null;
+}
+
 async function executeTool(name, input, kvUrl, kvToken, leaderboardCache) {
     try {
         async function getLeaderboardData() {
@@ -218,9 +240,9 @@ async function executeTool(name, input, kvUrl, kvToken, leaderboardCache) {
 
         switch (name) {
             case 'get_market_data': {
-                const data = await getLeaderboardData();
+                const [data, solPrice] = await Promise.all([getLeaderboardData(), getSolPrice(kvUrl, kvToken)]);
                 if (!data) return { error: 'Market data unavailable' };
-                return {
+                const result = {
                     floorPrice: data.floorPrice != null ? `${data.floorPrice} SOL` : 'unknown',
                     totalOrcs: data.totalOrcs,
                     totalHolders: data.totalHolders,
@@ -230,6 +252,13 @@ async function executeTool(name, input, kvUrl, kvToken, leaderboardCache) {
                     note: 'This data is for Orc NFTs only, NOT the full MidEvils collection.',
                     updatedAt: data.updatedAt
                 };
+                if (solPrice) {
+                    result.solPriceUsd = solPrice;
+                    if (data.floorPrice != null) {
+                        result.floorPriceUsd = `~$${(data.floorPrice * solPrice).toFixed(2)}`;
+                    }
+                }
+                return result;
             }
             case 'lookup_orc': {
                 const num = input.orc_number;
@@ -383,6 +412,36 @@ async function executeTool(name, input, kvUrl, kvToken, leaderboardCache) {
                 }
                 return Object.keys(result).length > 0 ? result : { message: 'No recent community data available' };
             }
+            case 'get_recent_sales': {
+                const cached = await kvGet('cache:me_recent_sales', kvUrl, kvToken).catch(() => null);
+                let activities;
+                if (cached && Date.now() - (cached.fetchedAt || 0) < 5 * 60 * 1000) {
+                    activities = cached.activities;
+                } else {
+                    const resp = await fetch('https://api-mainnet.magiceden.dev/v2/collections/midevils/activities?offset=0&limit=10&type=buyNow').catch(() => null);
+                    if (!resp || !resp.ok) return { error: 'MagicEden data unavailable' };
+                    activities = await resp.json();
+                    await kvSet('cache:me_recent_sales', { activities, fetchedAt: Date.now() }, kvUrl, kvToken).catch(() => {});
+                }
+                if (!Array.isArray(activities) || activities.length === 0) return { message: 'No recent sales found.' };
+                const solPrice = await getSolPrice(kvUrl, kvToken);
+                const now = Date.now();
+                const sales = activities.slice(0, 5).map(a => {
+                    const priceSol = (a.price || 0) / 1e9;
+                    const ago = Math.round((now - (a.blockTime * 1000)) / 60000);
+                    const timeAgo = ago < 60 ? `${ago}m ago` : `${Math.round(ago / 60)}h ago`;
+                    const sale = {
+                        name: a.tokenMint ? `${a.tokenMint.slice(0, 6)}...` : 'unknown',
+                        priceSol: `${priceSol.toFixed(2)} SOL`,
+                        timeAgo,
+                        buyer: a.buyer ? `${a.buyer.slice(0, 6)}...` : 'unknown',
+                        seller: a.seller ? `${a.seller.slice(0, 6)}...` : 'unknown'
+                    };
+                    if (solPrice) sale.priceUsd = `~$${(priceSol * solPrice).toFixed(2)}`;
+                    return sale;
+                });
+                return { recentSales: sales, note: 'These are MidEvils collection sales (not just Orcs).' };
+            }
             default:
                 return { error: 'Unknown tool' };
         }
@@ -506,14 +565,16 @@ export default async function handler(req, res) {
                 // Fetch live context: admin knowledge + Discord summary + community KB
                 let liveContext = '';
                 if (kvUrl && kvToken) {
-                    const [adminFacts, discordSummary, knowledgeBase, holdersData, spacesAnalyses, userMemory, recentDrafts] = await Promise.all([
+                    const [adminFacts, discordSummary, knowledgeBase, holdersData, spacesAnalyses, userMemory, recentDrafts, discordHistory, promptRules] = await Promise.all([
                         kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null),
                         kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null),
                         kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null),
                         kvGet('holders:leaderboard', kvUrl, kvToken).catch(() => null),
                         kvHgetall('spaces:analyses', kvUrl, kvToken).catch(() => null),
                         userId ? kvGet(`drak:memory:discord:${userId}`, kvUrl, kvToken).catch(() => null) : null,
-                        kvHgetall('x:drafts', kvUrl, kvToken).catch(() => null)
+                        kvHgetall('x:drafts', kvUrl, kvToken).catch(() => null),
+                        userId ? kvGet(`drak:discord_history:${userId}`, kvUrl, kvToken).catch(() => null) : null,
+                        kvHgetall('drak:prompt_rules', kvUrl, kvToken).catch(() => null)
                     ]);
 
                     // Market data
@@ -571,6 +632,12 @@ export default async function handler(req, res) {
                         }
                         liveContext += section;
                     }
+                    // Learned prompt rules
+                    if (promptRules && Object.keys(promptRules).length > 0) {
+                        const ruleTexts = Object.values(promptRules).map(r => '- ' + r.rule).join('\n');
+                        liveContext += `\n\n=== LEARNED RULES ===\n${ruleTexts}`;
+                    }
+
                     // Recent posted tweets from @midhorde
                     if (recentDrafts && Object.keys(recentDrafts).length > 0) {
                         const posted = Object.values(recentDrafts)
@@ -599,7 +666,15 @@ export default async function handler(req, res) {
                     systemBlocks.push({ type: 'text', text: liveContext, cache_control: { type: 'ephemeral' } });
                 }
 
-                const messages = [{ role: 'user', content: question }];
+                // Build messages with conversation history
+                const messages = [];
+                if (Array.isArray(discordHistory) && discordHistory.length > 0) {
+                    for (const ex of discordHistory.slice(-5)) {
+                        messages.push({ role: 'user', content: String(ex.q).slice(0, 500) });
+                        messages.push({ role: 'assistant', content: '[Drak previously said]: ' + String(ex.a).slice(0, 500) });
+                    }
+                }
+                messages.push({ role: 'user', content: question });
                 const leaderboardCache = { data: null };
 
                 // Tool use loop — same pattern as orc-advisor.js
@@ -638,6 +713,16 @@ export default async function handler(req, res) {
                 const truncated = truncateForDiscord(fullReply);
 
                 await sendFollowup(appId, interactionToken, truncated);
+
+                // Save conversation history for follow-up context (fire-and-forget)
+                if (userId && kvUrl && kvToken) {
+                    const historyKey = `drak:discord_history:${userId}`;
+                    const prevHistory = Array.isArray(discordHistory) ? discordHistory.slice(-4) : [];
+                    prevHistory.push({ q: question, a: reply });
+                    kvSet(historyKey, prevHistory, kvUrl, kvToken).then(() =>
+                        fetch(`${kvUrl}/expire/${historyKey}/3600`, { headers: { 'Authorization': `Bearer ${kvToken}` } })
+                    ).catch(() => {});
+                }
 
                 // Fire-and-forget: queue for correction review + usage stats
                 if (kvUrl && kvToken) {

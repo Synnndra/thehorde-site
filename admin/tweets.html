@@ -136,6 +136,22 @@
         <section class="card" id="knowledge-section">
             <h2>Drak Knowledge Base</h2>
 
+            <!-- Prompt Rules -->
+            <div class="knowledge-subsection">
+                <h3>Prompt Rules</h3>
+                <p class="subsection-hint">Behavioral rules that shape how Drak responds. These are injected into every conversation.</p>
+                <div class="prompt-rule-add-form">
+                    <textarea id="prompt-rule-input" placeholder="e.g. Never state floor price as fact without checking — it changes frequently." rows="2" maxlength="500"></textarea>
+                    <div class="knowledge-form-actions">
+                        <button id="prompt-rule-add-btn" class="btn-small">Add Rule</button>
+                    </div>
+                </div>
+                <p id="prompt-rule-error" class="error-text" hidden></p>
+                <p id="prompt-rule-success" class="success-text" hidden></p>
+                <div id="prompt-rules-list" class="prompt-rules-list"></div>
+                <p id="prompt-rules-empty" class="empty-text" hidden>No prompt rules yet.</p>
+            </div>
+
             <!-- Add Fact -->
             <div class="knowledge-subsection">
                 <h3>Add Fact</h3>

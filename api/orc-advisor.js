@@ -182,6 +182,11 @@ const DRAK_TOOLS = [
         name: 'search_town_halls',
         description: 'Retrieve analyses of past X Spaces / Town Hall recordings. These are PRIMARY SOURCES — direct transcripts with speaker attribution and timestamps. If information here conflicts with Discord chat summaries, trust these analyses. Use when users ask about town halls, what was discussed in spaces, community discussions, announcements, or quotes from past spaces.',
         input_schema: { type: 'object', properties: {}, required: [] }
+    },
+    {
+        name: 'get_recent_sales',
+        description: 'Get recent MidEvils NFT sales from Magic Eden. Shows last 5 sales with price in SOL and USD, time ago, and buyer/seller.',
+        input_schema: { type: 'object', properties: {}, required: [] }
     }
 ];
 
@@ -260,14 +265,15 @@ export default async function handler(req, res) {
     let liveContext = '';
 
     // Fetch live context: admin facts + Discord summary + community KB + wallet memory
-    const [adminFacts, walletMemory, discordSummary, knowledgeBase, holdersData, spacesAnalyses, recentDrafts] = await Promise.all([
+    const [adminFacts, walletMemory, discordSummary, knowledgeBase, holdersData, spacesAnalyses, recentDrafts, promptRules] = await Promise.all([
         kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null),
         kvGet(`drak:memory:${wallet}`, kvUrl, kvToken).catch(() => null),
         kvGet('discord:daily_summary', kvUrl, kvToken).catch(() => null),
         kvGet('discord:knowledge_base', kvUrl, kvToken).catch(() => null),
         kvGet('holders:leaderboard', kvUrl, kvToken).catch(() => null),
         kvHgetall('spaces:analyses', kvUrl, kvToken).catch(() => null),
-        kvHgetall('x:drafts', kvUrl, kvToken).catch(() => null)
+        kvHgetall('x:drafts', kvUrl, kvToken).catch(() => null),
+        kvHgetall('drak:prompt_rules', kvUrl, kvToken).catch(() => null)
     ]);
 
     // Market data
@@ -324,6 +330,12 @@ export default async function handler(req, res) {
             section += '\n[' + cat.toUpperCase() + ']\n' + texts.map(t => '- ' + t).join('\n');
         }
         liveContext += section;
+    }
+
+    // Learned prompt rules
+    if (promptRules && Object.keys(promptRules).length > 0) {
+        const ruleTexts = Object.values(promptRules).map(r => '- ' + r.rule).join('\n');
+        liveContext += `\n\n=== LEARNED RULES ===\n${ruleTexts}`;
     }
 
     // Recent posted tweets from @midhorde
@@ -397,13 +409,30 @@ export default async function handler(req, res) {
             return 'Common';
         }
 
+        async function getSolPrice() {
+            const cached = await kvGet('cache:sol_price_usd', kvUrl, kvToken).catch(() => null);
+            if (cached && Date.now() - (cached.fetchedAt || 0) < 5 * 60 * 1000) return cached.price;
+            try {
+                const resp = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+                if (resp.ok) {
+                    const json = await resp.json();
+                    const price = json?.solana?.usd;
+                    if (price) {
+                        await kvSet('cache:sol_price_usd', { price, fetchedAt: Date.now() }, kvUrl, kvToken).catch(() => {});
+                        return price;
+                    }
+                }
+            } catch {}
+            return null;
+        }
+
         async function executeTool(name, input) {
             try {
                 switch (name) {
                     case 'get_market_data': {
-                        const data = await getLeaderboardData();
+                        const [data, solPrice] = await Promise.all([getLeaderboardData(), getSolPrice()]);
                         if (!data) return { error: 'Market data unavailable' };
-                        return {
+                        const result = {
                             floorPrice: data.floorPrice != null ? `${data.floorPrice} SOL` : 'unknown',
                             totalOrcs: data.totalOrcs,
                             totalHolders: data.totalHolders,
@@ -413,6 +442,13 @@ export default async function handler(req, res) {
                             note: 'This data is for Orc NFTs only, NOT the full MidEvils collection.',
                             updatedAt: data.updatedAt
                         };
+                        if (solPrice) {
+                            result.solPriceUsd = solPrice;
+                            if (data.floorPrice != null) {
+                                result.floorPriceUsd = `~$${(data.floorPrice * solPrice).toFixed(2)}`;
+                            }
+                        }
+                        return result;
                     }
                     case 'lookup_orc': {
                         const num = input.orc_number;
@@ -565,6 +601,36 @@ export default async function handler(req, res) {
                             result.knowledgeBase = kb.content;
                         }
                         return Object.keys(result).length > 0 ? result : { message: 'No recent community data available' };
+                    }
+                    case 'get_recent_sales': {
+                        const cached = await kvGet('cache:me_recent_sales', kvUrl, kvToken).catch(() => null);
+                        let activities;
+                        if (cached && Date.now() - (cached.fetchedAt || 0) < 5 * 60 * 1000) {
+                            activities = cached.activities;
+                        } else {
+                            const resp = await fetch('https://api-mainnet.magiceden.dev/v2/collections/midevils/activities?offset=0&limit=10&type=buyNow').catch(() => null);
+                            if (!resp || !resp.ok) return { error: 'MagicEden data unavailable' };
+                            activities = await resp.json();
+                            await kvSet('cache:me_recent_sales', { activities, fetchedAt: Date.now() }, kvUrl, kvToken).catch(() => {});
+                        }
+                        if (!Array.isArray(activities) || activities.length === 0) return { message: 'No recent sales found.' };
+                        const solPrice = await getSolPrice();
+                        const now = Date.now();
+                        const sales = activities.slice(0, 5).map(a => {
+                            const priceSol = (a.price || 0) / 1e9;
+                            const ago = Math.round((now - (a.blockTime * 1000)) / 60000);
+                            const timeAgo = ago < 60 ? `${ago}m ago` : `${Math.round(ago / 60)}h ago`;
+                            const sale = {
+                                name: a.tokenMint ? `${a.tokenMint.slice(0, 6)}...` : 'unknown',
+                                priceSol: `${priceSol.toFixed(2)} SOL`,
+                                timeAgo,
+                                buyer: a.buyer ? `${a.buyer.slice(0, 6)}...` : 'unknown',
+                                seller: a.seller ? `${a.seller.slice(0, 6)}...` : 'unknown'
+                            };
+                            if (solPrice) sale.priceUsd = `~$${(priceSol * solPrice).toFixed(2)}`;
+                            return sale;
+                        });
+                        return { recentSales: sales, note: 'These are MidEvils collection sales (not just Orcs).' };
                     }
                     default:
                         return { error: 'Unknown tool' };

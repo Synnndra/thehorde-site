@@ -73,6 +73,7 @@
                     loadTweetDrafts();
                 });
                 loadKnowledgeFacts();
+                loadPromptRules();
                 loadCorrections();
                 loadMetrics();
             } else {
@@ -1115,6 +1116,88 @@
 
     document.getElementById('knowledge-refresh-btn').addEventListener('click', loadKnowledgeFacts);
 
+    // ---- Prompt Rules ----
+
+    async function loadPromptRules() {
+        try {
+            var data = await fetchDrakKnowledge({ mode: 'list-rules' });
+            if (!data) return;
+
+            var listEl = document.getElementById('prompt-rules-list');
+            var emptyEl = document.getElementById('prompt-rules-empty');
+            listEl.innerHTML = '';
+
+            var rules = data.rules || [];
+            if (rules.length === 0) {
+                emptyEl.hidden = false;
+                return;
+            }
+            emptyEl.hidden = true;
+
+            rules.forEach(function (r) {
+                var card = document.createElement('div');
+                card.className = 'prompt-rule-card';
+                card.innerHTML =
+                    '<span class="prompt-rule-text">' + escapeHtml(r.rule) + '</span>' +
+                    '<span class="prompt-rule-date">' + formatDate(r.createdAt) + '</span>' +
+                    '<button class="prompt-rule-delete btn-small btn-danger" data-rule-id="' + escapeHtml(r.id) + '">Delete</button>';
+                listEl.appendChild(card);
+            });
+        } catch (err) {
+            console.error('Load prompt rules failed:', err);
+        }
+    }
+
+    // Add prompt rule
+    document.getElementById('prompt-rule-add-btn').addEventListener('click', async function () {
+        var input = document.getElementById('prompt-rule-input');
+        var errEl = document.getElementById('prompt-rule-error');
+        var successEl = document.getElementById('prompt-rule-success');
+        errEl.hidden = true;
+        successEl.hidden = true;
+
+        var rule = input.value.trim();
+        if (!rule) {
+            errEl.textContent = 'Rule text is required.';
+            errEl.hidden = false;
+            return;
+        }
+
+        try {
+            await fetchDrakKnowledge({ mode: 'add-rule', rule: rule });
+            input.value = '';
+            successEl.textContent = 'Rule added.';
+            successEl.hidden = false;
+            loadPromptRules();
+        } catch (err) {
+            errEl.textContent = err.message;
+            errEl.hidden = false;
+        }
+    });
+
+    // Delete prompt rule
+    document.addEventListener('click', async function (e) {
+        var btn = e.target.closest('.prompt-rule-delete');
+        if (!btn) return;
+        var ruleId = btn.dataset.ruleId;
+        if (!confirm('Delete this rule?')) return;
+
+        btn.disabled = true;
+        btn.textContent = '...';
+        try {
+            await fetchDrakKnowledge({ mode: 'delete-rule', ruleId: ruleId });
+            btn.closest('.prompt-rule-card').remove();
+            var listEl = document.getElementById('prompt-rules-list');
+            if (listEl.children.length === 0) {
+                document.getElementById('prompt-rules-empty').hidden = false;
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = 'Delete';
+        }
+    });
+
     // ---- Drak Corrections ----
 
     async function loadCorrections() {
@@ -1161,7 +1244,14 @@
                         '</select>' +
                         '<div class="correction-actions">' +
                             '<button class="correction-add-btn btn-small">Add as Fact</button>' +
+                            '<button class="correction-suggest-rule-btn btn-small">Suggest Rule</button>' +
                             '<button class="correction-dismiss-btn btn-small btn-danger">Dismiss</button>' +
+                        '</div>' +
+                        '<div class="correction-rule-area" hidden>' +
+                            '<textarea class="correction-rule-textarea" rows="2" maxlength="500" placeholder="Suggested rule will appear here..."></textarea>' +
+                            '<div class="correction-actions">' +
+                                '<button class="correction-add-rule-btn btn-small">Add as Rule</button>' +
+                            '</div>' +
                         '</div>' +
                     '</div>' +
                     '<div class="correction-date">' + formatDate(c.flaggedAt) + '</div>';
@@ -1229,6 +1319,59 @@
             alert('Error: ' + err.message);
             btn.disabled = false;
             btn.textContent = 'Dismiss';
+        }
+    });
+
+    // Suggest rule from correction
+    document.addEventListener('click', async function (e) {
+        var btn = e.target.closest('.correction-suggest-rule-btn');
+        if (!btn) return;
+        var card = btn.closest('.correction-card');
+        if (!card) return;
+        var correctionId = card.dataset.correctionId;
+
+        btn.disabled = true;
+        btn.textContent = 'Thinking...';
+        try {
+            var data = await fetchDrakKnowledge({ mode: 'suggest-rule', correctionId: correctionId });
+            var ruleArea = card.querySelector('.correction-rule-area');
+            var ruleTextarea = card.querySelector('.correction-rule-textarea');
+            ruleTextarea.value = data.suggestedRule || '';
+            ruleArea.hidden = false;
+            ruleTextarea.focus();
+            btn.textContent = 'Suggest Rule';
+            btn.disabled = false;
+        } catch (err) {
+            alert('Error: ' + err.message);
+            btn.textContent = 'Suggest Rule';
+            btn.disabled = false;
+        }
+    });
+
+    // Add suggested rule to prompt rules
+    document.addEventListener('click', async function (e) {
+        var btn = e.target.closest('.correction-add-rule-btn');
+        if (!btn) return;
+        var card = btn.closest('.correction-card');
+        if (!card) return;
+        var ruleTextarea = card.querySelector('.correction-rule-textarea');
+        var rule = ruleTextarea.value.trim();
+        if (!rule) { alert('Rule text cannot be empty.'); return; }
+
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+        try {
+            await fetchDrakKnowledge({ mode: 'add-rule', rule: rule });
+            var ruleArea = card.querySelector('.correction-rule-area');
+            ruleArea.hidden = true;
+            ruleTextarea.value = '';
+            btn.textContent = 'Add as Rule';
+            btn.disabled = false;
+            loadPromptRules();
+        } catch (err) {
+            alert('Error: ' + err.message);
+            btn.textContent = 'Add as Rule';
+            btn.disabled = false;
         }
     });
 
@@ -1302,6 +1445,7 @@
         loadMetrics();
         loadCorrections();
         loadKnowledgeFacts();
+        loadPromptRules();
     });
 
     // ---- Init ----
@@ -1312,6 +1456,7 @@
             loadTweetDrafts();
         });
         loadKnowledgeFacts();
+        loadPromptRules();
         loadCorrections();
         loadMetrics();
     } else {

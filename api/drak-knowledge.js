@@ -2,10 +2,12 @@
 import { timingSafeEqual } from 'crypto';
 import { getClientIp, isRateLimitedKV, kvGet, kvSet, kvHset, kvHget, kvHdel, kvHgetall } from '../lib/swap-utils.js';
 import { randomBytes } from 'crypto';
+import Anthropic from '@anthropic-ai/sdk';
 
 const KNOWLEDGE_KEY = 'drak:knowledge';
 const CATEGORIES = ['project', 'community', 'market', 'lore', 'general', 'correction'];
 const CORRECTIONS_KEY = 'drak:corrections';
+const PROMPT_RULES_KEY = 'drak:prompt_rules';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -190,6 +192,67 @@ export default async function handler(req, res) {
             await kvHset(KNOWLEDGE_KEY, id, fact, KV_REST_API_URL, KV_REST_API_TOKEN);
             await kvHdel(CORRECTIONS_KEY, correctionId, KV_REST_API_URL, KV_REST_API_TOKEN);
             return res.status(200).json({ success: true, fact });
+        }
+
+        // Mode: suggest a prompt rule from a correction (Haiku)
+        if (mode === 'suggest-rule') {
+            const { correctionId } = req.body;
+            if (!correctionId) {
+                return res.status(400).json({ error: 'correctionId required' });
+            }
+            const correction = await kvHget(CORRECTIONS_KEY, correctionId, KV_REST_API_URL, KV_REST_API_TOKEN);
+            if (!correction) {
+                return res.status(404).json({ error: 'Correction not found' });
+            }
+            const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+            if (!anthropicApiKey) {
+                return res.status(503).json({ error: 'AI service unavailable' });
+            }
+            const client = new Anthropic({ apiKey: anthropicApiKey });
+            const result = await client.messages.create({
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: 200,
+                system: 'You generate concise behavioral rules for an AI chatbot named Drak (an orc war chief). Given a correction (what the user asked, what Drak said wrong, and why it was wrong), write ONE short behavioral rule that would prevent this mistake in the future. The rule should be a clear instruction, max 1-2 sentences. Output ONLY the rule text, nothing else.',
+                messages: [{
+                    role: 'user',
+                    content: `User asked: ${correction.userMsg}\nDrak replied: ${correction.drakReply}\nWhy it was wrong: ${correction.reason}\n\nBehavioral rule:`
+                }]
+            });
+            const suggestedRule = result.content[0]?.text?.trim() || '';
+            return res.status(200).json({ suggestedRule });
+        }
+
+        // Mode: list prompt rules
+        if (mode === 'list-rules') {
+            const all = await kvHgetall(PROMPT_RULES_KEY, KV_REST_API_URL, KV_REST_API_TOKEN);
+            const rules = Object.values(all || {});
+            rules.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            return res.status(200).json({ rules });
+        }
+
+        // Mode: add a prompt rule
+        if (mode === 'add-rule') {
+            const { rule } = req.body;
+            if (!rule || typeof rule !== 'string' || !rule.trim()) {
+                return res.status(400).json({ error: 'Rule text is required' });
+            }
+            if (rule.length > 500) {
+                return res.status(400).json({ error: 'Rule must be 500 characters or less' });
+            }
+            const id = 'rule_' + randomBytes(16).toString('hex');
+            const entry = { id, rule: rule.trim(), createdAt: Date.now() };
+            await kvHset(PROMPT_RULES_KEY, id, entry, KV_REST_API_URL, KV_REST_API_TOKEN);
+            return res.status(200).json({ success: true, entry });
+        }
+
+        // Mode: delete a prompt rule
+        if (mode === 'delete-rule') {
+            const { ruleId } = req.body;
+            if (!ruleId) {
+                return res.status(400).json({ error: 'ruleId required' });
+            }
+            await kvHdel(PROMPT_RULES_KEY, ruleId, KV_REST_API_URL, KV_REST_API_TOKEN);
+            return res.status(200).json({ success: true });
         }
 
         return res.status(400).json({ error: 'Invalid mode' });
