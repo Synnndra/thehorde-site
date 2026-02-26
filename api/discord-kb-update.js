@@ -4,6 +4,7 @@
 import { timingSafeEqual } from 'crypto';
 import Anthropic from '@anthropic-ai/sdk';
 import { kvGet, kvSet } from '../lib/swap-utils.js';
+import { getEmbeddingBatch, vectorUpsert, chunkText } from '../lib/vector-utils.js';
 
 export const config = { maxDuration: 600 };
 
@@ -224,6 +225,35 @@ Update this knowledge base with new information from recent Discord messages. Ru
             channelResult.totalMessages = totalMessages;
             channelResult.kbLength = updatedKb.length;
             channelResult.hasMore = allMessages.length >= FETCH_LIMIT;
+
+            // Embed new extraction into vector DB (non-blocking, best-effort)
+            const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+            const VECTOR_URL = process.env.UPSTASH_VECTOR_URL;
+            const VECTOR_TOKEN = process.env.UPSTASH_VECTOR_TOKEN;
+            if (OPENAI_API_KEY && VECTOR_URL && VECTOR_TOKEN && newSummary) {
+                try {
+                    const today = new Date().toISOString().slice(0, 10);
+                    const chunks = chunkText(newSummary);
+                    if (chunks.length > 0) {
+                        const embeddings = await getEmbeddingBatch(chunks, OPENAI_API_KEY);
+                        const vectors = embeddings.map((emb, i) => ({
+                            id: `discord:daily_extract:${channel.name}:${today}:${i}`,
+                            vector: emb,
+                            metadata: {
+                                type: 'daily_extract',
+                                channel: channel.name,
+                                date: today
+                            },
+                            data: chunks[i]
+                        }));
+                        await vectorUpsert(vectors, VECTOR_URL, VECTOR_TOKEN, 'discord');
+                        channelResult.vectorsUpserted = vectors.length;
+                    }
+                } catch (vecErr) {
+                    console.error(`Vector embedding failed for #${channel.name} (non-fatal):`, vecErr.message);
+                    channelResult.vectorError = vecErr.message;
+                }
+            }
         } catch (err) {
             channelResult.error = err.message;
         }

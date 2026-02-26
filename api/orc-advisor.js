@@ -116,7 +116,12 @@ export default async function handler(req, res) {
         }
 
         const leaderboardCache = { data: null };
-        const toolExecutor = (name, input) => executeTool(name, input, kvUrl, kvToken, leaderboardCache);
+        const vectorConfig = {
+            openaiApiKey: process.env.OPENAI_API_KEY,
+            vectorUrl: process.env.UPSTASH_VECTOR_URL,
+            vectorToken: process.env.UPSTASH_VECTOR_TOKEN
+        };
+        const toolExecutor = (name, input) => executeTool(name, input, kvUrl, kvToken, leaderboardCache, vectorConfig);
 
         const { reply, usage } = await runDrakLoop({
             anthropicApiKey, systemBlocks, messages, tools: DRAK_TOOLS, toolExecutor, maxIterations: 3
