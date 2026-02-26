@@ -6,7 +6,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { kvGet, kvSet } from '../lib/swap-utils.js';
 import { getEmbeddingBatch, vectorUpsert, chunkText } from '../lib/vector-utils.js';
 
-export const config = { maxDuration: 600 };
+export const config = { maxDuration: 120 };
 
 const DISCORD_API = 'https://discord.com/api/v10';
 const BATCH_SIZE = 100;
@@ -180,29 +180,12 @@ Skip only generic greetings (gm, gn) and one-word reactions.`,
                     messages: [{ role: 'user', content: `Merge these ${chunkSummaries.length} extracts:\n\n${chunkSummaries.join('\n\n---\n\n')}` }]
                 })).content[0]?.text || chunkSummaries.join('\n\n');
 
-            // Update per-channel KB — merge new knowledge into existing KB
+            // Update per-channel KB — append new extraction with date header, cap at ~8000 chars
             const existingKb = await kvGet(`discord:kb:${channel.id}`, kvUrl, kvToken);
-            let updatedKb;
-
-            if (existingKb?.content) {
-                const mergeRes = await anthropic.messages.create({
-                    model: 'claude-sonnet-4-5-20250929',
-                    max_tokens: 4096,
-                    system: `Today's date is ${todayStr}.
-
-Update this knowledge base with new information from recent Discord messages. Rules:
-- Add new facts, events, announcements, and details
-- Update any outdated information with newer data
-- Remove duplicates
-- Keep the same organizational structure
-- IMPORTANT: Remove or mark as completed any events, tournaments, competitions, or time-limited activities whose end dates have passed
-- Maximum 3000 words`,
-                    messages: [{ role: 'user', content: `Existing knowledge base:\n\n${existingKb.content}\n\n---\n\nNew information to merge in:\n\n${newSummary}` }]
-                });
-                updatedKb = mergeRes.content[0]?.text || existingKb.content;
-            } else {
-                updatedKb = newSummary;
-            }
+            const dateHeader = `\n\n--- ${todayStr} ---\n`;
+            const combined = (existingKb?.content || '') + dateHeader + newSummary;
+            // Cap at ~8000 chars, trimming oldest content from the start
+            const updatedKb = combined.length > 8000 ? combined.slice(combined.length - 8000) : combined;
 
             // Save updated per-channel KB
             const totalMessages = (backfillData?.messageCount || 0) + humanMessages.length;
@@ -261,60 +244,19 @@ Update this knowledge base with new information from recent Discord messages. Ru
         results.push(channelResult);
     }
 
-    // --- Merge all per-channel KBs into final knowledge base ---
+    // --- Concatenate per-channel KBs into final knowledge base (no AI merge) ---
     try {
         const kbParts = [];
         for (const channel of TRACKED_CHANNELS) {
             const kb = await kvGet(`discord:kb:${channel.id}`, kvUrl, kvToken);
-            if (kb?.content) {
-                kbParts.push({ name: channel.name, content: kb.content });
-            }
+            if (kb?.content) kbParts.push(`=== #${kb.channelName || channel.name} ===\n${kb.content}`);
         }
 
-        if (kbParts.length > 1) {
-            const channelList = kbParts.map(p => `=== #${p.name} ===\n${p.content}`).join('\n\n');
-            const mergeRes = await anthropic.messages.create({
-                model: 'claude-sonnet-4-5-20250929',
-                max_tokens: 8192,
-                system: `Today's date is ${todayStr}.
-
-Merge these Discord channel knowledge bases into ONE knowledge base for an AI character named Drak (an orc war chief) who answers questions about the MidEvils NFT community and The Horde SubDAO.
-
-PRIORITY 1 — PEOPLE (give this the most space):
-- Member profiles: who they are, what they hold, how active they are
-- Relationships: friendships, rivalries, alliances, conflicts between members
-- Specific drama and beef — what happened, who was involved, how it resolved
-- Who is respected, controversial, influential, or a known troll
-- Notable quotes and moments that define someone's reputation
-
-PRIORITY 2 — COMMUNITY:
-- Inside jokes, memes, catchphrases, cultural references
-- Events, competitions, milestones
-- Trading sentiment, notable sales, accumulation patterns
-
-PRIORITY 3 — PROJECT:
-- Key announcements and decisions (brief — Drak already knows project basics)
-- Tools, games, governance updates
-- Lore and story elements
-
-Deduplicate across channels. Remove any events, tournaments, or time-limited activities that have already ended. Keep specific names, dates, numbers, and quotes. Maximum 5000 words.`,
-                messages: [{ role: 'user', content: `Merge these ${kbParts.length} channel knowledge bases:\n\n${channelList}` }]
-            });
-
-            const merged = mergeRes.content[0]?.text;
-            if (merged) {
-                await kvSet('discord:knowledge_base', {
-                    content: merged,
-                    channelCount: kbParts.length,
-                    channels: kbParts.map(p => p.name),
-                    updatedAt: Date.now()
-                }, kvUrl, kvToken);
-            }
-        } else if (kbParts.length === 1) {
+        if (kbParts.length > 0) {
             await kvSet('discord:knowledge_base', {
-                content: kbParts[0].content,
-                channelCount: 1,
-                channels: [kbParts[0].name],
+                content: kbParts.join('\n\n'),
+                channelCount: kbParts.length,
+                channels: TRACKED_CHANNELS.map(c => c.name),
                 updatedAt: Date.now()
             }, kvUrl, kvToken);
         }
