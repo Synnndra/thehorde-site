@@ -85,10 +85,7 @@ async function fetchStats() {
     }
 
     try {
-        const [holdersRes, proposalsRes] = await Promise.all([
-            fetch('/api/holders'),
-            fetch('/api/dao/proposals?filter=all')
-        ]);
+        const holdersRes = await fetch('/api/holders');
 
         const stats = {};
 
@@ -96,11 +93,7 @@ async function fetchStats() {
             const holdersData = await holdersRes.json();
             stats.totalHolders = holdersData.totalHolders;
             stats.floorPrice = holdersData.floorPrice;
-        }
-
-        if (proposalsRes.ok) {
-            const proposalsData = await proposalsRes.json();
-            stats.proposalCount = Array.isArray(proposalsData) ? proposalsData.length : 0;
+            stats.enlistedCount = holdersData.enlistedCount;
         }
 
         // Cache results
@@ -119,8 +112,8 @@ function renderStats(stats) {
     if (stats.totalHolders != null) {
         animateCountUp('stat-holders', stats.totalHolders);
     }
-    if (stats.proposalCount != null) {
-        animateCountUp('stat-proposals', stats.proposalCount);
+    if (stats.enlistedCount != null) {
+        animateCountUp('stat-enlisted', stats.enlistedCount);
     }
     if (stats.floorPrice != null) {
         const floorEl = document.getElementById('stat-floor');
