@@ -5,7 +5,7 @@ import { timingSafeEqual } from 'crypto';
 import Anthropic from '@anthropic-ai/sdk';
 import { kvGet, kvSet } from '../lib/swap-utils.js';
 
-export const config = { maxDuration: 300 };
+export const config = { maxDuration: 600 };
 
 const DISCORD_API = 'https://discord.com/api/v10';
 const BATCH_SIZE = 100;
