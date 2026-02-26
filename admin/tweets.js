@@ -1148,6 +1148,9 @@
         }
     }
 
+    // Track pending conflict for replace flow
+    var pendingConflict = null;
+
     // Suggest prompt rule (Haiku refines rough text)
     document.getElementById('prompt-rule-suggest-btn').addEventListener('click', async function () {
         var roughInput = document.getElementById('prompt-rule-rough-input');
@@ -1157,6 +1160,7 @@
         var ruleInput = document.getElementById('prompt-rule-input');
         errEl.hidden = true;
         successEl.hidden = true;
+        pendingConflict = null;
 
         var roughText = roughInput.value.trim();
         if (!roughText) {
@@ -1173,6 +1177,16 @@
             ruleInput.value = data.suggestedRule || '';
             previewEl.hidden = false;
             ruleInput.focus();
+
+            var addBtn = document.getElementById('prompt-rule-add-btn');
+            if (data.conflict) {
+                pendingConflict = data.conflict;
+                errEl.textContent = 'Conflicts with existing rule: "' + data.conflict.existingRule + '" — Add will replace it.';
+                errEl.hidden = false;
+                addBtn.textContent = 'Replace & Add Rule';
+            } else {
+                addBtn.textContent = 'Add Rule';
+            }
         } catch (err) {
             errEl.textContent = err.message;
             errEl.hidden = false;
@@ -1181,7 +1195,7 @@
         btn.textContent = 'Suggest Rule';
     });
 
-    // Add the suggested rule
+    // Add the suggested rule (and delete conflicting one if flagged)
     document.getElementById('prompt-rule-add-btn').addEventListener('click', async function () {
         var ruleInput = document.getElementById('prompt-rule-input');
         var roughInput = document.getElementById('prompt-rule-rough-input');
@@ -1199,10 +1213,15 @@
         }
 
         try {
+            if (pendingConflict && pendingConflict.ruleId) {
+                await fetchDrakKnowledge({ mode: 'delete-rule', ruleId: pendingConflict.ruleId });
+            }
             await fetchDrakKnowledge({ mode: 'add-rule', rule: rule });
             ruleInput.value = '';
             roughInput.value = '';
             previewEl.hidden = true;
+            pendingConflict = null;
+            this.textContent = 'Add Rule';
             successEl.textContent = 'Rule added.';
             successEl.hidden = false;
             loadPromptRules();
@@ -1373,9 +1392,29 @@
             var data = await fetchDrakKnowledge({ mode: 'suggest-rule', correctionId: correctionId });
             var ruleArea = card.querySelector('.correction-rule-area');
             var ruleTextarea = card.querySelector('.correction-rule-textarea');
+            var addRuleBtn = card.querySelector('.correction-add-rule-btn');
             ruleTextarea.value = data.suggestedRule || '';
             ruleArea.hidden = false;
             ruleTextarea.focus();
+
+            if (data.conflict) {
+                card.dataset.conflictRuleId = data.conflict.ruleId;
+                addRuleBtn.textContent = 'Replace & Add Rule';
+                var warning = card.querySelector('.correction-rule-conflict');
+                if (!warning) {
+                    warning = document.createElement('div');
+                    warning.className = 'correction-rule-conflict';
+                    warning.style.cssText = 'font-size:0.8rem;color:#e44;margin-bottom:0.4rem;';
+                    ruleTextarea.before(warning);
+                }
+                warning.textContent = 'Conflicts with: "' + data.conflict.existingRule + '" — will replace it.';
+            } else {
+                delete card.dataset.conflictRuleId;
+                addRuleBtn.textContent = 'Add as Rule';
+                var existingWarning = card.querySelector('.correction-rule-conflict');
+                if (existingWarning) existingWarning.remove();
+            }
+
             btn.textContent = 'Suggest Rule';
             btn.disabled = false;
         } catch (err) {
@@ -1385,7 +1424,7 @@
         }
     });
 
-    // Add suggested rule to prompt rules
+    // Add suggested rule to prompt rules (with conflict replace)
     document.addEventListener('click', async function (e) {
         var btn = e.target.closest('.correction-add-rule-btn');
         if (!btn) return;
@@ -1398,10 +1437,16 @@
         btn.disabled = true;
         btn.textContent = 'Saving...';
         try {
+            if (card.dataset.conflictRuleId) {
+                await fetchDrakKnowledge({ mode: 'delete-rule', ruleId: card.dataset.conflictRuleId });
+                delete card.dataset.conflictRuleId;
+            }
             await fetchDrakKnowledge({ mode: 'add-rule', rule: rule });
             var ruleArea = card.querySelector('.correction-rule-area');
             ruleArea.hidden = true;
             ruleTextarea.value = '';
+            var warning = card.querySelector('.correction-rule-conflict');
+            if (warning) warning.remove();
             btn.textContent = 'Add as Rule';
             btn.disabled = false;
             loadPromptRules();

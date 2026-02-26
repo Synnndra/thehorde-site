@@ -9,6 +9,20 @@ const CATEGORIES = ['project', 'community', 'market', 'lore', 'general', 'correc
 const CORRECTIONS_KEY = 'drak:corrections';
 const PROMPT_RULES_KEY = 'drak:prompt_rules';
 
+function parseSuggestResponse(raw, existingRules) {
+    const conflictMatch = raw.match(/^CONFLICT:\s*(\d+)\s*\n\s*SUGGESTED:\s*(.+)/s);
+    if (conflictMatch) {
+        const conflictIdx = parseInt(conflictMatch[1], 10) - 1;
+        const suggestedRule = conflictMatch[2].trim();
+        const conflicting = existingRules[conflictIdx];
+        return {
+            suggestedRule,
+            conflict: conflicting ? { ruleId: conflicting.id, existingRule: conflicting.rule } : null
+        };
+    }
+    return { suggestedRule: raw, conflict: null };
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -194,6 +208,26 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, fact });
         }
 
+        // Shared: fetch existing rules for conflict detection
+        async function getExistingRulesContext() {
+            const all = await kvHgetall(PROMPT_RULES_KEY, KV_REST_API_URL, KV_REST_API_TOKEN).catch(() => null);
+            if (!all || Object.keys(all).length === 0) return { text: '', rules: [] };
+            const rules = Object.values(all);
+            const numbered = rules.map((r, i) => `${i + 1}. ${r.rule}`).join('\n');
+            return { text: numbered, rules };
+        }
+
+        const SUGGEST_SYSTEM = `You generate concise behavioral rules for an AI chatbot named Drak (an orc war chief for an NFT community).
+
+EXISTING RULES may be provided. You MUST:
+- Not create a rule that contradicts an existing rule
+- If your new rule would overlap or conflict with an existing rule, respond in this exact format:
+  CONFLICT: [number of conflicting rule]
+  SUGGESTED: [your new rule that replaces/merges both]
+- If no conflict, respond with just the rule text
+
+The rule should be a clear, actionable instruction (max 1-2 sentences). Output ONLY in the format above, nothing else.`;
+
         // Mode: suggest a prompt rule from a correction (Haiku)
         if (mode === 'suggest-rule') {
             const { correctionId } = req.body;
@@ -208,18 +242,21 @@ export default async function handler(req, res) {
             if (!anthropicApiKey) {
                 return res.status(503).json({ error: 'AI service unavailable' });
             }
+            const existing = await getExistingRulesContext();
             const client = new Anthropic({ apiKey: anthropicApiKey });
+            const existingBlock = existing.text ? `\n\nEXISTING RULES:\n${existing.text}` : '';
             const result = await client.messages.create({
                 model: 'claude-haiku-4-5-20251001',
                 max_tokens: 200,
-                system: 'You generate concise behavioral rules for an AI chatbot named Drak (an orc war chief). Given a correction (what the user asked, what Drak said wrong, and why it was wrong), write ONE short behavioral rule that would prevent this mistake in the future. The rule should be a clear instruction, max 1-2 sentences. Output ONLY the rule text, nothing else.',
+                system: SUGGEST_SYSTEM,
                 messages: [{
                     role: 'user',
-                    content: `User asked: ${correction.userMsg}\nDrak replied: ${correction.drakReply}\nWhy it was wrong: ${correction.reason}\n\nBehavioral rule:`
+                    content: `User asked: ${correction.userMsg}\nDrak replied: ${correction.drakReply}\nWhy it was wrong: ${correction.reason}${existingBlock}\n\nBehavioral rule:`
                 }]
             });
-            const suggestedRule = result.content[0]?.text?.trim() || '';
-            return res.status(200).json({ suggestedRule });
+            const raw = result.content[0]?.text?.trim() || '';
+            const resp = parseSuggestResponse(raw, existing.rules);
+            return res.status(200).json(resp);
         }
 
         // Mode: suggest a prompt rule from rough text (Haiku)
@@ -232,18 +269,21 @@ export default async function handler(req, res) {
             if (!anthropicApiKey) {
                 return res.status(503).json({ error: 'AI service unavailable' });
             }
+            const existing = await getExistingRulesContext();
             const client = new Anthropic({ apiKey: anthropicApiKey });
+            const existingBlock = existing.text ? `\n\nEXISTING RULES:\n${existing.text}` : '';
             const result = await client.messages.create({
                 model: 'claude-haiku-4-5-20251001',
                 max_tokens: 200,
-                system: 'You refine rough notes into concise behavioral rules for an AI chatbot named Drak (an orc war chief for an NFT community). Given rough input from an admin, write ONE clear, actionable behavioral rule (max 1-2 sentences). The rule should be a direct instruction that shapes how Drak responds. Output ONLY the rule text, nothing else.',
+                system: SUGGEST_SYSTEM,
                 messages: [{
                     role: 'user',
-                    content: `Rough input: ${roughText.trim()}\n\nRefined behavioral rule:`
+                    content: `Rough input: ${roughText.trim()}${existingBlock}\n\nRefined behavioral rule:`
                 }]
             });
-            const suggestedRule = result.content[0]?.text?.trim() || '';
-            return res.status(200).json({ suggestedRule });
+            const raw = result.content[0]?.text?.trim() || '';
+            const resp = parseSuggestResponse(raw, existing.rules);
+            return res.status(200).json(resp);
         }
 
         // Mode: list prompt rules
