@@ -1597,13 +1597,15 @@ function clearAllFilters() {
 }
 
 // Auto-populate first wallet input if Phantom was previously connected
-try {
-    const provider = window.phantom?.solana || window.solana;
-    if (provider) {
-        provider.connect({ onlyIfTrusted: true }).then(() => {
-            if (provider.publicKey && !walletInputs[0].value) {
-                walletInputs[0].value = provider.publicKey.toString();
-            }
-        }).catch(() => {});
-    }
-} catch {}
+window.addEventListener('load', () => {
+    try {
+        const provider = window.phantom?.solana || window.solana;
+        if (provider) {
+            provider.connect({ onlyIfTrusted: true }).then(() => {
+                if (provider.publicKey && !walletInputs[0].value) {
+                    walletInputs[0].value = provider.publicKey.toString();
+                }
+            }).catch(() => {});
+        }
+    } catch {}
+});
