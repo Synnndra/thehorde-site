@@ -268,7 +268,7 @@ export default async function handler(req, res) {
                 return res.status(500).json({ error: 'CRON_SECRET not configured' });
             }
             const proto = req.headers['x-forwarded-proto'] || 'http';
-            const metricsUrl = `${proto}://${req.headers.host}/api/x/tweet-metrics`;
+            const metricsUrl = `${proto}://${req.headers.host}/api/x/tweet-metrics?force=true`;
             const metricsRes = await fetch(metricsUrl, {
                 method: 'GET',
                 headers: { 'Authorization': `Bearer ${cronSecret}` }

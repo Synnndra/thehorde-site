@@ -43,12 +43,15 @@ export default async function handler(req, res) {
 
         // 3. Filter to tweets < 7 days old without fresh metrics
         const now = Date.now();
+        const force = req.query?.force === 'true';
         const needsFetch = entries.filter(e => {
             if (!e.tweetId) return false;
             const age = now - (e.postedAt || 0);
             if (age > MAX_AGE_MS) return false;
-            const existing = existingMetrics[e.tweetId];
-            if (existing && (now - (existing.fetchedAt || 0)) < STALENESS_MS) return false;
+            if (!force) {
+                const existing = existingMetrics[e.tweetId];
+                if (existing && (now - (existing.fetchedAt || 0)) < STALENESS_MS) return false;
+            }
             return true;
         });
 
