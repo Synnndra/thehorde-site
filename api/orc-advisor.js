@@ -617,7 +617,7 @@ export default async function handler(req, res) {
                         const solPrice = await getSolPrice();
                         const now = Date.now();
                         const sales = activities.slice(0, 5).map(a => {
-                            const priceSol = (a.price || 0) / 1e9;
+                            const priceSol = a.price || 0;
                             const ago = Math.round((now - (a.blockTime * 1000)) / 60000);
                             const timeAgo = ago < 60 ? `${ago}m ago` : `${Math.round(ago / 60)}h ago`;
                             const sale = {
