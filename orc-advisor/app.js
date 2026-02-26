@@ -6,8 +6,6 @@ var orcCount = 0;
 var selectedProvider = null;
 var conversationHistory = [];
 var isProcessing = false;
-var voiceEnabled = false;
-var currentAudio = null;
 var authSignature = null;
 var authMessage = null;
 
@@ -210,11 +208,6 @@ async function disconnectWallet() {
     authMessage = null;
     conversationHistory = [];
 
-    if (currentAudio) {
-        currentAudio.pause();
-        currentAudio = null;
-    }
-
     updateWalletUI(false);
     setOrcState('idle');
     setChatEnabled(false);
@@ -229,8 +222,6 @@ async function disconnectWallet() {
         messages.appendChild(placeholder);
     }
 
-    var voiceBtn = document.getElementById('voiceToggleBtn');
-    if (voiceBtn) voiceBtn.style.display = 'none';
 }
 
 async function checkWalletConnection() {
@@ -370,16 +361,13 @@ async function onWalletConnected() {
         setOrcState('talking');
         hidePlaceholder();
         var rejectionText = "You dare approach me without an Orc in your horde? Begone, filthy dog! Return when you carry the mark of a true warrior.";
-        addAdvisorMessage(rejectionText, true, true);
+        addAdvisorMessage(rejectionText, true);
         setChatEnabled(false);
     } else {
         // Has orcs — enable chat
         setOrcState('idle');
         hidePlaceholder();
         setChatEnabled(true);
-
-        var voiceBtn = document.getElementById('voiceToggleBtn');
-        if (voiceBtn) voiceBtn.style.display = 'flex';
 
         // Show greeting
         var greetings = [
@@ -388,7 +376,7 @@ async function onWalletConnected() {
             "Ah, another orc holder dares seek my counsel. Very well... what plagues your mind?"
         ];
         var greeting = greetings[Math.floor(Math.random() * greetings.length)];
-        addAdvisorMessage(greeting, true, true);
+        addAdvisorMessage(greeting, true);
     }
 }
 
@@ -436,7 +424,7 @@ function addUserMessage(text) {
     scrollToBottom();
 }
 
-function addAdvisorMessage(text, typewriter, skipTTS) {
+function addAdvisorMessage(text, typewriter) {
     var messages = document.getElementById('chatMessages');
     var div = document.createElement('div');
     div.className = 'chat-message advisor';
@@ -446,7 +434,7 @@ function addAdvisorMessage(text, typewriter, skipTTS) {
     messages.appendChild(div);
 
     if (typewriter) {
-        typewriterEffect(bubble, text, skipTTS);
+        typewriterEffect(bubble, text);
     } else {
         bubble.textContent = text;
         scrollToBottom();
@@ -482,7 +470,7 @@ function scrollToBottom() {
 
 // ========== Typewriter Effect ==========
 
-function typewriterEffect(element, text, skipTTS) {
+function typewriterEffect(element, text) {
     var index = 0;
     var cursor = document.createElement('span');
     cursor.className = 'typing-cursor';
@@ -490,19 +478,6 @@ function typewriterEffect(element, text, skipTTS) {
     element.appendChild(cursor);
 
     setOrcState('talking');
-
-    // Start TTS fetch immediately in parallel with typing
-    var ttsFinished = false;
-    var typeFinished = false;
-
-    if (!skipTTS && voiceEnabled && orcCount > 0) {
-        playTTS(text).finally(function() {
-            ttsFinished = true;
-            if (typeFinished) setOrcState('idle');
-        });
-    } else {
-        ttsFinished = true;
-    }
 
     function type() {
         if (index < text.length) {
@@ -519,71 +494,11 @@ function typewriterEffect(element, text, skipTTS) {
         } else {
             cursor.remove();
             element.textContent = text;
-            typeFinished = true;
-            if (ttsFinished) setOrcState('idle');
+            setOrcState('idle');
         }
     }
 
     type();
-}
-
-// ========== TTS Playback ==========
-
-async function playTTS(text) {
-    try {
-        var auth = await getAuthCredentials();
-
-        var response = await fetch('/api/orc-tts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                text: text,
-                wallet: connectedWallet,
-                signature: auth.signature,
-                message: auth.message
-            })
-        });
-
-        if (!response.ok) {
-            console.error('TTS error:', response.status);
-            return;
-        }
-
-        var blob = await response.blob();
-        var url = URL.createObjectURL(blob);
-
-        if (currentAudio) {
-            currentAudio.pause();
-            URL.revokeObjectURL(currentAudio.src);
-        }
-
-        currentAudio = new Audio(url);
-
-        // Return a promise that resolves when audio finishes playing
-        return new Promise(function(resolve) {
-            currentAudio.addEventListener('ended', function() {
-                URL.revokeObjectURL(url);
-                currentAudio = null;
-                resolve();
-            });
-
-            currentAudio.addEventListener('error', function() {
-                console.error('Audio playback error');
-                URL.revokeObjectURL(url);
-                currentAudio = null;
-                resolve();
-            });
-
-            currentAudio.play().catch(function(err) {
-                console.error('Audio play error:', err);
-                URL.revokeObjectURL(url);
-                currentAudio = null;
-                resolve();
-            });
-        });
-    } catch (err) {
-        console.error('TTS playback error:', err);
-    }
 }
 
 // ========== Send Message ==========
@@ -672,31 +587,6 @@ async function sendMessage() {
     setChatEnabled(true);
 }
 
-// ========== Voice Toggle ==========
-
-function toggleVoice() {
-    voiceEnabled = !voiceEnabled;
-    var btn = document.getElementById('voiceToggleBtn');
-    if (!btn) return;
-
-    var label = btn.querySelector('.voice-label');
-    if (voiceEnabled) {
-        btn.classList.remove('muted');
-        if (label) label.textContent = 'Voice On';
-    } else {
-        btn.classList.add('muted');
-        if (label) label.textContent = 'Voice Off';
-
-        // Stop current audio if playing
-        if (currentAudio) {
-            currentAudio.pause();
-            URL.revokeObjectURL(currentAudio.src);
-            currentAudio = null;
-            setOrcState('idle');
-        }
-    }
-}
-
 // ========== Init ==========
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -704,12 +594,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var disconnectBtn = document.getElementById('disconnectWalletBtn');
     var sendBtn = document.getElementById('chatSendBtn');
     var chatInput = document.getElementById('chatInput');
-    var voiceBtn = document.getElementById('voiceToggleBtn');
 
     if (connectBtn) connectBtn.addEventListener('click', connectWallet);
     if (disconnectBtn) disconnectBtn.addEventListener('click', disconnectWallet);
     if (sendBtn) sendBtn.addEventListener('click', sendMessage);
-    if (voiceBtn) voiceBtn.addEventListener('click', toggleVoice);
 
     if (chatInput) {
         chatInput.addEventListener('keydown', function(e) {
