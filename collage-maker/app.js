@@ -1596,10 +1596,14 @@ function clearAllFilters() {
     updateSelectAllButton();
 }
 
-// Auto-populate first wallet input if Phantom is already connected
+// Auto-populate first wallet input if Phantom was previously connected
 try {
     const provider = window.phantom?.solana || window.solana;
-    if (provider?.isConnected && provider.publicKey) {
-        walletInputs[0].value = provider.publicKey.toString();
+    if (provider) {
+        provider.connect({ onlyIfTrusted: true }).then(() => {
+            if (provider.publicKey && !walletInputs[0].value) {
+                walletInputs[0].value = provider.publicKey.toString();
+            }
+        }).catch(() => {});
     }
 } catch {}
