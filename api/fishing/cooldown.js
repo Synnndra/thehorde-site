@@ -1,65 +1,11 @@
 // Server-side Cooldown Tracking with Redis
-import { isRateLimitedKV, getClientIp } from '../../lib/swap-utils.js';
+import { isRateLimitedKV, getClientIp, kvGet, kvSetEx, kvDelete } from '../../lib/swap-utils.js';
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
-const COOLDOWN_PREFIX = 'fishing_cooldown:';
-const RESET_HOUR_UTC = 1; // 1:00 AM UTC = 5:00 PM PST
-const MAX_CASTS_PER_DAY = 5;
 const MAX_ORC_BONUS = 5;
 const MIDEVILS_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
 const GRAVEYARD_COLLECTION = 'DpYLtgV5XcWPt3TM9FhXEh8uNg6QFYrj3zCGZxpcA3vF';
 const ORC_COUNT_TTL = 86400; // 24 hour cache
-
-// Admin wallets that bypass cooldown (comma-separated in env var)
-const UNLIMITED_WALLETS = process.env.ADMIN_WALLETS
-    ? process.env.ADMIN_WALLETS.split(',').map(w => w.trim())
-    : [];
-
-
-async function redisGet(key) {
-    const response = await fetch(`${KV_URL}/get/${key}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
-    });
-    const data = await response.json();
-    return data.result;
-}
-
-async function redisSetEx(key, seconds, value) {
-    const response = await fetch(`${KV_URL}/setex/${key}/${seconds}/${encodeURIComponent(value)}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
-    });
-    return response.json();
-}
-
-async function redisIncr(key) {
-    const response = await fetch(`${KV_URL}/incr/${key}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
-    });
-    const data = await response.json();
-    return data.result;
-}
-
-async function redisExpire(key, seconds) {
-    const response = await fetch(`${KV_URL}/expire/${key}/${seconds}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
-    });
-    return response.json();
-}
-
-async function redisDel(key) {
-    const response = await fetch(`${KV_URL}/del/${key}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
-    });
-    return response.json();
-}
-
-async function redisDecr(key) {
-    const response = await fetch(`${KV_URL}/decr/${key}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
-    });
-    const data = await response.json();
-    return data.result;
-}
 
 function generateCastToken() {
     const array = new Uint8Array(16);
@@ -67,44 +13,13 @@ function generateCastToken() {
     return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Old format stored Date.now() timestamp — detect and reset
-function parseCastsUsed(raw) {
-    const val = parseInt(raw) || 0;
-    return val > 100 ? 0 : val;
-}
-
-async function redisTtl(key) {
-    const response = await fetch(`${KV_URL}/ttl/${key}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
-    });
-    const data = await response.json();
-    return data.result;
-}
-
-// Fishing day resets at 5pm PST (1:00 AM UTC next day)
-function getTodayKey() {
-    const adjusted = new Date(Date.now() - (RESET_HOUR_UTC * 60 * 60 * 1000));
-    return `${adjusted.getUTCFullYear()}-${adjusted.getUTCMonth() + 1}-${adjusted.getUTCDate()}`;
-}
-
-// Seconds until next 5pm PST reset
-function getSecondsUntilReset() {
-    const now = new Date();
-    const next = new Date(now);
-    next.setUTCHours(RESET_HOUR_UTC, 0, 0, 0);
-    if (now >= next) {
-        next.setUTCDate(next.getUTCDate() + 1);
-    }
-    return Math.ceil((next - now) / 1000);
-}
-
-// Count MidEvil Orcs owned by wallet (cached 1 hour)
+// Count MidEvil Orcs owned by wallet (cached 24 hours)
 async function getOrcCount(wallet) {
     const cacheKey = `orc_count:${wallet}`;
     try {
-        const cached = await redisGet(cacheKey);
+        const cached = await kvGet(cacheKey, KV_URL, KV_TOKEN);
         if (cached !== null && cached !== undefined) {
-            return Math.min(parseInt(cached) || 0, MAX_ORC_BONUS);
+            return Math.min(Number(cached) || 0, MAX_ORC_BONUS);
         }
     } catch (e) {
         // Cache miss, proceed to fetch
@@ -155,7 +70,7 @@ async function getOrcCount(wallet) {
         }
 
         const bonus = Math.min(orcCount, MAX_ORC_BONUS);
-        await redisSetEx(cacheKey, ORC_COUNT_TTL, bonus.toString());
+        await kvSetEx(cacheKey, ORC_COUNT_TTL, bonus.toString(), KV_URL, KV_TOKEN);
         return bonus;
     } catch (err) {
         console.error('Error counting Orcs:', err);
@@ -224,11 +139,10 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'Game token required' });
             }
             const tokenKey = `game_session:${gameToken}`;
-            const sessionData = await redisGet(tokenKey);
-            if (!sessionData) {
+            const session = await kvGet(tokenKey, KV_URL, KV_TOKEN);
+            if (!session) {
                 return res.status(400).json({ error: 'Invalid or expired game token' });
             }
-            const session = typeof sessionData === 'string' ? JSON.parse(sessionData) : sessionData;
             if (session.game !== 'fishing') {
                 return res.status(400).json({ error: 'Invalid game token' });
             }
@@ -239,7 +153,7 @@ export default async function handler(req, res) {
             }
 
             // Consume game token immediately — prevents reuse for draining other wallets
-            await redisDel(tokenKey);
+            await kvDelete(tokenKey, KV_URL, KV_TOKEN);
 
             // Generate cast token (binds wallet + seed for leaderboard)
             const castTokenId = generateCastToken();
@@ -250,7 +164,7 @@ export default async function handler(req, res) {
             });
 
             // Unlimited casts — skip all limit checks, just issue cast token
-            await redisSetEx(`cast_ready:${castTokenId}`, 300, castData);
+            await kvSetEx(`cast_ready:${castTokenId}`, 300, castData, KV_URL, KV_TOKEN);
 
             return res.status(200).json({
                 success: true,

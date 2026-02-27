@@ -1,11 +1,5 @@
 // Vercel Serverless Function - Get Offers for a Wallet
-import { isRateLimitedKV, getClientIp } from '../../lib/swap-utils.js';
-
-function validateSolanaAddress(address) {
-    if (!address || typeof address !== 'string') return false;
-    if (address.length < 32 || address.length > 44) return false;
-    return /^[1-9A-HJ-NP-Za-km-z]+$/.test(address);
-}
+import { isRateLimitedKV, getClientIp, validateSolanaAddress } from '../../lib/swap-utils.js';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {

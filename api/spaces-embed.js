@@ -26,8 +26,8 @@ export default async function handler(req, res) {
     const kvUrl = process.env.KV_REST_API_URL;
     const kvToken = process.env.KV_REST_API_TOKEN;
     const openaiApiKey = process.env.OPENAI_API_KEY;
-    const vectorUrl = process.env.UPSTASH_VECTOR_REST_URL;
-    const vectorToken = process.env.UPSTASH_VECTOR_REST_TOKEN;
+    const vectorUrl = process.env.UPSTASH_VECTOR_URL;
+    const vectorToken = process.env.UPSTASH_VECTOR_TOKEN;
 
     if (!kvUrl || !kvToken || !openaiApiKey || !vectorUrl || !vectorToken) {
         return res.status(500).json({ error: 'Missing env vars' });

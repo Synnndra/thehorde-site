@@ -88,7 +88,6 @@
     { "source": "/api/fishing/discord-status", "destination": "/api/fishing/discord-status.js" },
     { "source": "/api/fishing/escape", "destination": "/api/fishing/escape.js" },
     { "source": "/api/fishing/reset-leaderboard", "destination": "/api/fishing/reset-leaderboard.js" },
-    { "source": "/api/fishing/tournament-results", "destination": "/api/fishing/tournament-results.js" },
     { "source": "/orc-advisor", "destination": "/orc-advisor/index.html" },
     { "source": "/api/orc-advisor", "destination": "/api/orc-advisor.js" },
     { "source": "/api/drak-knowledge", "destination": "/api/drak-knowledge.js" },

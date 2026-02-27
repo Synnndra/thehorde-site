@@ -21,8 +21,8 @@
     --color-text-dim: #b0a898;
     --color-text-label: #c8c0b0;
     --color-blood: #6b1c1c;
-    --font-display: 'Cinzel', serif;
-    --font-body: 'Crimson Text', serif;
+    --font-display: 'Cinzel', 'Palatino Linotype', 'Book Antiqua', serif;
+    --font-body: 'Crimson Text', 'Georgia', 'Times New Roman', serif;
 
     /* Radius scale */
     --radius-xs: 2px;
