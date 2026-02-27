@@ -145,47 +145,98 @@
     opacity: 0.6;
 }
 
-@media (max-width: 768px) {
-    .site-nav {
-        gap: 1rem;
-        padding: 0.4rem 0.75rem;
-        font-size: 0.8rem;
-    }
+/* Hamburger menu button — hidden on desktop */
+.nav-hamburger {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--color-accent, #d4a017);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    min-height: 44px;
+    min-width: 44px;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    margin-left: auto;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+    .nav-hamburger {
+        display: flex;
+    }
+
     .site-nav {
-        gap: 0.75rem;
-        font-size: 0.8rem;
         flex-wrap: wrap;
-        justify-content: center;
+        gap: 0;
+        padding: 0.4rem 0.75rem;
+        font-size: 0.85rem;
     }
 
-    .nav-link-discord,
-    .nav-link-x {
-        font-size: 0.65rem;
-        padding: 0.3rem 0.5rem;
+    /* ---- Closed: hide all except hamburger ---- */
+    .site-nav > *:not(.nav-hamburger) {
+        display: none !important;
     }
 
-    .nav-dropdown a,
-    .nav-dropdown button {
-        padding: 0.75rem 1rem;
+    /* ---- Open: show + stack vertically ---- */
+    .site-nav.nav-open > *:not(.nav-hamburger) {
+        display: block !important;
+        width: 100%;
+        border-top: 1px solid rgba(138, 106, 58, 0.2);
+    }
+
+    /* Links: flex for alignment + 44px tap target */
+    .site-nav.nav-open > a {
+        display: flex !important;
+        align-items: center;
         min-height: 44px;
+        padding: 0.5rem 0.75rem;
     }
 
+    /* Buttons (Link Discord / Link X on subpages) */
+    .site-nav.nav-open > button {
+        display: flex !important;
+        align-items: center;
+        min-height: 44px;
+        padding: 0.5rem 0.75rem;
+        width: 100%;
+    }
+
+    /* Nav groups: static so dropdowns flow inline */
     .nav-group {
         position: static;
     }
 
-    .nav-dropdown {
-        position: static;
-        transform: none;
-        margin-top: 0.25rem;
-        width: 100%;
-        border: none;
-        border-top: 1px solid rgba(138, 106, 58, 0.3);
+    .site-nav.nav-open .nav-group-label {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 0.5rem 0.75rem;
     }
 
+    /* Dropdowns: inline, full-width, indented */
+    .site-nav.nav-open .nav-dropdown {
+        position: static;
+        transform: none;
+        width: 100%;
+        min-width: 0;
+        border: none;
+        border-top: 1px solid rgba(138, 106, 58, 0.15);
+        background: rgba(20, 17, 12, 0.5);
+    }
+
+    .site-nav.nav-open .nav-dropdown::before {
+        display: none;
+    }
+
+    .site-nav.nav-open .nav-dropdown a,
+    .site-nav.nav-open .nav-dropdown button {
+        min-height: 44px;
+        padding: 0.5rem 0.75rem 0.5rem 1.5rem;
+    }
+
+    /* Disable hover-open on touch — tap only (.open class) */
     .nav-group:hover .nav-dropdown {
         display: none;
     }
@@ -193,18 +244,43 @@
     .nav-group.open .nav-dropdown {
         display: flex;
     }
-}
 
-@media (max-width: 360px) {
-    .site-nav {
-        gap: 0.5rem;
-        padding: 0.35rem 0.5rem;
-        font-size: 0.75rem;
+    /* ---- Homepage: .nav-center becomes vertical column ---- */
+    .site-nav.nav-open .nav-center {
+        display: flex !important;
+        flex-direction: column;
+        gap: 0;
+        margin: 0;
     }
 
-    .nav-link-discord,
-    .nav-link-x {
-        font-size: 0.6rem;
-        padding: 0.25rem 0.4rem;
+    .site-nav.nav-open .nav-center > * {
+        border-top: 1px solid rgba(138, 106, 58, 0.2);
+    }
+
+    .site-nav.nav-open .nav-center > button {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 0.5rem 0.75rem;
+    }
+
+    /* ---- Homepage: .nav-right stays row ---- */
+    .site-nav.nav-open > .nav-right {
+        display: flex !important;
+        justify-content: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    /* Mobile social buttons */
+    .site-nav.nav-open .social-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    /* Overflow protection for fixed navs */
+    .site-nav.nav-open {
+        max-height: 100vh;
+        overflow-y: auto;
     }
 }

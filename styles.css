@@ -1250,6 +1250,13 @@ footer {
     }
 }
 
+/* Hamburger right-aligned on homepage (overrides desktop flex-start) */
+@media (max-width: 768px) {
+    .site-nav-home {
+        justify-content: flex-end !important;
+    }
+}
+
 /* Nav home padding on small screens */
 @media (max-width: 480px) {
     .site-nav-home {

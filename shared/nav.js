@@ -101,6 +101,42 @@
         });
     });
 
+    // Hamburger menu
+    document.querySelectorAll('.site-nav').forEach(function(nav) {
+        var hamburger = document.createElement('button');
+        hamburger.className = 'nav-hamburger';
+        hamburger.setAttribute('aria-label', 'Toggle menu');
+        hamburger.setAttribute('aria-expanded', 'false');
+        hamburger.textContent = '\u2630';
+        nav.prepend(hamburger);
+
+        hamburger.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var isOpen = nav.classList.toggle('nav-open');
+            hamburger.setAttribute('aria-expanded', String(isOpen));
+            hamburger.textContent = isOpen ? '\u2715' : '\u2630';
+            if (!isOpen) {
+                nav.querySelectorAll('.nav-group.open').forEach(function(g) {
+                    g.classList.remove('open');
+                });
+            }
+        });
+    });
+
+    // Close hamburger on outside click
+    document.addEventListener('click', function(e) {
+        document.querySelectorAll('.site-nav.nav-open').forEach(function(nav) {
+            if (!nav.contains(e.target)) {
+                nav.classList.remove('nav-open');
+                var btn = nav.querySelector('.nav-hamburger');
+                if (btn) {
+                    btn.setAttribute('aria-expanded', 'false');
+                    btn.textContent = '\u2630';
+                }
+            }
+        });
+    });
+
     function renderNavX(btn) {
         var id = localStorage.getItem('x_id');
         var username = localStorage.getItem('x_username');
