@@ -4,8 +4,8 @@
     top: 0;
     z-index: 999;
     padding: 0.5rem 1rem;
-    background: #c9a227;
-    color: #0a0a0a;
+    background: var(--color-accent);
+    color: var(--color-bg);
     font-family: 'Cinzel', serif;
     font-weight: 700;
     text-decoration: none;
@@ -21,8 +21,8 @@
     justify-content: center;
     gap: 1.5rem;
     padding: 0.5rem 1rem;
-    background: rgba(10, 10, 10, 0.95);
-    border-bottom: 1px solid #8b4513;
+    background: rgba(26, 22, 16, 0.95);
+    border-bottom: 1px solid var(--color-primary);
     font-family: 'Cinzel', serif;
     font-size: 0.85rem;
     letter-spacing: 0.05em;
@@ -31,13 +31,13 @@
 }
 
 .site-nav > a {
-    color: #c9a227;
+    color: var(--color-accent);
     text-decoration: none;
     transition: color 0.2s ease;
 }
 
 .site-nav > a:hover {
-    color: #e8e4d9;
+    color: var(--color-text);
 }
 
 /* Nav group dropdown */
@@ -46,7 +46,7 @@
 }
 
 .nav-group-label {
-    color: #c9a227;
+    color: var(--color-accent);
     cursor: pointer;
     user-select: none;
     transition: color 0.2s ease;
@@ -58,7 +58,7 @@
 }
 
 .nav-group-label:hover {
-    color: #e8e4d9;
+    color: var(--color-text);
 }
 
 .nav-dropdown {
@@ -70,8 +70,8 @@
     min-width: 140px;
     z-index: 200;
     flex-direction: column;
-    background: rgba(10, 10, 10, 0.98);
-    border: 1px solid #8b4513;
+    background: rgba(26, 22, 16, 0.98);
+    border: 1px solid var(--color-primary);
 }
 
 .nav-dropdown::before {
@@ -90,7 +90,7 @@
 
 .nav-dropdown a,
 .nav-dropdown button {
-    color: #c9a227;
+    color: var(--color-accent);
     text-decoration: none;
     padding: 0.5rem 1rem;
     white-space: nowrap;
@@ -100,15 +100,15 @@
 
 .nav-dropdown a:hover,
 .nav-dropdown button:hover {
-    background: rgba(139, 69, 19, 0.3);
-    color: #e8e4d9;
+    background: rgba(138, 106, 58, 0.3);
+    color: var(--color-text);
 }
 
 .nav-link-discord,
 .nav-link-x {
     background: none;
-    border: 1px solid #8b4513;
-    color: #c9a227;
+    border: 1px solid var(--color-primary);
+    color: var(--color-accent);
     font-family: 'Cinzel', serif;
     font-size: 0.75rem;
     padding: 0.2rem 0.5rem;
@@ -122,13 +122,13 @@
 
 .nav-link-discord:hover,
 .nav-link-x:hover {
-    color: #e8e4d9;
-    border-color: #c9a227;
+    color: var(--color-text);
+    border-color: var(--color-accent);
 }
 
 .nav-link-discord.linked,
 .nav-link-x.linked {
-    border-color: #c9a227;
+    border-color: var(--color-accent);
 }
 
 .nav-link-discord .nav-avatar,
@@ -183,7 +183,7 @@
         margin-top: 0.25rem;
         width: 100%;
         border: none;
-        border-top: 1px solid rgba(139, 69, 19, 0.3);
+        border-top: 1px solid rgba(138, 106, 58, 0.3);
     }
 
     .nav-group:hover .nav-dropdown {

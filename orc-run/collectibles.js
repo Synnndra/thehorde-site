@@ -51,7 +51,7 @@ class Coin {
     draw(ctx) {
         if (this.collected) {
             ctx.globalAlpha = 1 - this.collectAnim;
-            ctx.fillStyle = '#c9a227';
+            ctx.fillStyle = '#D4A017';
             ctx.strokeStyle = COLLECT_OUTLINE;
             ctx.lineWidth = 1;
             ctx.font = 'bold 14px Cinzel, serif';
@@ -69,11 +69,11 @@ class Coin {
         ctx.translate(this.x, this.y + bob);
 
         // Soft glow
-        ctx.shadowColor = '#c9a227';
+        ctx.shadowColor = '#D4A017';
         ctx.shadowBlur = 6;
 
         // Coin body (spinning ellipse) - gold with outline
-        ctx.fillStyle = '#c9a227';
+        ctx.fillStyle = '#D4A017';
         ctx.strokeStyle = COLLECT_OUTLINE;
         ctx.lineWidth = 1.5;
         ctx.beginPath();

@@ -7,9 +7,9 @@ body {
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    background: linear-gradient(135deg, rgba(139,69,19,0.08) 0%, transparent 50%), rgba(15,12,20,0.6);
+    background: linear-gradient(135deg, rgba(138,106,58,0.08) 0%, transparent 50%), rgba(28,24,18,0.6);
     backdrop-filter: blur(8px);
-    border: 1px solid rgba(139,69,19,0.35);
+    border: 1px solid rgba(138,106,58,0.35);
     border-radius: 2px;
     padding: 30px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -20,7 +20,7 @@ body {
 /* Header styles */
 h1 {
     font-family: 'Cinzel', serif;
-    color: #c9a227;
+    color: #D4A017;
     text-align: center;
     margin-bottom: 10px;
     font-size: clamp(20px, 6vw, 42px);
@@ -29,7 +29,7 @@ h1 {
 
 h2, h3 {
     font-family: 'Cinzel', serif;
-    color: #c9a227;
+    color: #D4A017;
 }
 
 p {
@@ -65,7 +65,7 @@ p {
     border: 2px solid #333;
     border-radius: 5px;
     outline: none;
-    background: #2a2a3e;
+    background: #332c26;
     color: #eee;
 }
 
@@ -106,7 +106,7 @@ button:disabled {
 
 /* Sort section */
 .sort-section {
-    background: #2a2a3e;
+    background: #332c26;
     border-radius: 8px;
     padding: 20px;
     margin-bottom: 20px;
@@ -123,7 +123,7 @@ button:disabled {
 
 .section-header h3 {
     font-family: 'Cinzel', serif;
-    color: #c9a227;
+    color: #D4A017;
     margin: 0;
     font-size: 20px;
 }
@@ -177,7 +177,7 @@ button:disabled {
 .sort-controls select {
     font-family: 'Cinzel', serif;
     padding: 10px 15px;
-    background: #1a1a2e;
+    background: #231e18;
     color: #eee;
     border: 2px solid #333;
     border-radius: 5px;
@@ -193,7 +193,7 @@ button:disabled {
 
 /* Filter section */
 .filter-section {
-    background: #2a2a3e;
+    background: #332c26;
     border-radius: 8px;
     padding: 20px;
     margin-bottom: 20px;
@@ -223,7 +223,7 @@ button:disabled {
 .filter-group select {
     font-family: 'Cinzel', serif;
     padding: 8px;
-    background: #1a1a2e;
+    background: #231e18;
     color: #eee;
     border: 2px solid #333;
     border-radius: 5px;
@@ -276,7 +276,7 @@ button:disabled {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: #2a2a3e;
+    background: #332c26;
     padding: 10px 15px;
     border-radius: 8px;
     border: 2px solid #333;
@@ -291,7 +291,7 @@ button:disabled {
 .training-filter select {
     font-family: 'Cinzel', serif;
     padding: 8px 12px;
-    background: #1a1a2e;
+    background: #231e18;
     color: #eee;
     border: 2px solid #333;
     border-radius: 5px;
@@ -364,7 +364,7 @@ button:disabled {
 }
 
 .collection-header {
-    background: #2a2a3e;
+    background: #332c26;
     padding: 15px;
     border-radius: 5px;
     margin-bottom: 15px;
@@ -374,7 +374,7 @@ button:disabled {
     font-family: 'Cinzel', serif;
     font-size: 22px;
     font-weight: bold;
-    color: #c9a227;
+    color: #D4A017;
     letter-spacing: 1px;
 }
 
@@ -429,7 +429,7 @@ button:disabled {
     transition: transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
     position: relative;
-    background: #2a2a3e;
+    background: #332c26;
 }
 
 .nft-card:hover {
@@ -446,7 +446,7 @@ button:disabled {
 
 .nft-info {
     padding: 8px;
-    background: #2a2a3e;
+    background: #332c26;
 }
 
 .nft-name {
@@ -469,7 +469,7 @@ button:disabled {
 
 /* Selection controls */
 .selection-controls {
-    background: #2a2a3e;
+    background: #332c26;
     padding: 15px;
     border-radius: 5px;
     margin-bottom: 20px;
@@ -543,7 +543,7 @@ button:disabled {
 
 /* Arrangement area */
 .arrangement-area {
-    background: #2a2a3e;
+    background: #332c26;
     border: 2px dashed #667eea;
     border-radius: 10px;
     padding: 20px;
@@ -601,7 +601,7 @@ button:disabled {
     overflow: hidden;
     cursor: move;
     transition: all 0.2s;
-    background: #1a1a2e;
+    background: #231e18;
 }
 
 .arrangement-item:hover {
@@ -632,7 +632,7 @@ button:disabled {
     font-weight: bold;
     color: #eee;
     text-align: center;
-    background: #1a1a2e;
+    background: #231e18;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -678,7 +678,7 @@ button:disabled {
 }
 
 .preview-content {
-    background: #1a1a2e;
+    background: #231e18;
     border-radius: 10px;
     max-width: 95%;
     max-height: 90vh;
@@ -699,7 +699,7 @@ button:disabled {
 
 .preview-header h2 {
     margin: 0;
-    color: #c9a227;
+    color: #D4A017;
     font-size: 24px;
 }
 
@@ -726,7 +726,7 @@ button:disabled {
     align-items: center;
     gap: 10px;
     padding: 10px 20px;
-    background: #2a2a3e;
+    background: #332c26;
     border-bottom: 1px solid #333;
 }
 
@@ -738,7 +738,7 @@ button:disabled {
 .layout-controls select {
     font-family: 'Cinzel', serif;
     padding: 8px 12px;
-    background: #1a1a2e;
+    background: #231e18;
     color: #eee;
     border: 2px solid #333;
     border-radius: 5px;
@@ -935,9 +935,9 @@ button:disabled {
 
 .nft-details-section h3 {
     margin: 0 0 10px 0;
-    color: #c9a227;
+    color: #D4A017;
     font-size: 18px;
-    border-bottom: 2px solid #c9a227;
+    border-bottom: 2px solid #D4A017;
     padding-bottom: 5px;
 }
 
@@ -954,7 +954,7 @@ button:disabled {
 }
 
 .trait-item {
-    background: #2a2a3e;
+    background: #332c26;
     padding: 10px;
     border-radius: 5px;
     border-left: 3px solid #667eea;
@@ -977,7 +977,7 @@ button:disabled {
     font-family: monospace;
     font-size: 12px;
     word-break: break-all;
-    background: #2a2a3e;
+    background: #332c26;
     color: #bbb;
     padding: 10px;
     border-radius: 5px;

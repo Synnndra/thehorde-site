@@ -58,7 +58,7 @@ class Particle {
                 this.vy = -50;
                 this.size = 20;
                 this.text = '★ LEVEL UP ★';
-                this.color = '#c9a227';
+                this.color = '#D4A017';
                 this.gravity = 0;
                 break;
             case 'text':
@@ -418,7 +418,7 @@ class Game {
         const tower = this.selectedPlacedTower;
         this.particles.push(new Particle(tower.x, tower.y - 20, 'levelup'));
         for (let i = 0; i < 6; i++) {
-            this.particles.push(new Particle(tower.x, tower.y, 'spark', { color: '#c9a227' }));
+            this.particles.push(new Particle(tower.x, tower.y, 'spark', { color: '#D4A017' }));
         }
         if (typeof soundManager !== 'undefined') soundManager.towerUpgrade();
     }
@@ -675,7 +675,7 @@ class Game {
             // Boss intro: slower, darker fade
             if (this.vfxEnabled) this.waveFade = { alpha: 0.6, decay: 0.8 };
         } else {
-            this.showAnnouncement(`Wave ${this.currentWave}`, '#c9a227', 1.5, compositionText);
+            this.showAnnouncement(`Wave ${this.currentWave}`, '#D4A017', 1.5, compositionText);
             if (typeof soundManager !== 'undefined') soundManager.waveStart();
             // Wave start: brief dark overlay
             if (this.vfxEnabled) this.waveFade = { alpha: 0.4, decay: 1.5 };
@@ -1404,7 +1404,7 @@ class Game {
         ctx.lineTo(x, y - size / 2 - 20);
         ctx.lineTo(x + size / 2 + 8, y - size / 2);
         ctx.closePath();
-        ctx.fillStyle = '#8b4513';
+        ctx.fillStyle = '#8a6a3a';
         ctx.fill();
         ctx.strokeStyle = '#5c3a21';
         ctx.lineWidth = 2;
@@ -1417,7 +1417,7 @@ class Game {
         // Door
         ctx.fillStyle = '#3d2817';
         ctx.fillRect(x - 6, y + size / 4 - 5, 12, size / 2);
-        ctx.fillStyle = '#c9a227';
+        ctx.fillStyle = '#D4A017';
         ctx.beginPath();
         ctx.arc(x + 3, y + size / 4 + 5, 2, 0, Math.PI * 2);
         ctx.fill();
@@ -1439,14 +1439,14 @@ class Game {
         // Sign
         ctx.fillStyle = '#4a3728';
         ctx.fillRect(x + size / 3 - 2, y - size / 4, 4, 15);
-        ctx.fillStyle = '#8b4513';
+        ctx.fillStyle = '#8a6a3a';
         ctx.beginPath();
         ctx.ellipse(x + size / 3, y - size / 4 - 8, 12, 8, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#c9a227';
+        ctx.strokeStyle = '#D4A017';
         ctx.lineWidth = 1;
         ctx.stroke();
-        ctx.fillStyle = '#c9a227';
+        ctx.fillStyle = '#D4A017';
         ctx.font = '10px Arial';
         ctx.textAlign = 'center';
         ctx.fillText('🍺', x + size / 3, y - size / 4 - 5);

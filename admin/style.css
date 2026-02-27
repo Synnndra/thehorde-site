@@ -4,8 +4,8 @@
     top: 0;
     z-index: 999;
     padding: 0.5rem 1rem;
-    background: #c9a227;
-    color: #0a0a0a;
+    background: var(--color-accent);
+    color: var(--color-bg);
     font-family: 'Cinzel', serif;
     font-weight: 700;
     text-decoration: none;
@@ -16,19 +16,19 @@
 }
 
 :root {
-    --color-bg: #0a0a0a;
-    --color-bg-dark: #050505;
-    --color-primary: #8b4513;
-    --color-primary-light: #a0522d;
-    --color-accent: #c9a227;
-    --color-text: #e8e4d9;
-    --color-text-dim: #b0a898;
-    --color-text-label: #c8c0b0;
-    --color-blood: #6b1c1c;
+    --color-bg: #1e2520;
+    --color-bg-dark: #161c18;
+    --color-primary: #8a6a3a;
+    --color-primary-light: #a0845a;
+    --color-accent: #D4A017;
+    --color-text: #f0e6d0;
+    --color-text-dim: #b8a68e;
+    --color-text-label: #b8a68e;
+    --color-blood: #8b2020;
     --font-display: 'Cinzel', serif;
     --font-body: 'Crimson Text', serif;
-    --card-bg: #111;
-    --border: #222;
+    --card-bg: #231e18;
+    --border: #332c26;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -146,7 +146,7 @@ header h1 {
 }
 
 #logout-btn:hover {
-    background: #8a2424;
+    background: #8b2c2c;
 }
 
 .card {
@@ -283,7 +283,7 @@ td {
 }
 
 tr.offer-row { cursor: pointer; }
-tr.offer-row:hover { background: #1a1a1a; }
+tr.offer-row:hover { background: #272118; }
 
 /* Expand toggle */
 .expand-btn {
@@ -402,7 +402,7 @@ tr.txlog-row td {
 }
 
 .btn-danger:hover {
-    background: #8a2424;
+    background: #8b2c2c;
 }
 
 .btn-small {
@@ -589,7 +589,7 @@ tr.txlog-row td {
     font-size: 0.75rem;
     font-family: var(--font-display);
     text-transform: capitalize;
-    background: #2a2a2a;
+    background: #332c26;
     color: var(--color-text-dim);
 }
 
@@ -785,7 +785,7 @@ tr.txlog-row td {
 }
 
 .correction-user {
-    background: #1a1a2a;
+    background: #231e18;
     border-left: 3px solid #8cc4ff;
 }
 
@@ -961,7 +961,7 @@ tr.txlog-row td {
 }
 
 .tweet-tag-account {
-    background: #2a2a2a;
+    background: #332c26;
     color: #aaa;
     border-color: #444;
     font-size: 0.75rem;
@@ -1454,7 +1454,7 @@ tr.txlog-row td {
     display: inline-block;
     font-size: 0.75rem;
     color: var(--color-text-dim);
-    background: #1a1a1a;
+    background: #272118;
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 0.1rem 0.5rem;
@@ -1523,7 +1523,7 @@ tr.txlog-row td {
 }
 
 .admin-nav-link:hover {
-    background: rgba(201, 162, 39, 0.1);
+    background: rgba(212, 160, 23, 0.1);
 }
 
 /* Responsive */

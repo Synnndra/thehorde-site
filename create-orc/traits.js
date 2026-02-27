@@ -67,7 +67,7 @@ var ORC_TRAITS = [
             { id: 'hw-green-cap', name: 'Green Cap', color: '#2a5a2a', image: 'green_cap.png' },
             { id: 'hw-headband', name: 'Headband', color: '#5a4a3a', image: 'headband.png' },
             { id: 'hw-high-cut-curls', name: 'High Cut Curls', color: '#3a2a1a', image: 'high_cut_curls.png' },
-            { id: 'hw-kings-crown', name: 'Kings Crown', color: '#c9a227', image: 'kings_crown.png' },
+            { id: 'hw-kings-crown', name: 'Kings Crown', color: '#D4A017', image: 'kings_crown.png' },
             { id: 'hw-maulboro', name: 'Maulboro', color: '#4a3a5a', image: 'maulboro.png' },
             { id: 'hw-mickorcs-visor', name: 'MickOrcs Visor', color: '#2a4a2a', image: 'mickorcs_visor.png' },
             { id: 'hw-monster-helmet', name: 'Monster Helmet', color: '#4a4a5a', image: 'monster_helmet.png' },
@@ -90,7 +90,7 @@ var ORC_TRAITS = [
         required: false,
         options: [
             { id: 'cl-battle-club', name: 'Battle Club', color: '#3a3a2a', image: 'battle_club.png', hasOpen: true },
-            { id: 'cl-beater', name: 'Beater', color: '#e8e4d9', image: 'beater.png', hasOpen: true },
+            { id: 'cl-beater', name: 'Beater', color: '#f8f0e0', image: 'beater.png', hasOpen: true },
             { id: 'cl-black-tie', name: 'Black Tie', color: '#1a1a1a', image: 'black_tie.png', hasOpen: true },
             { id: 'cl-bloody-hoodie', name: 'Bloody Hoodie', color: '#5a1a1a', image: 'bloody_hoodie.png', hasOpen: true },
             { id: 'cl-cloak-darkness', name: 'Cloak of Darkness', color: '#0a0a1a', image: 'cloak_of_darkness.png', hasOpen: true },

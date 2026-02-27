@@ -15,7 +15,7 @@
     font-family: 'Cinzel', serif;
     font-size: 2rem;
     font-weight: 700;
-    color: #c9a227;
+    color: #D4A017;
     letter-spacing: 0.05em;
 }
 
@@ -43,7 +43,7 @@
 }
 
 .canvas-wrapper {
-    border: 2px solid #8b4513;
+    border: 2px solid #8a6a3a;
     border-radius: 2px;
     overflow: hidden;
     line-height: 0;
@@ -71,27 +71,27 @@
     font-size: 0.85rem;
     font-weight: 700;
     padding: 0.5rem 1.25rem;
-    border: 1px solid #8b4513;
-    background: rgba(139, 69, 19, 0.15);
-    color: #c9a227;
+    border: 1px solid #8a6a3a;
+    background: rgba(138, 106, 58, 0.15);
+    color: #D4A017;
     cursor: pointer;
     transition: background 0.2s, border-color 0.2s, color 0.2s;
     letter-spacing: 0.04em;
 }
 
 .action-btn:hover {
-    background: rgba(139, 69, 19, 0.35);
-    border-color: #c9a227;
-    color: #e8e4d9;
+    background: rgba(138, 106, 58, 0.35);
+    border-color: #D4A017;
+    color: #f8f0e0;
 }
 
 .action-btn.primary {
-    background: rgba(201, 162, 39, 0.2);
-    border-color: #c9a227;
+    background: rgba(212, 160, 23, 0.2);
+    border-color: #D4A017;
 }
 
 .action-btn.primary:hover {
-    background: rgba(201, 162, 39, 0.4);
+    background: rgba(212, 160, 23, 0.4);
 }
 
 /* Export section */
@@ -101,7 +101,7 @@
     flex-wrap: wrap;
     justify-content: center;
     padding-top: 0.5rem;
-    border-top: 1px solid rgba(139, 69, 19, 0.3);
+    border-top: 1px solid rgba(138, 106, 58, 0.3);
     width: 100%;
 }
 
@@ -127,19 +127,19 @@
 }
 
 .traits-column::-webkit-scrollbar-track {
-    background: rgba(10, 10, 10, 0.5);
+    background: rgba(28, 24, 18, 0.5);
 }
 
 .traits-column::-webkit-scrollbar-thumb {
-    background: #8b4513;
+    background: #8a6a3a;
     border-radius: 3px;
 }
 
 /* Trait group */
 .trait-group {
-    border: 1px solid rgba(139, 69, 19, 0.4);
+    border: 1px solid rgba(138, 106, 58, 0.4);
     padding: 0.75rem;
-    background: linear-gradient(135deg, rgba(139,69,19,0.08) 0%, transparent 50%), rgba(15,12,20,0.6);
+    background: linear-gradient(135deg, rgba(139,69,19,0.08) 0%, transparent 50%), rgba(28,24,18,0.6);
     backdrop-filter: blur(8px);
 }
 
@@ -154,7 +154,7 @@
     font-family: 'Cinzel', serif;
     font-size: 0.9rem;
     font-weight: 700;
-    color: #c9a227;
+    color: #D4A017;
     letter-spacing: 0.04em;
 }
 
@@ -182,16 +182,16 @@
     padding: 0.35rem;
     border: 2px solid transparent;
     transition: border-color 0.2s;
-    background: rgba(139, 69, 19, 0.08);
+    background: rgba(138, 106, 58, 0.08);
 }
 
 .trait-option:hover {
-    border-color: rgba(201, 162, 39, 0.4);
+    border-color: rgba(212, 160, 23, 0.4);
 }
 
 .trait-option.selected {
-    border-color: #c9a227;
-    background: rgba(201, 162, 39, 0.12);
+    border-color: #D4A017;
+    background: rgba(212, 160, 23, 0.12);
 }
 
 .trait-option.none-option {
@@ -205,9 +205,9 @@
 .trait-thumbnail {
     width: 56px;
     height: 56px;
-    border: 1px solid rgba(139, 69, 19, 0.3);
+    border: 1px solid rgba(138, 106, 58, 0.3);
     object-fit: cover;
-    background: rgba(10, 10, 10, 0.8);
+    background: rgba(28, 24, 18, 0.8);
 }
 
 .trait-label {
@@ -220,20 +220,20 @@
 }
 
 .trait-option.selected .trait-label {
-    color: #c9a227;
+    color: #D4A017;
 }
 
 /* None thumbnail */
 .none-thumb {
     width: 56px;
     height: 56px;
-    border: 1px solid rgba(139, 69, 19, 0.3);
+    border: 1px solid rgba(138, 106, 58, 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
     color: #5a5a5a;
     font-size: 1.2rem;
-    background: rgba(10, 10, 10, 0.8);
+    background: rgba(28, 24, 18, 0.8);
 }
 
 /* Hover preview */
@@ -241,7 +241,7 @@
     display: none;
     position: fixed;
     width: 200px;
-    border: 2px solid #c9a227;
+    border: 2px solid #D4A017;
     background: #111;
     pointer-events: none;
     z-index: 100;
@@ -258,14 +258,14 @@
 .trait-preview-info {
     padding: 6px 8px;
     background: rgba(0, 0, 0, 0.85);
-    border-top: 1px solid rgba(201, 162, 39, 0.3);
+    border-top: 1px solid rgba(212, 160, 23, 0.3);
 }
 
 .trait-preview-name {
     font-family: 'Cinzel', serif;
     font-size: 0.75rem;
     font-weight: 700;
-    color: #c9a227;
+    color: #D4A017;
     margin-bottom: 4px;
 }
 
@@ -277,7 +277,7 @@
 
 .trait-preview-rarity {
     font-size: 0.8rem;
-    color: #e8e4d9;
+    color: #f8f0e0;
 }
 
 .trait-preview-tier {
@@ -289,9 +289,9 @@
 }
 
 .tier-legendary {
-    background: rgba(201, 162, 39, 0.25);
-    color: #c9a227;
-    border: 1px solid #c9a227;
+    background: rgba(212, 160, 23, 0.25);
+    color: #D4A017;
+    border: 1px solid #D4A017;
 }
 
 .tier-epic {
@@ -337,9 +337,9 @@
 }
 
 .rarity-badge.tier-legendary {
-    background: rgba(201, 162, 39, 0.35);
-    color: #c9a227;
-    border: 1px solid #c9a227;
+    background: rgba(212, 160, 23, 0.35);
+    color: #D4A017;
+    border: 1px solid #D4A017;
 }
 
 .rarity-badge.tier-epic {
@@ -391,7 +391,7 @@
     max-width: 90vw;
     max-height: calc(90vh - 60px);
     object-fit: contain;
-    border: 2px solid #8b4513;
+    border: 2px solid #8a6a3a;
 }
 
 .export-modal-actions {

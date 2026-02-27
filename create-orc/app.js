@@ -560,10 +560,10 @@
         exportCanvas.width = 1000;
         exportCanvas.height = 1000;
         var ec = exportCanvas.getContext('2d');
-        ec.fillStyle = '#c9a227';
+        ec.fillStyle = '#D4A017';
         ec.fillRect(0, 0, 1000, 1000);
         ec.drawImage(source, borderWidth, borderWidth, 1000 - borderWidth * 2, 1000 - borderWidth * 2);
-        ec.strokeStyle = '#8b4513';
+        ec.strokeStyle = '#8a6a3a';
         ec.lineWidth = 3;
         ec.strokeRect(borderWidth, borderWidth, 1000 - borderWidth * 2, 1000 - borderWidth * 2);
         showPreview(exportCanvas, 'orc-pfp-border.png');
@@ -576,9 +576,9 @@
         cardCanvas.height = H;
         var cc = cardCanvas.getContext('2d');
 
-        var gold = '#c9a227';
-        var brown = '#8b4513';
-        var bg = '#0a0a0a';
+        var gold = '#D4A017';
+        var brown = '#8a6a3a';
+        var bg = '#1e2520';
         var muted = '#9a9484';
 
         var tierColors = {
@@ -596,7 +596,7 @@
         cc.fillStyle = '#111';
         cc.fillRect(0, 0, W, 60);
         cc.save();
-        cc.shadowColor = '#c9a227';
+        cc.shadowColor = '#D4A017';
         cc.shadowBlur = 12;
         cc.fillStyle = gold;
         cc.font = '32px MedievalSharp, serif';

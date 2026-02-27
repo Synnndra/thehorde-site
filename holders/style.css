@@ -34,7 +34,7 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     text-shadow:
-        0 0 10px rgba(201, 162, 39, 0.4),
+        0 0 10px rgba(212, 160, 23, 0.4),
         0 3px 6px rgba(0, 0, 0, 0.8);
 }
 
@@ -54,7 +54,7 @@
     gap: 2rem;
     margin-bottom: 1.5rem;
     padding: 1rem;
-    background: linear-gradient(135deg, rgba(139, 69, 19, 0.15) 0%, rgba(10, 10, 10, 0.6) 100%);
+    background: linear-gradient(135deg, rgba(138, 106, 58, 0.15) 0%, rgba(28, 24, 18, 0.6) 100%);
     border: 1px solid var(--color-primary);
     border-radius: 4px;
 }
@@ -102,13 +102,13 @@
 }
 
 .wallet-btn {
-    background: linear-gradient(180deg, rgba(139, 69, 19, 0.4) 0%, rgba(107, 28, 28, 0.4) 100%);
+    background: linear-gradient(180deg, rgba(138, 106, 58, 0.4) 0%, rgba(139, 32, 32, 0.4) 100%);
     color: var(--color-text);
 }
 
 .wallet-btn:hover {
     border-color: var(--color-accent);
-    background: linear-gradient(180deg, rgba(160, 82, 45, 0.6) 0%, rgba(139, 69, 19, 0.6) 100%);
+    background: linear-gradient(180deg, rgba(160, 132, 90, 0.6) 0%, rgba(138, 106, 58, 0.6) 100%);
 }
 
 .wallet-btn.disconnect {
@@ -127,13 +127,13 @@
     color: var(--color-accent);
     cursor: pointer;
     padding: 0.4rem 0.6rem;
-    border: 1px solid rgba(201, 162, 39, 0.3);
+    border: 1px solid rgba(212, 160, 23, 0.3);
     border-radius: 4px;
     transition: all 0.2s ease;
 }
 
 .wallet-address:hover {
-    background: rgba(201, 162, 39, 0.1);
+    background: rgba(212, 160, 23, 0.1);
 }
 
 .wallet-address.copied {
@@ -171,7 +171,7 @@
 .spinner {
     width: 36px;
     height: 36px;
-    border: 3px solid rgba(201, 162, 39, 0.2);
+    border: 3px solid rgba(212, 160, 23, 0.2);
     border-top-color: var(--color-accent);
     border-radius: 50%;
     margin: 0 auto 1rem;
@@ -197,14 +197,14 @@
 .leaderboard-table {
     width: 100%;
     border-collapse: collapse;
-    background: rgba(10, 10, 10, 0.6);
+    background: rgba(28, 24, 18, 0.6);
     border: 1px solid var(--color-primary);
     border-radius: 4px;
     overflow: hidden;
 }
 
 .leaderboard-table thead {
-    background: linear-gradient(180deg, rgba(139, 69, 19, 0.3) 0%, rgba(107, 28, 28, 0.2) 100%);
+    background: linear-gradient(180deg, rgba(138, 106, 58, 0.3) 0%, rgba(139, 32, 32, 0.2) 100%);
 }
 
 .leaderboard-table th {
@@ -221,7 +221,7 @@
 
 .leaderboard-table td {
     padding: 0.6rem 0.5rem;
-    border-bottom: 1px solid rgba(139, 69, 19, 0.2);
+    border-bottom: 1px solid rgba(138, 106, 58, 0.2);
     font-size: 0.95rem;
     vertical-align: middle;
 }
@@ -231,7 +231,7 @@
 }
 
 .leaderboard-table tbody tr:hover {
-    background: rgba(139, 69, 19, 0.1);
+    background: rgba(138, 106, 58, 0.1);
 }
 
 /* Column widths */
@@ -406,7 +406,7 @@
     width: 260px;
     max-width: 80vw;
     padding: 1rem;
-    background: rgba(10, 10, 10, 0.95);
+    background: rgba(28, 24, 18, 0.95);
     border: 1px solid var(--color-primary);
     border-radius: 6px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
@@ -484,7 +484,7 @@
 
 /* Highlighted row (connected wallet) */
 .row-highlight {
-    background: rgba(201, 162, 39, 0.08) !important;
+    background: rgba(212, 160, 23, 0.08) !important;
     border-left: 3px solid var(--color-accent);
 }
 
@@ -495,7 +495,7 @@
 /* Expanded orc grid row */
 .orc-grid-row td {
     padding: 0;
-    border-bottom: 1px solid rgba(139, 69, 19, 0.3);
+    border-bottom: 1px solid rgba(138, 106, 58, 0.3);
 }
 
 .orc-grid {
@@ -571,8 +571,8 @@
 }
 
 .orc-status-badge.on-loan {
-    background: rgba(201, 162, 39, 0.9);
-    color: #0a0a0a;
+    background: rgba(212, 160, 23, 0.9);
+    color: #1e2520;
 }
 
 .orc-tooltip {
@@ -581,7 +581,7 @@
     bottom: calc(100% + 6px);
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(10, 10, 10, 0.95);
+    background: rgba(28, 24, 18, 0.95);
     border: 1px solid var(--color-primary);
     border-radius: 4px;
     padding: 0.3rem 0.5rem;
@@ -706,8 +706,8 @@
 }
 
 .wallet-modal-card {
-    background: #1a1a2e;
-    border: 1px solid rgba(201, 162, 39, 0.3);
+    background: #231e18;
+    border: 1px solid rgba(212, 160, 23, 0.3);
     border-radius: 12px;
     width: 340px;
     max-width: 90vw;
@@ -719,7 +719,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px;
-    border-bottom: 1px solid rgba(201, 162, 39, 0.15);
+    border-bottom: 1px solid rgba(212, 160, 23, 0.15);
     color: #e0d5c0;
     font-size: 16px;
     font-weight: 600;
@@ -759,8 +759,8 @@
 }
 
 .wallet-modal-option:hover {
-    background: rgba(201, 162, 39, 0.1);
-    border-color: rgba(201, 162, 39, 0.3);
+    background: rgba(212, 160, 23, 0.1);
+    border-color: rgba(212, 160, 23, 0.3);
 }
 
 .wallet-modal-icon {

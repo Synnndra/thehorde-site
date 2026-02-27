@@ -117,13 +117,13 @@ async function connectWallet() {
             frag.appendChild(document.createTextNode('No wallet detected. '));
             const phantomLink = document.createElement('a');
             phantomLink.href = 'https://phantom.app/ul/browse/' + currentUrl;
-            phantomLink.style.color = '#c9a227';
+            phantomLink.style.color = '#D4A017';
             phantomLink.textContent = 'Open in Phantom';
             frag.appendChild(phantomLink);
             frag.appendChild(document.createTextNode(' or '));
             const solflareLink = document.createElement('a');
             solflareLink.href = 'https://solflare.com/ul/v1/browse/' + currentUrl;
-            solflareLink.style.color = '#c9a227';
+            solflareLink.style.color = '#D4A017';
             solflareLink.textContent = 'Solflare';
             frag.appendChild(solflareLink);
             showError(frag);

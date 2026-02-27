@@ -380,7 +380,7 @@ class Game {
         const milestone = Math.floor(this.distance / 500) * 500;
         if (milestone > this.lastMilestone && milestone > 0) {
             this.lastMilestone = milestone;
-            this.showAnnouncement(`${milestone}m!`, '#c9a227', 1.5);
+            this.showAnnouncement(`${milestone}m!`, '#D4A017', 1.5);
             soundManager.milestone();
         }
 

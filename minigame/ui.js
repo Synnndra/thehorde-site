@@ -412,7 +412,7 @@ class GameUI {
         let effectiveDamage = tower.getEffectiveDamage();
         let damageText = effectiveDamage.toString();
         if (tower.auraBonus > 0 || tower.nftBonus > 0) {
-            damageText += ` <span style="color: #c9a227;">(+${Math.round((tower.auraBonus + tower.nftBonus) * 100)}%)</span>`;
+            damageText += ` <span style="color: #D4A017;">(+${Math.round((tower.auraBonus + tower.nftBonus) * 100)}%)</span>`;
         }
 
         this.selectedTowerStats.innerHTML = `
@@ -422,7 +422,7 @@ class GameUI {
             ${stats.splashRadius ? `<div class="stat-line"><span>Splash:</span><span>${stats.splashRadius}</span></div>` : ''}
             ${stats.slowAmount ? `<div class="stat-line"><span>Slow:</span><span>${(stats.slowAmount * 100).toFixed(0)}%</span></div>` : ''}
             ${stats.auraDamageBonus ? `<div class="stat-line"><span>Aura Bonus:</span><span>+${(stats.auraDamageBonus * 100).toFixed(0)}%</span></div>` : ''}
-            ${tower.isNftTower ? `<div class="stat-line"><span>NFT Bonus:</span><span style="color: #c9a227;">+${(tower.nftBonus * 100).toFixed(0)}%</span></div>` : ''}
+            ${tower.isNftTower ? `<div class="stat-line"><span>NFT Bonus:</span><span style="color: #D4A017;">+${(tower.nftBonus * 100).toFixed(0)}%</span></div>` : ''}
             <div class="stat-line"><span>Sell Value:</span><span>${sellValue} gold</span></div>
         `;
 

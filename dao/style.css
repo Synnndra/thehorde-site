@@ -3,11 +3,11 @@
 /* DAO-specific variables (aliases + extras) */
 :root {
     --gold: var(--color-accent);
-    --gold-dim: rgba(201, 162, 39, 0.3);
+    --gold-dim: rgba(212, 160, 23, 0.3);
     --brown: var(--color-primary);
     --bg-dark: var(--color-bg);
-    --bg-card: rgba(15, 12, 20, 0.6);
-    --bg-section: #2a2a3e;
+    --bg-card: rgba(28, 24, 18, 0.6);
+    --bg-section: #332c26;
     --text: var(--color-text);
     --text-dim: var(--color-text-dim);
     --text-label: var(--color-text-label);
@@ -155,7 +155,7 @@ body {
     gap: 6px;
     padding: 5px 12px;
     background: var(--gold-dim);
-    border: 1px dashed rgba(201, 162, 39, 0.4);
+    border: 1px dashed rgba(212, 160, 23, 0.4);
     border-radius: 12px;
     cursor: default;
 }
@@ -241,7 +241,7 @@ body {
 }
 
 .proposal-card {
-    background: rgba(20, 20, 35, 0.8);
+    background: rgba(28, 26, 22, 0.8);
     border: 1px solid #333;
     border-radius: 8px;
     padding: 20px;
@@ -306,7 +306,7 @@ body {
 /* Vote Bar (mini) */
 .vote-bar-mini {
     height: 6px;
-    background: #1a1a2e;
+    background: #231e18;
     border-radius: 3px;
     overflow: hidden;
     margin-bottom: 10px;
@@ -377,7 +377,7 @@ body {
 }
 
 .proposal-detail-description {
-    background: rgba(20, 20, 35, 0.6);
+    background: rgba(28, 26, 22, 0.6);
     border: 1px solid #333;
     border-radius: 8px;
     padding: 20px;
@@ -401,7 +401,7 @@ body {
 
 .vote-bar-large {
     height: 32px;
-    background: #1a1a2e;
+    background: #231e18;
     border-radius: 6px;
     overflow: hidden;
     display: flex;
@@ -532,7 +532,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 8px 12px;
-    background: rgba(20, 20, 35, 0.6);
+    background: rgba(28, 26, 22, 0.6);
     border-radius: 4px;
     font-size: 0.85rem;
 }
@@ -590,7 +590,7 @@ body {
     font-family: 'Crimson Text', serif;
     font-size: 1rem;
     padding: 10px 14px;
-    background: rgba(20, 20, 35, 0.8);
+    background: rgba(28, 26, 22, 0.8);
     border: 1px solid #333;
     border-radius: 6px;
     color: var(--text);
@@ -631,7 +631,7 @@ body {
 
 /* Preview */
 .preview-section {
-    background: rgba(20, 20, 35, 0.6);
+    background: rgba(28, 26, 22, 0.6);
     border: 1px solid #333;
     border-radius: 8px;
     padding: 20px;
@@ -724,7 +724,7 @@ body {
 
 .dao-rules-toggle {
     width: 100%;
-    background: rgba(20, 20, 35, 0.6);
+    background: rgba(28, 26, 22, 0.6);
     border: 1px solid #333;
     border-radius: 8px;
     padding: 14px 20px;
@@ -747,7 +747,7 @@ body {
 }
 
 .dao-rules-content {
-    background: rgba(20, 20, 35, 0.6);
+    background: rgba(28, 26, 22, 0.6);
     border: 1px solid #333;
     border-top: none;
     border-radius: 0 0 8px 8px;
@@ -763,7 +763,7 @@ body {
 
 .rule-item {
     padding: 12px;
-    background: rgba(10, 10, 20, 0.5);
+    background: rgba(22, 20, 16, 0.5);
     border-radius: 6px;
 }
 
@@ -893,7 +893,7 @@ body {
     align-items: center;
     gap: 10px;
     padding: 12px;
-    background: rgba(20, 20, 35, 0.8);
+    background: rgba(28, 26, 22, 0.8);
     border: 1px solid #333;
     border-radius: 6px;
     color: var(--text);

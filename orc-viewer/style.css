@@ -2,13 +2,13 @@
 :root {
     --bg-primary: var(--color-bg);
     --bg-secondary: var(--color-bg-dark);
-    --bg-card: #111;
-    --bg-hover: #1a1a1a;
+    --bg-card: #1a1410;
+    --bg-hover: #231c16;
     --border: var(--color-primary);
     --border-hover: var(--color-primary-light);
     --text-primary: var(--color-text);
     --text-secondary: var(--color-text-dim);
-    --text-dim: #666;
+    --text-dim: #7a6e60;
     --accent: var(--color-accent);
     --accent-hover: #b8922a;
     --success: #22c55e;
@@ -31,7 +31,7 @@
     position: sticky;
     top: 0;
     z-index: 100;
-    background: rgba(10, 10, 10, 0.95);
+    background: rgba(18, 14, 10, 0.95);
     border-bottom: 2px solid var(--color-primary);
     backdrop-filter: blur(10px);
 }
@@ -75,7 +75,7 @@
     color: var(--color-accent);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    text-shadow: 0 0 10px rgba(201, 162, 39, 0.3);
+    text-shadow: 0 0 10px rgba(212, 160, 23, 0.3);
 }
 
 .header-controls {
@@ -88,7 +88,7 @@
 
 .header-select {
     padding: 10px 14px;
-    background: rgba(10, 10, 10, 0.9);
+    background: rgba(18, 14, 10, 0.9);
     border: 2px solid var(--color-primary);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
@@ -106,7 +106,7 @@
 .header-select:focus {
     outline: none;
     border-color: var(--color-accent);
-    box-shadow: 0 0 10px rgba(201, 162, 39, 0.2);
+    box-shadow: 0 0 10px rgba(212, 160, 23, 0.2);
 }
 
 .search-wrapper {
@@ -118,7 +118,7 @@
 .search-input {
     flex: 1;
     padding: 10px 14px;
-    background: rgba(10, 10, 10, 0.9);
+    background: rgba(18, 14, 10, 0.9);
     border: 2px solid var(--color-primary);
     border-right: none;
     border-radius: var(--radius-sm) 0 0 var(--radius-sm);
@@ -135,12 +135,12 @@
 .search-input:focus {
     outline: none;
     border-color: var(--color-accent);
-    box-shadow: 0 0 10px rgba(201, 162, 39, 0.2);
+    box-shadow: 0 0 10px rgba(212, 160, 23, 0.2);
 }
 
 .search-btn {
     padding: 10px 16px;
-    background: linear-gradient(180deg, rgba(139, 69, 19, 0.6) 0%, rgba(107, 28, 28, 0.6) 100%);
+    background: linear-gradient(180deg, rgba(138, 106, 58, 0.6) 0%, rgba(139, 32, 32, 0.6) 100%);
     border: 2px solid var(--color-primary);
     border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
     color: var(--text-primary);
@@ -152,9 +152,9 @@
 }
 
 .search-btn:hover {
-    background: linear-gradient(180deg, rgba(160, 82, 45, 0.8) 0%, rgba(139, 69, 19, 0.8) 100%);
+    background: linear-gradient(180deg, rgba(160, 132, 90, 0.8) 0%, rgba(138, 106, 58, 0.8) 100%);
     border-color: var(--color-accent);
-    box-shadow: 0 0 15px rgba(201, 162, 39, 0.3);
+    box-shadow: 0 0 15px rgba(212, 160, 23, 0.3);
 }
 
 .header-stats {
@@ -205,7 +205,7 @@
     overflow-y: auto;
     position: sticky;
     top: 120px;
-    background: rgba(5, 5, 5, 0.8);
+    background: rgba(14, 10, 8, 0.8);
 }
 
 .sidebar-header {
@@ -237,7 +237,7 @@
 
 .clear-btn:hover {
     text-decoration: underline;
-    text-shadow: 0 0 10px rgba(201, 162, 39, 0.3);
+    text-shadow: 0 0 10px rgba(212, 160, 23, 0.3);
 }
 
 /* Filter Groups */
@@ -248,7 +248,7 @@
 }
 
 .filter-group {
-    border-bottom: 1px solid rgba(139, 69, 19, 0.3);
+    border-bottom: 1px solid rgba(138, 106, 58, 0.3);
     padding-bottom: 12px;
 }
 
@@ -302,7 +302,7 @@
 }
 
 .filter-option:hover {
-    background: rgba(139, 69, 19, 0.2);
+    background: rgba(138, 106, 58, 0.2);
 }
 
 .filter-checkbox {
@@ -339,7 +339,7 @@
     align-items: center;
     gap: 8px;
     padding: 10px 16px;
-    background: linear-gradient(180deg, rgba(139, 69, 19, 0.4) 0%, rgba(107, 28, 28, 0.4) 100%);
+    background: linear-gradient(180deg, rgba(138, 106, 58, 0.4) 0%, rgba(139, 32, 32, 0.4) 100%);
     border: 2px solid var(--color-primary);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
@@ -352,7 +352,7 @@
 
 .filter-toggle:hover {
     border-color: var(--color-accent);
-    background: linear-gradient(180deg, rgba(160, 82, 45, 0.5) 0%, rgba(139, 69, 19, 0.5) 100%);
+    background: linear-gradient(180deg, rgba(160, 132, 90, 0.5) 0%, rgba(138, 106, 58, 0.5) 100%);
 }
 
 /* Active Filters */
@@ -368,7 +368,7 @@
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    background: rgba(139, 69, 19, 0.3);
+    background: rgba(138, 106, 58, 0.3);
     border: 1px solid var(--color-primary);
     border-radius: 999px;
     font-size: 0.85rem;
@@ -388,7 +388,7 @@
 
 .active-filter button:hover {
     color: var(--text-primary);
-    text-shadow: 0 0 5px rgba(201, 162, 39, 0.5);
+    text-shadow: 0 0 5px rgba(212, 160, 23, 0.5);
 }
 
 /* Loading */
@@ -424,7 +424,7 @@
 
 /* Error */
 .error {
-    background: rgba(107, 28, 28, 0.3);
+    background: rgba(139, 32, 32, 0.3);
     border: 1px solid var(--color-blood);
     color: #ff6b6b;
     padding: 16px 20px;
@@ -452,7 +452,7 @@
 
 /* NFT Card */
 .nft-card {
-    background: linear-gradient(135deg, rgba(139, 69, 19, 0.15) 0%, rgba(10, 10, 10, 0.8) 100%);
+    background: linear-gradient(135deg, rgba(138, 106, 58, 0.15) 0%, rgba(18, 14, 10, 0.8) 100%);
     border: 1px solid var(--color-primary);
     border-radius: var(--radius);
     overflow: hidden;
@@ -482,7 +482,7 @@
     border-color: var(--color-accent);
     box-shadow:
         0 12px 40px rgba(0, 0, 0, 0.5),
-        0 0 20px rgba(201, 162, 39, 0.15);
+        0 0 20px rgba(212, 160, 23, 0.15);
 }
 
 .nft-image {
@@ -505,13 +505,13 @@
 }
 
 @keyframes pulse {
-    0%, 100% { background: rgba(139, 69, 19, 0.1); }
-    50% { background: rgba(139, 69, 19, 0.2); }
+    0%, 100% { background: rgba(138, 106, 58, 0.1); }
+    50% { background: rgba(138, 106, 58, 0.2); }
 }
 
 .nft-info {
     padding: 12px;
-    background: rgba(5, 5, 5, 0.9);
+    background: rgba(14, 10, 8, 0.9);
     border-top: 1px solid var(--color-primary);
 }
 
@@ -585,14 +585,14 @@
 }
 
 .modal-content {
-    background: linear-gradient(135deg, rgba(139, 69, 19, 0.15) 0%, rgba(10, 10, 10, 0.95) 100%);
+    background: linear-gradient(135deg, rgba(138, 106, 58, 0.15) 0%, rgba(18, 14, 10, 0.95) 100%);
     border-radius: var(--radius);
     border: 2px solid var(--color-primary);
     max-height: 90vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(201, 162, 39, 0.1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(212, 160, 23, 0.1);
 }
 
 .details-modal {
@@ -605,7 +605,7 @@
 }
 
 .close-btn {
-    background: rgba(107, 28, 28, 0.6);
+    background: rgba(139, 32, 32, 0.6);
     border: 1px solid var(--color-primary);
     color: var(--text-primary);
     font-size: 1.5rem;
@@ -617,7 +617,7 @@
 }
 
 .close-btn:hover {
-    background: rgba(107, 28, 28, 0.9);
+    background: rgba(139, 32, 32, 0.9);
     border-color: var(--color-accent);
     color: var(--color-accent);
 }
@@ -677,10 +677,10 @@
 }
 
 .trait-item {
-    background: rgba(139, 69, 19, 0.15);
+    background: rgba(138, 106, 58, 0.15);
     padding: 12px;
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(139, 69, 19, 0.3);
+    border: 1px solid rgba(138, 106, 58, 0.3);
 }
 
 .trait-type {
@@ -710,9 +710,9 @@
     color: var(--text-dim);
     word-break: break-all;
     padding: 12px;
-    background: rgba(5, 5, 5, 0.8);
+    background: rgba(14, 10, 8, 0.8);
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(139, 69, 19, 0.3);
+    border: 1px solid rgba(138, 106, 58, 0.3);
     font-family: monospace;
 }
 
@@ -724,7 +724,7 @@
         top: 0;
         height: 100vh;
         z-index: 200;
-        background: rgba(5, 5, 5, 0.98);
+        background: rgba(14, 10, 8, 0.98);
         transform: translateX(-100%);
         transition: transform 0.3s;
     }

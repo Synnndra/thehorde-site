@@ -552,7 +552,7 @@ class Tower {
 
         // Draw level indicator
         if (this.level > 0) {
-            ctx.fillStyle = '#c9a227';
+            ctx.fillStyle = '#D4A017';
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 2;
             ctx.font = 'bold 12px Arial';
@@ -576,9 +576,9 @@ class Tower {
             if (this.isNftTower) {
                 ctx.beginPath();
                 ctx.arc(0, spriteConfig.offsetY, spriteSize / 2, 0, Math.PI * 2);
-                ctx.strokeStyle = '#c9a227';
+                ctx.strokeStyle = '#D4A017';
                 ctx.lineWidth = 3;
-                ctx.shadowColor = '#c9a227';
+                ctx.shadowColor = '#D4A017';
                 ctx.shadowBlur = 20;
                 ctx.stroke();
                 ctx.shadowBlur = 0;
@@ -588,7 +588,7 @@ class Tower {
             if (this.isSelected) {
                 ctx.beginPath();
                 ctx.arc(0, 0, spriteSize / 2 + 5, 0, Math.PI * 2);
-                ctx.strokeStyle = '#c9a227';
+                ctx.strokeStyle = '#D4A017';
                 ctx.lineWidth = 3;
                 ctx.stroke();
             }
@@ -633,7 +633,7 @@ class Tower {
         gradient.addColorStop(1, this.darkenColor(stats.color, 30));
         ctx.fillStyle = gradient;
         ctx.fill();
-        ctx.strokeStyle = this.isSelected ? '#c9a227' : this.darkenColor(stats.color, 50);
+        ctx.strokeStyle = this.isSelected ? '#D4A017' : this.darkenColor(stats.color, 50);
         ctx.lineWidth = this.isSelected ? 3 : 2;
         ctx.stroke();
 
@@ -641,9 +641,9 @@ class Tower {
         if (this.isNftTower) {
             ctx.beginPath();
             ctx.arc(0, 0, size + 5, 0, Math.PI * 2);
-            ctx.strokeStyle = '#c9a227';
+            ctx.strokeStyle = '#D4A017';
             ctx.lineWidth = 2;
-            ctx.shadowColor = '#c9a227';
+            ctx.shadowColor = '#D4A017';
             ctx.shadowBlur = 15;
             ctx.stroke();
             ctx.shadowBlur = 0;
@@ -710,7 +710,7 @@ class Tower {
                 ctx.fillStyle = '#4a3728';
                 ctx.fillRect(size * 0.2, -2, size * 0.6, 4);
                 // Flag
-                ctx.fillStyle = '#c9a227';
+                ctx.fillStyle = '#D4A017';
                 ctx.beginPath();
                 ctx.moveTo(size * 0.6, -2);
                 ctx.lineTo(size * 0.9, -8);
