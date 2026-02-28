@@ -97,11 +97,7 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'Tweet text is empty' });
             }
 
-            // Ensure @MidEvilsNFT is always included
             let finalText = tweetText;
-            if (!finalText.toLowerCase().includes('@midevilsnft')) {
-                finalText = finalText.trimEnd() + '\n\n@MidEvilsNFT';
-            }
 
             // Post to X (upload media first if provided)
             try {
