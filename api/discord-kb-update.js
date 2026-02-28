@@ -209,7 +209,7 @@ Skip only generic greetings (gm, gn) and one-word reactions.`,
             channelResult.kbLength = updatedKb.length;
             channelResult.hasMore = allMessages.length >= FETCH_LIMIT;
 
-            // Embed new extraction into vector DB (non-blocking, best-effort)
+            // Embed new extraction into vector DB with contextual prefixes (Feature 6)
             const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
             const VECTOR_URL = process.env.UPSTASH_VECTOR_URL;
             const VECTOR_TOKEN = process.env.UPSTASH_VECTOR_TOKEN;
@@ -218,7 +218,29 @@ Skip only generic greetings (gm, gn) and one-word reactions.`,
                     const today = new Date().toISOString().slice(0, 10);
                     const chunks = chunkText(newSummary);
                     if (chunks.length > 0) {
-                        const embeddings = await getEmbeddingBatch(chunks, OPENAI_API_KEY);
+                        // Generate contextual prefixes via Haiku
+                        let contextualChunks = chunks;
+                        try {
+                            const prefixRes = await anthropic.messages.create({
+                                model: 'claude-haiku-4-5-20251001',
+                                max_tokens: 2000,
+                                system: 'Generate a 10-20 word context prefix for each text chunk below. The prefix should describe the topic and context to improve semantic search. Output ONLY a JSON array of prefix strings, one per chunk. Example: ["MidEvil Orcs floor price predictions, trading discussion", "Community event planning, Brush & Blade competition"]',
+                                messages: [{ role: 'user', content: `Channel: #${channel.name}\nDate: ${todayStr}\n\nChunks:\n${chunks.map((c, i) => `[${i}] ${c.slice(0, 200)}`).join('\n\n')}` }]
+                            });
+                            const prefixText = prefixRes.content[0]?.text?.trim();
+                            const prefixes = JSON.parse(prefixText.match(/\[[\s\S]*\]/)?.[0] || '[]');
+                            if (prefixes.length === chunks.length) {
+                                contextualChunks = chunks.map((c, i) => `[${prefixes[i]}, #${channel.name}, ${today}] ${c}`);
+                            } else {
+                                // Fallback: simple prefix
+                                contextualChunks = chunks.map(c => `[MidEvils Discord #${channel.name}, ${today}] ${c}`);
+                            }
+                        } catch {
+                            // Fallback: simple prefix
+                            contextualChunks = chunks.map(c => `[MidEvils Discord #${channel.name}, ${today}] ${c}`);
+                        }
+
+                        const embeddings = await getEmbeddingBatch(contextualChunks, OPENAI_API_KEY);
                         const vectors = embeddings.map((emb, i) => ({
                             id: `discord:daily_extract:${channel.name}:${today}:${i}`,
                             vector: emb,
@@ -227,7 +249,7 @@ Skip only generic greetings (gm, gn) and one-word reactions.`,
                                 channel: channel.name,
                                 date: today
                             },
-                            data: chunks[i]
+                            data: contextualChunks[i]
                         }));
                         await vectorUpsert(vectors, VECTOR_URL, VECTOR_TOKEN, 'discord');
                         channelResult.vectorsUpserted = vectors.length;

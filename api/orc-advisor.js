@@ -9,9 +9,10 @@ import {
 } from '../lib/swap-utils.js';
 import { getOrcHoldings, kvGet, kvSet } from '../lib/dao-utils.js';
 import {
-    ORC_SYSTEM_PROMPT, DRAK_TOOLS, executeTool,
+    buildSystemPrompt, DRAK_TOOLS, executeTool,
     fetchDrakContext, buildLiveContext, runDrakLoop,
-    extractAndSaveMemory, saveToReviewQueue, trackUsage
+    extractAndSaveMemory, saveToReviewQueue, trackUsage,
+    postResponseEvaluate
 } from '../lib/drak-core.js';
 
 export const config = { maxDuration: 30 };
@@ -84,8 +85,14 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'You need at least 1 Orc to consult the advisor' });
     }
 
-    // Fetch slim context (market data, admin KB, prompt rules, user memory)
-    const ctx = await fetchDrakContext({ kvUrl, kvToken, userMemoryKey: `drak:memory:${wallet}` });
+    // Fetch slim context (market data, admin KB, prompt rules, user memory, auto-RAG)
+    const vectorConfig = {
+        openaiApiKey: process.env.OPENAI_API_KEY,
+        vectorUrl: process.env.UPSTASH_VECTOR_URL,
+        vectorToken: process.env.UPSTASH_VECTOR_TOKEN,
+        anthropicApiKey
+    };
+    const ctx = await fetchDrakContext({ kvUrl, kvToken, userMemoryKey: `drak:memory:${wallet}`, userMessage: message, vectorConfig });
 
     // Cross-platform memory: merge Discord memory if wallet is linked
     let linkedDiscordId = null;
@@ -129,32 +136,27 @@ export default async function handler(req, res) {
     messages.push({ role: 'user', content: message });
 
     try {
-        // System blocks: static lore (cached) + live context (cached)
+        // System blocks: dynamic prompt (core + relevant/random lore) + live context (cached)
         const systemBlocks = [
-            { type: 'text', text: ORC_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }
+            { type: 'text', text: buildSystemPrompt(message), cache_control: { type: 'ephemeral' } }
         ];
         if (liveContext) {
             systemBlocks.push({ type: 'text', text: liveContext, cache_control: { type: 'ephemeral' } });
         }
 
         const leaderboardCache = { data: null };
-        const vectorConfig = {
-            openaiApiKey: process.env.OPENAI_API_KEY,
-            vectorUrl: process.env.UPSTASH_VECTOR_URL,
-            vectorToken: process.env.UPSTASH_VECTOR_TOKEN,
-            anthropicApiKey
-        };
         const toolExecutor = (name, input) => executeTool(name, input, kvUrl, kvToken, leaderboardCache, vectorConfig);
 
-        const { reply, usage } = await runDrakLoop({
-            anthropicApiKey, systemBlocks, messages, tools: DRAK_TOOLS, toolExecutor, maxIterations: 3
+        const { reply, usage, toolsUsed } = await runDrakLoop({
+            anthropicApiKey, systemBlocks, messages, tools: DRAK_TOOLS, toolExecutor, maxIterations: 3, userMessage: message
         });
 
-        // Fire-and-forget: review queue, memory extraction, usage stats
+        // Fire-and-forget: review queue, memory extraction, usage stats, evaluation
         saveToReviewQueue({ kvUrl, kvToken, question: message, reply, extraFields: { wallet } });
         extractAndSaveMemory({
             anthropicApiKey, kvUrl, kvToken,
             memoryKey: `drak:memory:${wallet}`,
+            existingMemoryObj: ctx.userMemory,
             existingSummary: ctx.userMemory?.summary || '',
             source: 'website',
             userLabel: 'User',
@@ -165,6 +167,7 @@ export default async function handler(req, res) {
             extractAndSaveMemory({
                 anthropicApiKey, kvUrl, kvToken,
                 memoryKey: `drak:memory:discord:${linkedDiscordId}`,
+                existingMemoryObj: ctx.userMemory,
                 existingSummary: ctx.userMemory?.summary || '',
                 source: 'website',
                 userLabel: 'User',
@@ -173,6 +176,7 @@ export default async function handler(req, res) {
             });
         }
         trackUsage({ kvUrl, kvToken, userKey: wallet });
+        postResponseEvaluate({ anthropicApiKey, kvUrl, kvToken, question: message, reply, toolsUsed });
 
         return res.status(200).json({ reply, tokens: usage?.output_tokens || 0 });
     } catch (err) {

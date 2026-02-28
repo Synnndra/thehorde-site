@@ -4,9 +4,10 @@ import { waitUntil } from '@vercel/functions';
 import { isRateLimitedKV, kvHget } from '../lib/swap-utils.js';
 import { kvGet, kvSet } from '../lib/dao-utils.js';
 import {
-    ORC_SYSTEM_PROMPT, DISCORD_ADDENDUM, DRAK_TOOLS, executeTool,
+    buildSystemPrompt, DISCORD_ADDENDUM, DRAK_TOOLS, executeTool,
     fetchDrakContext, buildLiveContext, runDrakLoop,
-    extractAndSaveMemory, saveToReviewQueue, trackUsage
+    extractAndSaveMemory, saveToReviewQueue, trackUsage,
+    postResponseEvaluate
 } from '../lib/drak-core.js';
 
 export const config = {
@@ -127,9 +128,16 @@ export default async function handler(req, res) {
 
         waitUntil((async () => {
             try {
-                // Fetch context + Discord history + reverse wallet link in parallel
+                const vectorConfig = {
+                    openaiApiKey: process.env.OPENAI_API_KEY,
+                    vectorUrl: process.env.UPSTASH_VECTOR_URL,
+                    vectorToken: process.env.UPSTASH_VECTOR_TOKEN,
+                    anthropicApiKey
+                };
+
+                // Fetch context + Discord history + reverse wallet link in parallel (with auto-RAG)
                 const [ctx, discordHistory, linkedWallet] = await Promise.all([
-                    fetchDrakContext({ kvUrl, kvToken, userMemoryKey: userId ? `drak:memory:discord:${userId}` : null }),
+                    fetchDrakContext({ kvUrl, kvToken, userMemoryKey: userId ? `drak:memory:discord:${userId}` : null, userMessage: question, vectorConfig }),
                     userId ? kvGet(`drak:discord_history:${userId}`, kvUrl, kvToken).catch(() => null) : null,
                     userId ? kvHget('drak:memory:links', userId, kvUrl, kvToken).catch(() => null) : null
                 ]);
@@ -154,9 +162,9 @@ export default async function handler(req, res) {
                     userContextLine: `This question comes from Discord user "${discordUser}" via the /ask-drak slash command.`
                 });
 
-                // System blocks: base prompt (cached) + Discord addendum + live context (cached)
+                // System blocks: dynamic prompt (core + relevant/random lore) + Discord addendum + live context (cached)
                 const systemBlocks = [
-                    { type: 'text', text: ORC_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+                    { type: 'text', text: buildSystemPrompt(question), cache_control: { type: 'ephemeral' } },
                     { type: 'text', text: DISCORD_ADDENDUM }
                 ];
                 if (liveContext) {
@@ -174,16 +182,10 @@ export default async function handler(req, res) {
                 messages.push({ role: 'user', content: question });
 
                 const leaderboardCache = { data: null };
-                const vectorConfig = {
-                    openaiApiKey: process.env.OPENAI_API_KEY,
-                    vectorUrl: process.env.UPSTASH_VECTOR_URL,
-                    vectorToken: process.env.UPSTASH_VECTOR_TOKEN,
-                    anthropicApiKey
-                };
                 const toolExecutor = (name, input) => executeTool(name, input, kvUrl, kvToken, leaderboardCache, vectorConfig);
 
-                const { reply } = await runDrakLoop({
-                    anthropicApiKey, systemBlocks, messages, tools: DRAK_TOOLS, toolExecutor, maxIterations: 3
+                const { reply, toolsUsed } = await runDrakLoop({
+                    anthropicApiKey, systemBlocks, messages, tools: DRAK_TOOLS, toolExecutor, maxIterations: 3, userMessage: question
                 });
 
                 const fullReply = `> ${question}\n\n${reply}`;
@@ -199,12 +201,13 @@ export default async function handler(req, res) {
                     ).catch(() => {});
                 }
 
-                // Fire-and-forget: review queue, memory extraction, usage stats
+                // Fire-and-forget: review queue, memory extraction, usage stats, evaluation
                 if (kvUrl && kvToken) {
                     saveToReviewQueue({ kvUrl, kvToken, question, reply, extraFields: { source: 'discord', discordUser } });
                     extractAndSaveMemory({
                         anthropicApiKey, kvUrl, kvToken,
                         memoryKey: userId ? `drak:memory:discord:${userId}` : null,
+                        existingMemoryObj: ctx.userMemory,
                         existingSummary: ctx.userMemory?.summary || '',
                         source: 'discord',
                         userLabel: `Discord user "${discordUser}"`,
@@ -216,6 +219,7 @@ export default async function handler(req, res) {
                         extractAndSaveMemory({
                             anthropicApiKey, kvUrl, kvToken,
                             memoryKey: `drak:memory:${linkedWallet}`,
+                            existingMemoryObj: ctx.userMemory,
                             existingSummary: ctx.userMemory?.summary || '',
                             source: 'discord',
                             userLabel: `Discord user "${discordUser}"`,
@@ -224,6 +228,7 @@ export default async function handler(req, res) {
                         });
                     }
                     trackUsage({ kvUrl, kvToken, userKey: `discord:${userId || 'unknown'}` });
+                    postResponseEvaluate({ anthropicApiKey, kvUrl, kvToken, question, reply, toolsUsed });
                 }
             } catch (err) {
                 console.error('Discord Drak error:', err);
