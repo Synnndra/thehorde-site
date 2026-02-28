@@ -128,6 +128,7 @@ ART STYLE RULES (match the reference precisely):
 - Simple cartoon/comic proportions — NOT realistic, NOT anime, NOT 3D rendered
 - DO NOT use a plain solid-color background — place the character in a detailed SCENE that fits the image idea
 - Background should be a full illustrated environment (medieval tavern, battlefield, treasure vault, forest, castle walls, etc.) drawn in the same hand-drawn ink style
+- The illustration MUST fill the ENTIRE canvas edge-to-edge — NO borders, margins, padding, or white space around the edges
 - Underground comic / zine illustration feel — raw, not polished
 
 DO NOT: add realistic rendering, gradients, glow effects, dramatic lighting, cel-shading, 3D depth, or photorealistic elements. The result must look hand-drawn by the same artist as the reference. No text, watermarks, or logos.` }
@@ -137,12 +138,12 @@ DO NOT: add realistic rendering, gradients, glow effects, dramatic lighting, cel
                 }
             } else {
                 parts = [
-                    { text: `Generate a 16:9 image in the MidEvils NFT art style — hand-drawn line art with visible ink outlines, flat colors, minimal shading, muted gray-green tones, modern streetwear aesthetic. Whimsical and irreverent, not dark fantasy. Subject: ${imageIdea}. No text, watermarks, or logos.` }
+                    { text: `Generate a 16:9 image in the MidEvils NFT art style — hand-drawn line art with visible ink outlines, flat colors, minimal shading, muted gray-green tones, modern streetwear aesthetic. Whimsical and irreverent, not dark fantasy. The illustration must fill the ENTIRE canvas edge-to-edge with NO borders, margins, or white space. Subject: ${imageIdea}. No text, watermarks, or logos.` }
                 ];
             }
         } else {
             parts = [
-                { text: `Generate a 16:9 image: ${imageIdea}. Dark fantasy style, rich colors, dramatic lighting. No text or watermarks.` }
+                { text: `Generate a 16:9 image: ${imageIdea}. Dark fantasy style, rich colors, dramatic lighting. The illustration must fill the ENTIRE canvas edge-to-edge with NO borders, margins, or white space. No text or watermarks.` }
             ];
         }
 
