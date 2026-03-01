@@ -7,6 +7,16 @@ import { generateDraftId, searchRecentTweets } from '../../lib/x-utils.js';
 
 export const config = { maxDuration: 30 };
 
+// Word-overlap similarity (0-1). Normalizes text before comparing.
+function textSimilarity(a, b) {
+    const normalize = s => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2);
+    const wordsA = normalize(a);
+    const wordsB = new Set(normalize(b));
+    if (wordsA.length === 0 || wordsB.size === 0) return 0;
+    const overlap = wordsA.filter(w => wordsB.has(w)).length;
+    return overlap / Math.max(wordsA.length, wordsB.size);
+}
+
 const ORC_COLLECTION = 'w44WvLKRdLGye2ghhDJBxcmnWpBo31A1tCBko2G6DgW';
 const ORC_KEYWORDS = /\b(orc|orcs|horde|warrior|warriors|battle|drak|midevils|midevil|medieval|axe|sword|shield|warchief|fortress|stronghold|tusks|war paint)\b/i;
 
@@ -434,8 +444,15 @@ export default async function handler(req, res) {
             console.error('X research failed (non-fatal):', err.message);
         }
 
-        // Build user message
-        let userMessage = 'Compose a tweet for The Horde.';
+        // Build user message with time-of-day context
+        const pstNow = new Date(Date.now() - 8 * 60 * 60 * 1000);
+        const pstHourNow = pstNow.getUTCHours();
+        const timeSlot = pstHourNow < 12 ? 'morning' : 'evening';
+        const timeHint = timeSlot === 'morning'
+            ? 'This is the MORNING tweet — set the tone for the day. Energy, rallying cries, looking forward.'
+            : 'This is the EVENING tweet — reflect on the day, hype what happened, or drop a philosophical one-liner.';
+
+        let userMessage = `Compose a tweet for The Horde.\n${timeHint}`;
         if (topic) {
             userMessage += ` Topic: ${String(topic).slice(0, 200)}`;
         }
@@ -509,6 +526,26 @@ export default async function handler(req, res) {
 
         if (!tweetText) {
             return res.status(500).json({ error: 'Generated tweet empty' });
+        }
+
+        // Hard dedup check — reject if too similar to a recent draft (last 12 hours)
+        if (recentDrafts && Object.keys(recentDrafts).length > 0) {
+            const cutoff = Date.now() - 12 * 60 * 60 * 1000;
+            const recent = Object.values(recentDrafts)
+                .filter(d => d.text && d.createdAt && d.createdAt > cutoff);
+            for (const d of recent) {
+                const sim = textSimilarity(tweetText, d.text);
+                if (sim > 0.7) {
+                    console.error(`Dedup: skipped draft (${(sim * 100).toFixed(0)}% similar to ${d.id})`);
+                    return res.status(200).json({
+                        skipped: true,
+                        reason: `Too similar to recent draft ${d.id} (${(sim * 100).toFixed(0)}% overlap)`,
+                        similarity: sim,
+                        existingDraft: d.text.slice(0, 200),
+                        generatedText: tweetText.slice(0, 200)
+                    });
+                }
+            }
         }
 
         // Generate image with Gemini (non-fatal)
