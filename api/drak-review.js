@@ -1,5 +1,5 @@
 // Vercel Serverless Function — Drak Correction Detection (Cron: every 12h)
-// Scans queued Drak exchanges for user corrections/disagreements, saves to drak:corrections for admin review.
+// Scans queued Drak exchanges for user corrections/disagreements AND contradictions against KB facts.
 import { timingSafeEqual, randomBytes } from 'crypto';
 import Anthropic from '@anthropic-ai/sdk';
 import { kvHgetall, kvDelete, kvHset } from '../lib/swap-utils.js';
@@ -8,6 +8,12 @@ const CORRECTIONS_KEY = 'drak:corrections';
 const MIN_EXCHANGES = 1; // minimum queued exchanges to bother scanning
 
 export const config = { maxDuration: 30 };
+
+function parseHaikuJson(text) {
+    let cleaned = (text || '').trim();
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
+    return JSON.parse(cleaned);
+}
 
 export default async function handler(req, res) {
     if (req.method !== 'GET' && req.method !== 'POST') {
@@ -33,8 +39,11 @@ export default async function handler(req, res) {
         return res.status(503).json({ error: 'Missing env vars' });
     }
 
-    // 1. Read all queued exchanges
-    const queue = await kvHgetall('drak:review_queue', kvUrl, kvToken);
+    // 1. Read queued exchanges + KB facts in parallel
+    const [queue, kbFacts] = await Promise.all([
+        kvHgetall('drak:review_queue', kvUrl, kvToken),
+        kvHgetall('drak:knowledge', kvUrl, kvToken).catch(() => null)
+    ]);
     const entries = Object.values(queue);
 
     if (entries.length < MIN_EXCHANGES) {
@@ -46,9 +55,19 @@ export default async function handler(req, res) {
         `[${i + 1}] User (${e.wallet?.slice(0, 8) || 'unknown'}): ${e.userMsg}\nDrak: ${e.drakReply}`
     )).join('\n\n');
 
-    // 3. Send to Haiku for classification
+    // 3. Build KB facts string for contradiction check (text only, cap at 3000 chars)
+    let factsText = '';
+    if (kbFacts && Object.keys(kbFacts).length > 0) {
+        const facts = Object.values(kbFacts)
+            .filter(f => f.text)
+            .map(f => `- [${f.category || 'general'}] ${f.text}`);
+        factsText = facts.join('\n').slice(0, 3000);
+    }
+
+    // 4. Run both checks in parallel
     const client = new Anthropic({ apiKey: anthropicApiKey });
-    const classification = await client.messages.create({
+
+    const correctionPromise = client.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
         messages: [{
@@ -81,34 +100,86 @@ Return ONLY the JSON array, no other text.`
         }]
     });
 
-    let flagged = [];
+    // Only run fact-check if we have KB facts
+    const contradictionPromise = factsText ? client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        messages: [{
+            role: 'user',
+            content: `You are a fact-checker for an AI assistant called "Drak" (an orc advisor for the MidEvils NFT community). Below are KNOWN FACTS from the admin knowledge base, followed by recent Drak responses. Your job is to flag any Drak response that CONTRADICTS a known fact.
+
+KNOWN FACTS:
+${factsText}
+
+DRAK RESPONSES TO CHECK:
+${exchangeList}
+
+Flag responses where Drak states something that directly contradicts a known fact above. Be strict — only flag clear factual contradictions, not differences in tone or phrasing.
+
+Do NOT flag:
+- Drak saying "I don't know" (that's fine)
+- Opinions or advice (subjective, not factual)
+- Information that isn't covered by the known facts
+- Minor wording differences that don't change the meaning
+
+Return a JSON array. For each contradiction, include:
+- "index": the exchange number (1-based)
+- "reason": what Drak said wrong and which fact it contradicts
+
+If no contradictions found, return an empty array: []
+
+Return ONLY the JSON array, no other text.`
+        }]
+    }) : Promise.resolve(null);
+
+    const [correctionResult, contradictionResult] = await Promise.all([
+        correctionPromise, contradictionPromise
+    ]);
+
+    // 5. Parse results
+    let userFlagged = [];
     try {
-        let text = classification.content[0]?.text?.trim() || '[]';
-        // Strip markdown code fences if Haiku wraps the JSON
-        text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
-        flagged = JSON.parse(text);
+        userFlagged = parseHaikuJson(correctionResult.content[0]?.text);
     } catch {
-        console.error('Failed to parse Haiku response:', classification.content[0]?.text);
-        // Don't clear queue — let next cron run retry instead of losing data
-        return res.status(200).json({ status: 'parse_error', raw: classification.content[0]?.text });
+        console.error('Failed to parse correction response:', correctionResult.content[0]?.text);
     }
 
-    // 4. Clear the queue
+    let factFlagged = [];
+    if (contradictionResult) {
+        try {
+            factFlagged = parseHaikuJson(contradictionResult.content[0]?.text);
+        } catch {
+            console.error('Failed to parse contradiction response:', contradictionResult.content[0]?.text);
+        }
+    }
+
+    if (!Array.isArray(userFlagged)) userFlagged = [];
+    if (!Array.isArray(factFlagged)) factFlagged = [];
+
+    const totalFlagged = userFlagged.length + factFlagged.length;
+
+    // If both parses failed completely, don't clear queue
+    if (correctionResult.content[0]?.text && !userFlagged.length && !factFlagged.length) {
+        // Parsed successfully but found nothing — that's fine, clear queue
+    }
+
+    // 6. Clear the queue
     await kvDelete('drak:review_queue', kvUrl, kvToken).catch(() => {});
 
-    if (!Array.isArray(flagged) || flagged.length === 0) {
+    if (totalFlagged === 0) {
         return res.status(200).json({ status: 'clean', scanned: entries.length, flagged: 0 });
     }
 
-    // 5. Save flagged corrections to KV for admin review
+    // 7. Save flagged items to KV for admin review
     let saved = 0;
-    for (const f of flagged.slice(0, 10)) {
+
+    for (const f of userFlagged.slice(0, 10)) {
         const entry = entries[f.index - 1];
         if (!entry) continue;
-
         const id = 'corr_' + randomBytes(8).toString('hex');
         await kvHset(CORRECTIONS_KEY, id, {
             id,
+            type: 'user_correction',
             userMsg: entry.userMsg,
             drakReply: entry.drakReply,
             wallet: entry.wallet || null,
@@ -118,5 +189,27 @@ Return ONLY the JSON array, no other text.`
         saved++;
     }
 
-    return res.status(200).json({ status: 'saved', scanned: entries.length, flagged: flagged.length, saved });
+    for (const f of factFlagged.slice(0, 10)) {
+        const entry = entries[f.index - 1];
+        if (!entry) continue;
+        const id = 'corr_' + randomBytes(8).toString('hex');
+        await kvHset(CORRECTIONS_KEY, id, {
+            id,
+            type: 'fact_contradiction',
+            userMsg: entry.userMsg,
+            drakReply: entry.drakReply,
+            wallet: entry.wallet || null,
+            reason: f.reason,
+            flaggedAt: Date.now()
+        }, kvUrl, kvToken);
+        saved++;
+    }
+
+    return res.status(200).json({
+        status: 'saved',
+        scanned: entries.length,
+        userCorrections: userFlagged.length,
+        factContradictions: factFlagged.length,
+        saved
+    });
 }
