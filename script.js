@@ -1,22 +1,6 @@
 // The Horde - MidEvils DAO
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Handle "Coming Soon" buttons
-    const comingSoonBtns = document.querySelectorAll('.coming-soon');
-
-    comingSoonBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-
-            // Add a shake animation
-            btn.style.animation = 'shake 0.5s ease';
-
-            setTimeout(() => {
-                btn.style.animation = '';
-            }, 500);
-        });
-    });
-
     // Add subtle parallax effect to background
     document.addEventListener('mousemove', (e) => {
         const moveX = (e.clientX - window.innerWidth / 2) * 0.01;
@@ -292,14 +276,6 @@ function renderXBtn(btn) {
 // Add shake animation + portal entrance styles dynamically
 const style = document.createElement('style');
 style.textContent = `
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        20% { transform: translateX(-5px); }
-        40% { transform: translateX(5px); }
-        60% { transform: translateX(-5px); }
-        80% { transform: translateX(5px); }
-    }
-
     .portal-btn {
         transition: opacity 0.6s ease, transform 0.6s ease, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     }
@@ -311,10 +287,6 @@ style.textContent = `
 
     .portal-btn.visible:hover {
         transform: translateY(-6px) !important;
-    }
-
-    .coming-soon.visible:hover {
-        transform: translateY(0) !important;
     }
 `;
 document.head.appendChild(style);
